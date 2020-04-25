@@ -1,0 +1,13 @@
+name = "HDGElasticity"
+uuid = "439c2181-8417-414b-b2bb-513c799fd0f9"
+authors = ["Arjun Narayanan"]
+version = "0.1.0"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
