@@ -1,15 +1,17 @@
-struct LocalHybridCoupling
-    LUhat::Matrix
-    UUhat::Matrix
+struct LocalHybridCoupling{T}
+    LUhat::Vector{Matrix{T}}
+    UUhat::Vector{Matrix{T}}
+    UhatUhat::Matrix{T}
 end
 
-function ALUhat_face1(basis::TensorProductBasis{dim1,T1,NF1},
-    surface_basis::TensorProductBasis{dim2,T2,NF2},
+function ALUhat_face1(basis::TensorProductBasis{2,T1,NF1},
+    surface_basis::TensorProductBasis{1,T2,NF2},
     surface_quad::ReferenceQuadratureRule,Dhalf::Matrix,
     jac::AffineMapJacobian,
-    sdim) where {dim1,T1,NF1,dim2,T2,NF2}
+    sdim) where {T1,NF1,T2,NF2}
 
-    @assert dim1 == dim2+1
+    dim1 = 2
+    dim2 = 1
 
     dim = dim1
     Ek = vec_to_symm_mat_converter(dim)
@@ -31,13 +33,14 @@ function ALUhat_face1(basis::TensorProductBasis{dim1,T1,NF1},
     return ALUhat
 end
 
-function ALUhat_face2(basis::TensorProductBasis{dim1,T1,NF1},
-    surface_basis::TensorProductBasis{dim2,T2,NF2},
+function ALUhat_face2(basis::TensorProductBasis{2,T1,NF1},
+    surface_basis::TensorProductBasis{1,T2,NF2},
     surface_quad::ReferenceQuadratureRule,Dhalf::Matrix,
     jac::AffineMapJacobian,
-    sdim) where {dim1,T1,NF1,dim2,T2,NF2}
+    sdim) where {T1,NF1,T2,NF2}
 
-    @assert dim1 == dim2+1
+    dim1 = 2
+    dim2 = 1
 
     dim = dim1
     Ek = vec_to_symm_mat_converter(dim)
@@ -59,13 +62,14 @@ function ALUhat_face2(basis::TensorProductBasis{dim1,T1,NF1},
     return ALUhat
 end
 
-function ALUhat_face3(basis::TensorProductBasis{dim1,T1,NF1},
-    surface_basis::TensorProductBasis{dim2,T2,NF2},
+function ALUhat_face3(basis::TensorProductBasis{2,T1,NF1},
+    surface_basis::TensorProductBasis{1,T2,NF2},
     surface_quad::ReferenceQuadratureRule,Dhalf::Matrix,
     jac::AffineMapJacobian,
-    sdim) where {dim1,T1,NF1,dim2,T2,NF2}
+    sdim) where {T1,NF1,T2,NF2}
 
-    @assert dim1 == dim2+1
+    dim1 = 2
+    dim2 = 1
 
     dim = dim1
     Ek = vec_to_symm_mat_converter(dim)
@@ -87,13 +91,14 @@ function ALUhat_face3(basis::TensorProductBasis{dim1,T1,NF1},
     return ALUhat
 end
 
-function ALUhat_face4(basis::TensorProductBasis{dim1,T1,NF1},
-    surface_basis::TensorProductBasis{dim2,T2,NF2},
+function ALUhat_face4(basis::TensorProductBasis{2,T1,NF1},
+    surface_basis::TensorProductBasis{1,T2,NF2},
     surface_quad::ReferenceQuadratureRule,Dhalf::Matrix,
     jac::AffineMapJacobian,
-    sdim) where {dim1,T1,NF1,dim2,T2,NF2}
+    sdim) where {T1,NF1,T2,NF2}
 
-    @assert dim1 == dim2+1
+    dim1 = 2
+    dim2 = 1
 
     dim = dim1
     Ek = vec_to_symm_mat_converter(dim)
@@ -115,16 +120,131 @@ function ALUhat_face4(basis::TensorProductBasis{dim1,T1,NF1},
     return ALUhat
 end
 
-function get_ALUhat(basis::TensorProductBasis{dim1,T1,NF1},
-    surface_basis::TensorProductBasis{dim2,T2,NF2},
-    surface_quad::ReferenceQuadratureRule,Dhalf::Matrix,
-    jac::AffineMapJacobian) where {dim1,T1,NF1,dim2,T2,NF2}
+function get_ALUhat(basis,surface_basis,surface_quad,Dhalf,jac)
 
-    sdim = symmetric_tensor_dim(dim1)
+    sdim = symmetric_tensor_dim(2)
 
     ALUhat = [ALUhat_face1(basis,surface_basis,surface_quad,Dhalf,jac,sdim),
               ALUhat_face2(basis,surface_basis,surface_quad,Dhalf,jac,sdim),
               ALUhat_face3(basis,surface_basis,surface_quad,Dhalf,jac,sdim),
               ALUhat_face4(basis,surface_basis,surface_quad,Dhalf,jac,sdim)]
     return ALUhat
+end
+
+function AUUhat_face1(basis::TensorProductBasis{2,T1,NF1},
+    surface_basis::TensorProductBasis{1,T2,NF2},
+    surface_quad::ReferenceQuadratureRule,tau,jac::AffineMapJacobian) where {T1,NF1,T2,NF2}
+
+    dim = 2
+
+    AUUhat = zeros(dim*NF1,dim*NF2)
+    J = jac.jac[1]
+
+    for (p,w) in surface_quad
+        vals = basis(p,-1.0)
+        svals = surface_basis(p)
+
+        N = interpolation_matrix(vals,dim)
+        Ntau = tau*interpolation_matrix(svals,dim)
+
+        AUUhat += -N'*Ntau*J*w
+    end
+    return AUUhat
+end
+
+function AUUhat_face2(basis::TensorProductBasis{2,T1,NF1},
+    surface_basis::TensorProductBasis{1,T2,NF2},
+    surface_quad::ReferenceQuadratureRule,tau,jac::AffineMapJacobian) where {T1,NF1,T2,NF2}
+
+    dim = 2
+
+    AUUhat = zeros(dim*NF1,dim*NF2)
+    J = jac.jac[2]
+
+    for (p,w) in surface_quad
+        vals = basis(1.0,p)
+        svals = surface_basis(p)
+
+        N = interpolation_matrix(vals,dim)
+        Ntau = tau*interpolation_matrix(svals,dim)
+
+        AUUhat += -N'*Ntau*J*w
+    end
+    return AUUhat
+end
+
+function AUUhat_face3(basis::TensorProductBasis{2,T1,NF1},
+    surface_basis::TensorProductBasis{1,T2,NF2},
+    surface_quad::ReferenceQuadratureRule,tau,jac::AffineMapJacobian) where {T1,NF1,T2,NF2}
+
+    dim = 2
+
+    AUUhat = zeros(dim*NF1,dim*NF2)
+    J = jac.jac[1]
+
+    for (p,w) in surface_quad
+        vals = basis(p,1.0)
+        svals = surface_basis(p)
+
+        N = interpolation_matrix(vals,dim)
+        Ntau = tau*interpolation_matrix(svals,dim)
+
+        AUUhat += -N'*Ntau*J*w
+    end
+    return AUUhat
+end
+
+function AUUhat_face4(basis::TensorProductBasis{2,T1,NF1},
+    surface_basis::TensorProductBasis{1,T2,NF2},
+    surface_quad::ReferenceQuadratureRule,tau,jac::AffineMapJacobian) where {T1,NF1,T2,NF2}
+
+    dim = 2
+
+    AUUhat = zeros(dim*NF1,dim*NF2)
+    J = jac.jac[2]
+
+    for (p,w) in surface_quad
+        vals = basis(-1.0,p)
+        svals = surface_basis(p)
+
+        N = interpolation_matrix(vals,dim)
+        Ntau = tau*interpolation_matrix(svals,dim)
+
+        AUUhat += -N'*Ntau*J*w
+    end
+    return AUUhat
+end
+
+function get_AUUhat(basis,surface_basis,surface_quad,tau,jac)
+    AUUhat = [AUUhat_face1(basis,surface_basis,surface_quad,tau,jac),
+              AUUhat_face2(basis,surface_basis,surface_quad,tau,jac),
+              AUUhat_face3(basis,surface_basis,surface_quad,tau,jac),
+              AUUhat_face4(basis,surface_basis,surface_quad,tau,jac)]
+    return AUUhat
+end
+
+function get_AUhatUhat(surface_basis::TensorProductBasis{1,T,NF},
+    surface_quad::ReferenceQuadratureRule,tau,jac::AffineMapJacobian) where {T,NF}
+
+    dim = 2
+    AUhatUhat = zeros(dim*NF,dim*NF)
+    J = jac.jac[1]
+
+    for (p,w) in surface_quad
+        svals = surface_basis(p)
+
+        N = interpolation_matrix(svals,dim)
+
+        AUhatUhat += -N'*tau*N*J*w
+    end
+    return AUhatUhat
+end
+
+
+function LocalHybridCoupling(basis,surface_basis,surface_quad,mesh,Dhalf,tau)
+    jac = AffineMapJacobian(mesh)
+    LUhat = get_ALUhat(basis,surface_basis,surface_quad,Dhalf,jac)
+    UUhat = get_AUUhat(basis,surface_basis,surface_quad,tau,jac)
+    UhatUhat = get_AUhatUhat(surface_basis,surface_quad,tau,jac)
+    return LocalHybridCoupling(LUhat,UUhat,UhatUhat)
 end

@@ -2,6 +2,21 @@ struct LocalOperator{T}
     LL::Matrix{T}
     LU::Matrix{T}
     UU::Matrix{T}
+    lop::Matrix{T}
+    function LocalOperator(LL::Matrix{T},LU::Matrix{T},UU::Matrix{T}) where {T}
+        llm,lln = size(LL)
+        lum,lun = size(LU)
+        uum,uun = size(UU)
+        @assert llm == lln
+        @assert uum == uun
+        @assert llm == lum
+        @assert lun == uum
+
+        lop = [LL   LU
+               LU'  UU]
+
+        new{T}(LL,LU,UU,lop)
+    end
 end
 
 function jacobian(mesh::UniformMesh{2})
@@ -138,7 +153,7 @@ function LocalOperator(basis::TensorProductBasis{dim},quad::TensorProductQuadrat
     return LocalOperator(ALL,ALU,AUU)
 end
 
-function LocalOperator(basis,quad,mesh::UniformMesh,Dhalf,tau)
+function LocalOperator(basis,quad,mesh,Dhalf,tau)
     jac = AffineMapJacobian(mesh)
     return LocalOperator(basis,quad,Dhalf,jac,tau)
 end
