@@ -6,7 +6,7 @@ end
 
 function ALUhat_face1(basis::TensorProductBasis{2,T1,NF1},
     surface_basis::TensorProductBasis{1,T2,NF2},
-    surface_quad::ReferenceQuadratureRule,Dhalf::Matrix,
+    surface_quad::ReferenceQuadratureRule,Dhalf::AbstractMatrix,
     jac::AffineMapJacobian,
     sdim) where {T1,NF1,T2,NF2}
 
@@ -35,7 +35,7 @@ end
 
 function ALUhat_face2(basis::TensorProductBasis{2,T1,NF1},
     surface_basis::TensorProductBasis{1,T2,NF2},
-    surface_quad::ReferenceQuadratureRule,Dhalf::Matrix,
+    surface_quad::ReferenceQuadratureRule,Dhalf::AbstractMatrix,
     jac::AffineMapJacobian,
     sdim) where {T1,NF1,T2,NF2}
 
@@ -64,7 +64,7 @@ end
 
 function ALUhat_face3(basis::TensorProductBasis{2,T1,NF1},
     surface_basis::TensorProductBasis{1,T2,NF2},
-    surface_quad::ReferenceQuadratureRule,Dhalf::Matrix,
+    surface_quad::ReferenceQuadratureRule,Dhalf::AbstractMatrix,
     jac::AffineMapJacobian,
     sdim) where {T1,NF1,T2,NF2}
 
@@ -93,7 +93,7 @@ end
 
 function ALUhat_face4(basis::TensorProductBasis{2,T1,NF1},
     surface_basis::TensorProductBasis{1,T2,NF2},
-    surface_quad::ReferenceQuadratureRule,Dhalf::Matrix,
+    surface_quad::ReferenceQuadratureRule,Dhalf::AbstractMatrix,
     jac::AffineMapJacobian,
     sdim) where {T1,NF1,T2,NF2}
 

@@ -2,7 +2,7 @@ struct LocalOperator{T}
     LL::Matrix{T}
     LU::Matrix{T}
     UU::Matrix{T}
-    lop::Matrix{T}
+    local_operator::Matrix{T}
     function LocalOperator(LL::Matrix{T},LU::Matrix{T},UU::Matrix{T}) where {T}
         llm,lln = size(LL)
         lum,lun = size(LU)
@@ -103,7 +103,7 @@ function get_LMass(basis::TensorProductBasis{dim,T,NF},
 end
 
 function get_LUStiffness(basis::TensorProductBasis{dim,T,NF},
-    quad::TensorProductQuadratureRule,Dhalf::Matrix,jac::AffineMapJacobian,sdim) where {dim,T,NF}
+    quad::TensorProductQuadratureRule,Dhalf::AbstractMatrix,jac::AffineMapJacobian,sdim) where {dim,T,NF}
 
     m,n = size(Dhalf)
     @assert m == n && m == sdim
@@ -143,7 +143,7 @@ function get_UMass(basis::TensorProductBasis{dim,T,NF},
 end
 
 function LocalOperator(basis::TensorProductBasis{dim},quad::TensorProductQuadratureRule{dim},
-    Dhalf::Matrix,jac::AffineMapJacobian,tau) where {dim}
+    Dhalf,jac::AffineMapJacobian,tau) where {dim}
 
     sdim = symmetric_tensor_dim(dim)
 
