@@ -26,6 +26,27 @@ function update!(matrix::SystemMatrix,rows,cols,vals)
     append!(matrix.vals,vals)
 end
 
+struct SystemRHS{T}
+    rows::Vector{Int64}
+    vals::Vector{T}
+    function SystemRHS(rows::Vector{Int64},vals::Vector{T}) where {T}
+        @assert length(rows) == length(vals)
+        new{T}(rows,vals)
+    end
+end
+
+function SystemRHS()
+    rows = Int[]
+    vals = Float64[]
+    return SystemRHS(rows,vals)
+end
+
+function update!(rhs::SystemRHS,rows,vals)
+    @assert length(rows) == length(vals)
+    append!(rhs.rows,rows)
+    append!(rhs.vals,vals)
+end
+
 function SystemMatrix()
     rows = Int64[]
     cols = Int64[]
