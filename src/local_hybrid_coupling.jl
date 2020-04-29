@@ -1,7 +1,33 @@
+function check_all_matrix_sizes(a::Vector{Matrix{T}}) where {T}
+    @assert length(a) > 0
+    m,n = size(a[1])
+    for matrix in a
+        @assert size(matrix) == (m,n)
+    end
+end
+
 struct LocalHybridCoupling{T}
     LUhat::Vector{Matrix{T}}
     UUhat::Vector{Matrix{T}}
     UhatUhat::Matrix{T}
+    local_hybrid_operator::Vector{Matrix{T}}
+    function LocalHybridCoupling(LUhat::Vector{Matrix{T}},
+        UUhat::Vector{Matrix{T}},UhatUhat::Matrix{T}) where {T}
+
+        check_all_matrix_sizes(LUhat)
+        check_all_matrix_sizes(UUhat)
+
+        nh = size(UhatUhat)[2]
+        @assert all([size(m)[2] == nh for m in LUhat])
+        @assert all([size(m)[2] == nh for m in UUhat])
+
+        nfaces = length(LUhat)
+        @assert length(UUhat) == nfaces
+
+        local_hybrid_operator = [[LUhat[i];UUhat[i]] for i = 1:nfaces]
+
+        new{T}(LUhat,UUhat,UhatUhat,local_hybrid_operator)
+    end
 end
 
 function ALUhat_face1(basis::TensorProductBasis{2,T1,NF1},
@@ -235,7 +261,7 @@ function get_AUhatUhat(surface_basis::TensorProductBasis{1,T,NF},
 
         N = interpolation_matrix(svals,dim)
 
-        AUhatUhat += -N'*tau*N*J*w
+        AUhatUhat += N'*tau*N*J*w
     end
     return AUhatUhat
 end
