@@ -72,6 +72,20 @@ function element_dofs(elid,dim,sdim,NF)
     return element_dof_start(elid,dim,sdim,NF):element_dof_stop(elid,dim,sdim,NF)
 end
 
+function element_stress_dofs(elid,dim,sdim,NF)
+    dofs = Int[]
+
+    start = element_dof_start(elid,dim,sdim,NF)
+    stop = start+sdim-1
+    step = dim+sdim
+    for F in 1:NF
+        append!(dofs,start:stop)
+        start = start+step
+        stop = start+sdim-1
+    end
+    return dofs
+end
+
 function element_dofs_to_operator_dofs(row_dofs,col_dofs)
     lr = length(row_dofs)
     lc = length(col_dofs)

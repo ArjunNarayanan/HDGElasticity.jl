@@ -97,7 +97,7 @@ function get_LMass(basis::TensorProductBasis{dim,T,NF},
     for (p,w) in quad
         vals = basis(p)
         M = interpolation_matrix(vals,sdim)
-        ALL += -1.0*M'*M*jac.detjac*w
+        ALL += M'*M*jac.detjac*w
     end
     return ALL
 end
@@ -127,33 +127,67 @@ function get_LUStiffness(basis::TensorProductBasis{dim,T,NF},
     return ALU
 end
 
-function get_UMass(basis::TensorProductBasis{dim,T,NF},
-    quad::TensorProductQuadratureRule,jac::AffineMapJacobian,tau::Float64) where {dim,T,NF}
+# function get_UMass(basis::TensorProductBasis{dim,T,NF},
+#     quad::TensorProductQuadratureRule,jac::AffineMapJacobian,tau::Float64) where {dim,T,NF}
+#
+#     nudofs = dim*NF
+#     AUU = zeros(nudofs,nudofs)
+#
+#     for (p,w) in quad
+#         vals = basis(p)
+#         N = interpolation_matrix(vals,dim)
+#         Ntau = tau*N
+#         AUU += N'*Ntau*jac.detjac*w
+#     end
+#     return AUU
+# end
 
+function get_UMass(basis::TensorProductBasis{2,T,NF},
+    surface_quad::ReferenceQuadratureRule,
+    jac::AffineMapJacobian,tau::Float64) where {T,NF}
+
+    dim = 2
     nudofs = dim*NF
     AUU = zeros(nudofs,nudofs)
 
-    for (p,w) in quad
-        vals = basis(p)
+    for (p,w) in surface_quad
+        vals = basis(p,-1.0)
         N = interpolation_matrix(vals,dim)
         Ntau = tau*N
-        AUU += N'*Ntau*jac.detjac*w
+        AUU += N'*Ntau*jac.jac[1]*w
+
+        vals = basis(1.0,p)
+        N = interpolation_matrix(vals,dim)
+        Ntau = tau*N
+        AUU += N'*Ntau*jac.jac[2]*w
+
+        vals = basis(p,1.0)
+        N = interpolation_matrix(vals,dim)
+        Ntau = tau*N
+        AUU += N'*Ntau*jac.jac[1]*w
+
+        vals = basis(-1.0,p)
+        N = interpolation_matrix(vals,dim)
+        Ntau = tau*N
+        AUU += N'*Ntau*jac.jac[2]*w
     end
     return AUU
 end
 
-function LocalOperator(basis::TensorProductBasis{dim},quad::TensorProductQuadratureRule{dim},
+function LocalOperator(basis::TensorProductBasis{dim},
+    quad::TensorProductQuadratureRule{dim},
+    surface_quad::ReferenceQuadratureRule,
     Dhalf,jac::AffineMapJacobian,tau) where {dim}
 
     sdim = symmetric_tensor_dim(dim)
 
-    ALL = get_LMass(basis,quad,jac,sdim)
+    ALL = -1.0*get_LMass(basis,quad,jac,sdim)
     ALU = get_LUStiffness(basis,quad,Dhalf,jac,sdim)
-    AUU = get_UMass(basis,quad,jac,tau)
+    AUU = get_UMass(basis,surface_quad,jac,tau)
     return LocalOperator(ALL,ALU,AUU)
 end
 
-function LocalOperator(basis,quad,mesh,Dhalf,tau)
+function LocalOperator(basis,quad,surface_quad,mesh,Dhalf,tau)
     jac = AffineMapJacobian(mesh)
-    return LocalOperator(basis,quad,Dhalf,jac,tau)
+    return LocalOperator(basis,quad,surface_quad,Dhalf,jac,tau)
 end
