@@ -17,7 +17,7 @@ function normal_basis_projection(vals::SVector{N,T},direction::Vector{T}) where 
 end
 
 function displacement_component_operator(surface_basis::TensorProductBasis{1,T,NF},
-    surface_quad::ReferenceQuadratureRule,direction::Vector{S},jac::Float64,penalty::Float64) where {T,NF,S}
+    surface_quad::TensorProductQuadratureRule{1},direction::Vector{S},jac::Float64,penalty::Float64) where {T,NF,S}
 
     dim = 2
     bc_op = zeros(dim*NF,dim*NF)
@@ -33,7 +33,7 @@ function displacement_component_operator(surface_basis::TensorProductBasis{1,T,N
 end
 
 function displacement_component_rhs(surface_basis::TensorProductBasis{1,T,NF},
-    surface_quad::ReferenceQuadratureRule,displacement::Float64,direction::Vector{S},
+    surface_quad::TensorProductQuadratureRule{1},displacement::Float64,direction::Vector{S},
     jac::Float64,penalty::Float64) where {T,NF,S}
 
     dim = 2

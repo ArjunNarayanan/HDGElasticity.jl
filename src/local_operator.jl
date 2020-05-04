@@ -127,23 +127,8 @@ function get_LUStiffness(basis::TensorProductBasis{dim,T,NF},
     return ALU
 end
 
-# function get_UMass(basis::TensorProductBasis{dim,T,NF},
-#     quad::TensorProductQuadratureRule,jac::AffineMapJacobian,tau::Float64) where {dim,T,NF}
-#
-#     nudofs = dim*NF
-#     AUU = zeros(nudofs,nudofs)
-#
-#     for (p,w) in quad
-#         vals = basis(p)
-#         N = interpolation_matrix(vals,dim)
-#         Ntau = tau*N
-#         AUU += N'*Ntau*jac.detjac*w
-#     end
-#     return AUU
-# end
-
 function get_UMass(basis::TensorProductBasis{2,T,NF},
-    surface_quad::ReferenceQuadratureRule,
+    surface_quad::TensorProductQuadratureRule{1},
     jac::AffineMapJacobian,tau::Float64) where {T,NF}
 
     dim = 2
@@ -176,7 +161,7 @@ end
 
 function LocalOperator(basis::TensorProductBasis{dim},
     quad::TensorProductQuadratureRule{dim},
-    surface_quad::ReferenceQuadratureRule,
+    surface_quad::TensorProductQuadratureRule{1},
     Dhalf,jac::AffineMapJacobian,tau) where {dim}
 
     sdim = symmetric_tensor_dim(dim)

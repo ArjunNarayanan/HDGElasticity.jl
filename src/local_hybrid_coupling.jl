@@ -32,7 +32,7 @@ end
 
 function ALUhat_face1(basis::TensorProductBasis{2,T1,NF1},
     surface_basis::TensorProductBasis{1,T2,NF2},
-    surface_quad::ReferenceQuadratureRule,Dhalf::AbstractMatrix,
+    surface_quad::TensorProductQuadratureRule{1},Dhalf::AbstractMatrix,
     jac::AffineMapJacobian,
     sdim) where {T1,NF1,T2,NF2}
 
@@ -61,7 +61,7 @@ end
 
 function ALUhat_face2(basis::TensorProductBasis{2,T1,NF1},
     surface_basis::TensorProductBasis{1,T2,NF2},
-    surface_quad::ReferenceQuadratureRule,Dhalf::AbstractMatrix,
+    surface_quad::TensorProductQuadratureRule{1},Dhalf::AbstractMatrix,
     jac::AffineMapJacobian,
     sdim) where {T1,NF1,T2,NF2}
 
@@ -90,7 +90,7 @@ end
 
 function ALUhat_face3(basis::TensorProductBasis{2,T1,NF1},
     surface_basis::TensorProductBasis{1,T2,NF2},
-    surface_quad::ReferenceQuadratureRule,Dhalf::AbstractMatrix,
+    surface_quad::TensorProductQuadratureRule{1},Dhalf::AbstractMatrix,
     jac::AffineMapJacobian,
     sdim) where {T1,NF1,T2,NF2}
 
@@ -119,7 +119,7 @@ end
 
 function ALUhat_face4(basis::TensorProductBasis{2,T1,NF1},
     surface_basis::TensorProductBasis{1,T2,NF2},
-    surface_quad::ReferenceQuadratureRule,Dhalf::AbstractMatrix,
+    surface_quad::TensorProductQuadratureRule{1},Dhalf::AbstractMatrix,
     jac::AffineMapJacobian,
     sdim) where {T1,NF1,T2,NF2}
 
@@ -159,7 +159,7 @@ end
 
 function AUUhat_face1(basis::TensorProductBasis{2,T1,NF1},
     surface_basis::TensorProductBasis{1,T2,NF2},
-    surface_quad::ReferenceQuadratureRule,tau,jac::AffineMapJacobian) where {T1,NF1,T2,NF2}
+    surface_quad::TensorProductQuadratureRule{1},tau,jac::AffineMapJacobian) where {T1,NF1,T2,NF2}
 
     dim = 2
 
@@ -180,7 +180,7 @@ end
 
 function AUUhat_face2(basis::TensorProductBasis{2,T1,NF1},
     surface_basis::TensorProductBasis{1,T2,NF2},
-    surface_quad::ReferenceQuadratureRule,tau,jac::AffineMapJacobian) where {T1,NF1,T2,NF2}
+    surface_quad::TensorProductQuadratureRule{1},tau,jac::AffineMapJacobian) where {T1,NF1,T2,NF2}
 
     dim = 2
 
@@ -201,7 +201,7 @@ end
 
 function AUUhat_face3(basis::TensorProductBasis{2,T1,NF1},
     surface_basis::TensorProductBasis{1,T2,NF2},
-    surface_quad::ReferenceQuadratureRule,tau,jac::AffineMapJacobian) where {T1,NF1,T2,NF2}
+    surface_quad::TensorProductQuadratureRule{1},tau,jac::AffineMapJacobian) where {T1,NF1,T2,NF2}
 
     dim = 2
 
@@ -222,7 +222,7 @@ end
 
 function AUUhat_face4(basis::TensorProductBasis{2,T1,NF1},
     surface_basis::TensorProductBasis{1,T2,NF2},
-    surface_quad::ReferenceQuadratureRule,tau,jac::AffineMapJacobian) where {T1,NF1,T2,NF2}
+    surface_quad::TensorProductQuadratureRule{1},tau,jac::AffineMapJacobian) where {T1,NF1,T2,NF2}
 
     dim = 2
 
@@ -250,7 +250,7 @@ function get_AUUhat(basis,surface_basis,surface_quad,tau,jac)
 end
 
 function get_AUhatUhat(surface_basis::TensorProductBasis{1,T,NF},
-    surface_quad::ReferenceQuadratureRule,tau,jac::AffineMapJacobian) where {T,NF}
+    surface_quad::TensorProductQuadratureRule{1},tau,jac::AffineMapJacobian) where {T,NF}
 
     dim = 2
     AUhatUhat = zeros(dim*NF,dim*NF)
