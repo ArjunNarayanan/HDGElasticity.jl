@@ -19,8 +19,12 @@ struct LocalOperator{T}
     end
 end
 
-function jacobian(mesh::UniformMesh{2})
-    return prod(mesh.element_size)/4.0
+function jacobian(element_size::SVector{2},quadrature_weights::SVector{N}) where {N}
+    return prod(element_size)/sum(quadrature_weights)
+end
+
+function jacobian(mesh::UniformMesh{2},quad::TensorProductQuadratureRule{2})
+    return jacobian(mesh.element_size,quad.weights)
 end
 
 function make_row_matrix(vals::AbstractVector,matrix::AbstractMatrix)
@@ -81,11 +85,20 @@ struct AffineMapJacobian{dim,T}
     detjac::T
 end
 
-function AffineMapJacobian(mesh::UniformMesh{dim,T}) where {dim,T}
-    jac = 0.5*mesh.element_size
-    invjac = 1.0 ./ jac
+function AffineMapJacobian(element_size::T,reference_element_size::S) where {T<:AbstractVector,S<:Real}
+    jac = element_size/reference_element_size
+    invjac = inv.(jac)
     detjac = prod(jac)
     return AffineMapJacobian(jac,invjac,detjac)
+end
+
+function AffineMapJacobian(element_size,quad::TensorProductQuadratureRule{D,T}) where {D,T}
+    reference_element_size = get_reference_element_size(T)
+    return AffineMapJacobian(element_size,reference_element_size)
+end
+
+function AffineMapJacobian(mesh::UniformMesh)
+    return AffineMapJacobian(mesh.element_size)
 end
 
 function get_LMass(basis::TensorProductBasis{dim,T,NF},
@@ -135,7 +148,8 @@ function get_UMass(basis::TensorProductBasis{2,T,NF},
     nudofs = dim*NF
     AUU = zeros(nudofs,nudofs)
 
-    for (p,w) in surface_quad
+    for (pvec,w) in surface_quad
+        p = pvec[1]
         vals = basis(p,-1.0)
         N = interpolation_matrix(vals,dim)
         Ntau = tau*N

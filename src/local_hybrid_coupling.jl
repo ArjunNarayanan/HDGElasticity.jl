@@ -47,7 +47,9 @@ function ALUhat_face1(basis::TensorProductBasis{2,T1,NF1},
     ED = -1.0*Ek[2]'*Dhalf
     J = jac.jac[1]
 
-    for (p,w) in surface_quad
+    for (pvec,w) in surface_quad
+        p = pvec[1]
+
         vals = basis(p,-1.0)
         svals = surface_basis(p)
 
@@ -76,7 +78,9 @@ function ALUhat_face2(basis::TensorProductBasis{2,T1,NF1},
     ED = 1.0*Ek[1]'*Dhalf
     J = jac.jac[2]
 
-    for (p,w) in surface_quad
+    for (pvec,w) in surface_quad
+        p = pvec[1]
+
         vals = basis(1.0,p)
         svals = surface_basis(p)
 
@@ -105,7 +109,9 @@ function ALUhat_face3(basis::TensorProductBasis{2,T1,NF1},
     ED = 1.0*Ek[2]'*Dhalf
     J = jac.jac[1]
 
-    for (p,w) in surface_quad
+    for (pvec,w) in surface_quad
+        p = pvec[1]
+
         vals = basis(p,1.0)
         svals = surface_basis(p)
 
@@ -134,7 +140,9 @@ function ALUhat_face4(basis::TensorProductBasis{2,T1,NF1},
     ED = -1.0*Ek[1]'*Dhalf
     J = jac.jac[2]
 
-    for (p,w) in surface_quad
+    for (pvec,w) in surface_quad
+        p = pvec[1]
+
         vals = basis(-1.0,p)
         svals = surface_basis(p)
 
@@ -166,7 +174,9 @@ function AUUhat_face1(basis::TensorProductBasis{2,T1,NF1},
     AUUhat = zeros(dim*NF1,dim*NF2)
     J = jac.jac[1]
 
-    for (p,w) in surface_quad
+    for (pvec,w) in surface_quad
+        p = pvec[1]
+
         vals = basis(p,-1.0)
         svals = surface_basis(p)
 
@@ -187,7 +197,9 @@ function AUUhat_face2(basis::TensorProductBasis{2,T1,NF1},
     AUUhat = zeros(dim*NF1,dim*NF2)
     J = jac.jac[2]
 
-    for (p,w) in surface_quad
+    for (pvec,w) in surface_quad
+        p = pvec[1]
+
         vals = basis(1.0,p)
         svals = surface_basis(p)
 
@@ -208,7 +220,9 @@ function AUUhat_face3(basis::TensorProductBasis{2,T1,NF1},
     AUUhat = zeros(dim*NF1,dim*NF2)
     J = jac.jac[1]
 
-    for (p,w) in surface_quad
+    for (pvec,w) in surface_quad
+        p = pvec[1]
+
         vals = basis(p,1.0)
         svals = surface_basis(p)
 
@@ -229,7 +243,9 @@ function AUUhat_face4(basis::TensorProductBasis{2,T1,NF1},
     AUUhat = zeros(dim*NF1,dim*NF2)
     J = jac.jac[2]
 
-    for (p,w) in surface_quad
+    for (pvec,w) in surface_quad
+        p = pvec[1]
+        
         vals = basis(-1.0,p)
         svals = surface_basis(p)
 
