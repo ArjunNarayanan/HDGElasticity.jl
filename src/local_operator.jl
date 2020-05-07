@@ -85,6 +85,15 @@ struct AffineMapJacobian{dim,T}
     detjac::T
 end
 
+function AffineMapJacobian(jac::Vector{T},invjac::Vector{T},detjac::T) where {T}
+    nj = length(jac)
+    nij = length(invjac)
+    @assert nj == nij
+    sjac = SVector{nj}(jac)
+    sinvjac = SVector{nij}(invjac)
+    return AffineMapJacobian(sjac,sinvjac,detjac)
+end
+
 function AffineMapJacobian(element_size::T,reference_element_size::S) where {T<:AbstractVector,S<:Real}
     jac = element_size/reference_element_size
     invjac = inv.(jac)
@@ -92,16 +101,16 @@ function AffineMapJacobian(element_size::T,reference_element_size::S) where {T<:
     return AffineMapJacobian(jac,invjac,detjac)
 end
 
-function AffineMapJacobian(element_size,quad::TensorProductQuadratureRule{D,T}) where {D,T}
+function AffineMapJacobian(element_size::S,quad::TensorProductQuadratureRule{D,T}) where {S<:AbstractVector} where {D,T}
     reference_element_size = get_reference_element_size(T)
     return AffineMapJacobian(element_size,reference_element_size)
 end
 
-function AffineMapJacobian(mesh::UniformMesh)
-    return AffineMapJacobian(mesh.element_size)
+function AffineMapJacobian(mesh::UniformMesh,quad::TensorProductQuadratureRule)
+    return AffineMapJacobian(mesh.element_size,quad)
 end
 
-function get_LMass(basis::TensorProductBasis{dim,T,NF},
+function get_stress_coupling(basis::TensorProductBasis{dim,T,NF},
     quad::TensorProductQuadratureRule,jac::AffineMapJacobian,sdim) where {dim,T,NF}
 
     nldofs = sdim*NF
@@ -115,23 +124,24 @@ function get_LMass(basis::TensorProductBasis{dim,T,NF},
     return ALL
 end
 
-function get_LUStiffness(basis::TensorProductBasis{dim,T,NF},
-    quad::TensorProductQuadratureRule,Dhalf::AbstractMatrix,jac::AffineMapJacobian,sdim) where {dim,T,NF}
+function get_stress_displacement_coupling(basis::AbstractBasis{NF},
+    quad::TensorProductQuadratureRule,Dhalf::AbstractMatrix,Ek::Vector{M},
+    jac::AffineMapJacobian,dim,sdim) where {NF} where {M<:AbstractMatrix}
 
     m,n = size(Dhalf)
     @assert m == n && m == sdim
+    @assert all([size(E) == (sdim,dim) for E in Ek])
 
-    Ek = vec_to_symm_mat_converter(dim)
     ALU = zeros(sdim*NF,dim*NF)
 
-    for k = 1:dim
+    for k = 1:length(Ek)
         E = Ek[k]
         ED = E'*Dhalf
         invjac = jac.invjac[k]
         for (p,w) in quad
             dvals = invjac*gradient(basis,k,p)
             vals = basis(p)
-            Mk = make_row_matrix(vec(dvals),ED)
+            Mk = make_row_matrix(dvals,ED)
             N = interpolation_matrix(vals,dim)
 
             ALU += Mk'*N*jac.detjac*w
@@ -140,11 +150,18 @@ function get_LUStiffness(basis::TensorProductBasis{dim,T,NF},
     return ALU
 end
 
-function get_UMass(basis::TensorProductBasis{2,T,NF},
-    surface_quad::TensorProductQuadratureRule{1},
-    jac::AffineMapJacobian,tau::Float64) where {T,NF}
+function get_stress_displacement_coupling(basis::TensorProductBasis{dim,T,NF},
+    quad::TensorProductQuadratureRule,Dhalf::AbstractMatrix,
+    jac::AffineMapJacobian,sdim) where {dim,T,NF}
 
-    dim = 2
+    Ek = vec_to_symm_mat_converter(dim)
+    return get_stress_displacement_coupling(basis,quad,Dhalf,Ek,jac,dim,sdim)
+end
+
+function get_displacement_coupling(basis::TensorProductBasis{2,T,NF},
+    surface_quad::TensorProductQuadratureRule{1},
+    jac::AffineMapJacobian,tau::Float64,dim) where {T,NF}
+
     nudofs = dim*NF
     AUU = zeros(nudofs,nudofs)
 

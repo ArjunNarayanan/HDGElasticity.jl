@@ -1,4 +1,4 @@
-using Test, StaticArrays
+using Test, StaticArrays, LinearAlgebra
 using CartesianMesh, ImplicitDomainQuadrature
 using Revise
 using HDGElasticity
@@ -64,3 +64,58 @@ E3 = E3'
 
 element_size = @SVector [0.5,0.1]
 jacobian = HDGElasticity.AffineMapJacobian(element_size,2.0)
+@test all(jacobian.jac .== [0.25,0.05])
+@test all(jacobian.invjac .== [4.0,20.0])
+@test jacobian.detjac == 0.25*0.05
+
+jacobian = HDGElasticity.AffineMapJacobian(element_size,quad)
+@test all(jacobian.jac .== [0.25,0.05])
+@test all(jacobian.invjac .== [4.0,20.0])
+@test jacobian.detjac == 0.25*0.05
+
+mesh = UniformMesh([1.0,2.0],[2.0,1.0],[10,3])
+quad = TensorProductQuadratureRule(2,4)
+jacobian = HDGElasticity.AffineMapJacobian(mesh,quad)
+element_size = [2.0/10,1.0/3]
+@test all(jacobian.jac .== element_size/2.0)
+@test all(jacobian.invjac .== 2.0 ./ element_size)
+@test jacobian.detjac == 2.0/120
+
+
+basis = TensorProductBasis(2,1)
+quad = TensorProductQuadratureRule(2,2)
+jac = HDGElasticity.AffineMapJacobian([2.0,2.0],quad)
+
+ALL = HDGElasticity.get_stress_coupling(basis,quad,jac,1)
+@test size(ALL) == (4,4)
+row1 = [4.0 2.0 2.0 1.0]/9.0
+row2 = [2.0 4.0 1.0 2.0]/9.0
+row3 = [2.0 1.0 4.0 2.0]/9.0
+row4 = [1.0 2.0 2.0 4.0]/9.0
+ALLtest = vcat(row1,row2,row3,row4)
+@test all(ALL .≈ ALLtest)
+
+jac = HDGElasticity.AffineMapJacobian([1.0,1.0],quad)
+ALL = HDGElasticity.get_stress_coupling(basis,quad,jac,1)
+@test size(ALL) == (4,4)
+@test all(ALL .≈ 0.25*ALLtest)
+
+jac = HDGElasticity.AffineMapJacobian([1.0,2.0],quad)
+ALL = HDGElasticity.get_stress_coupling(basis,quad,jac,1)
+@test size(ALL) == (4,4)
+@test all(ALL .≈ 0.5*ALLtest)
+
+Dhalf = Array{Float64}(undef,1,1)
+Dhalf[1] = 1.0
+jac = HDGElasticity.AffineMapJacobian([2.0,2.0],quad)
+Ek = [Dhalf,Dhalf]
+ALUtest = [-2/3 -1/2 -1/2 -1/3
+            1/6  0.0  0.0 -1/6
+            1/6  0.0  0.0 -1/6
+            1/3  1/2  1/2  2/3]
+ALU = HDGElasticity.get_stress_displacement_coupling(basis,quad,Dhalf,Ek,jac,1,1)
+@test all([isapprox(ALU[i],ALUtest[i],atol=1e-15) for i = 1:length(ALU)])
+
+Dhalf = diagm(ones(3))
+ALU = HDGElasticity.get_stress_displacement_coupling(basis,quad,Dhalf,jac,3)
+@test size(ALU) == (12,8)
