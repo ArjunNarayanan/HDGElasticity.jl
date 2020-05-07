@@ -158,36 +158,48 @@ function get_stress_displacement_coupling(basis::TensorProductBasis{dim,T,NF},
     return get_stress_displacement_coupling(basis,quad,Dhalf,Ek,jac,dim,sdim)
 end
 
+function update_displacement_coupling!(AUU::Matrix,F::Function,
+    surface_quad::TensorProductQuadratureRule{1},jac,tau,dim)
+
+    for (p,w) in surface_quad
+        vals = F(p)
+        N = interpolation_matrix(vals,dim)
+        Ntau = tau*N
+        AUU .+= N'*Ntau*jac*w
+    end
+end
+
+function reference_element(basis::TensorProductBasis{2})
+    x0 = [-1.0,-1.0]
+    dx = [2.0,2.0]
+    return x0,dx
+end
+
 function get_displacement_coupling(basis::TensorProductBasis{2,T,NF},
     surface_quad::TensorProductQuadratureRule{1},
-    jac::AffineMapJacobian,tau::Float64,dim) where {T,NF}
+    jac::AffineMapJacobian,tau::Float64,x0,dx,dim) where {T,NF}
 
     nudofs = dim*NF
     AUU = zeros(nudofs,nudofs)
 
-    for (pvec,w) in surface_quad
-        p = pvec[1]
-        vals = basis(p,-1.0)
-        N = interpolation_matrix(vals,dim)
-        Ntau = tau*N
-        AUU += N'*Ntau*jac.jac[1]*w
+    update_displacement_coupling!(AUU,x->basis(extend(x,2,x0[2])),
+        surface_quad,jac.jac[1],tau,dim)
+    update_displacement_coupling!(AUU,x->basis(extend(x,1,x0[1]+dx[1])),
+        surface_quad,jac.jac[2],tau,dim)
+    update_displacement_coupling!(AUU,x->basis(extend(x,2,x0[2]+dx[2])),
+        surface_quad,-jac.jac[1],tau,dim)
+    update_displacement_coupling!(AUU,x->basis(extend(x,1,x0[1])),
+        surface_quad,-jac.jac[2],tau,dim)
 
-        vals = basis(1.0,p)
-        N = interpolation_matrix(vals,dim)
-        Ntau = tau*N
-        AUU += N'*Ntau*jac.jac[2]*w
-
-        vals = basis(p,1.0)
-        N = interpolation_matrix(vals,dim)
-        Ntau = tau*N
-        AUU += N'*Ntau*jac.jac[1]*w
-
-        vals = basis(-1.0,p)
-        N = interpolation_matrix(vals,dim)
-        Ntau = tau*N
-        AUU += N'*Ntau*jac.jac[2]*w
-    end
     return AUU
+end
+
+function get_displacement_coupling(basis::TensorProductBasis{2,T,NF},
+    surface_quad::TensorProductQuadratureRule{1},
+    jac::AffineMapJacobian,tau::Float64,dim) where {T,NF}
+
+    x0,dx = reference_element(basis)
+    return get_displacement_coupling(basis,surface_quad,jac,tau,x0,dx,dim)
 end
 
 function LocalOperator(basis::TensorProductBasis{dim},

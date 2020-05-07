@@ -119,3 +119,14 @@ ALU = HDGElasticity.get_stress_displacement_coupling(basis,quad,Dhalf,Ek,jac,1,1
 Dhalf = diagm(ones(3))
 ALU = HDGElasticity.get_stress_displacement_coupling(basis,quad,Dhalf,jac,3)
 @test size(ALU) == (12,8)
+
+basis = TensorProductBasis(2,1)
+surface_quad = TensorProductQuadratureRule(1,2)
+jac = HDGElasticity.AffineMapJacobian([2.0,2.0],quad)
+AUU = HDGElasticity.get_displacement_coupling(basis,surface_quad,jac,1.0,1)
+
+AUUtest = [0.0  -1/3  1/3  0.0
+          -1/3  -4/3  0.0 -1/3
+           1/3   0.0  4/3  1/3
+           0.0  -1/3  1/3  0.0]
+@test all([isapprox(AUU[i],AUUtest[i],atol=1e-15) for i = 1:length(AUU)])

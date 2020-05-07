@@ -4,6 +4,7 @@ using LinearAlgebra
 using StaticArrays
 using CartesianMesh
 using ImplicitDomainQuadrature
+import ImplicitDomainQuadrature: extend
 
 include("local_operator.jl")
 include("local_hybrid_coupling.jl")
