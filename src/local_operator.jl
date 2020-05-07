@@ -124,6 +124,13 @@ function get_stress_coupling(basis::TensorProductBasis{dim,T,NF},
     return ALL
 end
 
+function get_stress_coupling(basis::TensorProductBasis{dim},
+    quad::TensorProductQuadratureRule{dim},jac::AffineMapJacobian) where {dim}
+
+    sdim = symmetric_tensor_dim(dim)
+    return get_stress_coupling(basis,quad,jac,sdim)
+end
+
 function get_stress_displacement_coupling(basis::AbstractBasis{NF},
     quad::TensorProductQuadratureRule,Dhalf::AbstractMatrix,Ek::Vector{M},
     jac::AffineMapJacobian,dim,sdim) where {NF} where {M<:AbstractMatrix}
@@ -151,9 +158,10 @@ function get_stress_displacement_coupling(basis::AbstractBasis{NF},
 end
 
 function get_stress_displacement_coupling(basis::TensorProductBasis{dim,T,NF},
-    quad::TensorProductQuadratureRule,Dhalf::AbstractMatrix,
-    jac::AffineMapJacobian,sdim) where {dim,T,NF}
+    quad::TensorProductQuadratureRule{dim},Dhalf::AbstractMatrix,
+    jac::AffineMapJacobian) where {dim,T,NF}
 
+    sdim = symmetric_tensor_dim(dim)
     Ek = vec_to_symm_mat_converter(dim)
     return get_stress_displacement_coupling(basis,quad,Dhalf,Ek,jac,dim,sdim)
 end
@@ -202,17 +210,23 @@ function get_displacement_coupling(basis::TensorProductBasis{2,T,NF},
     return get_displacement_coupling(basis,surface_quad,jac,tau,x0,dx,dim)
 end
 
+function get_displacement_coupling(basis::TensorProductBasis{dim,T,NF},
+    surface_quad::TensorProductQuadratureRule{1},
+    jac::AffineMapJacobian,tau::Float64) where {dim,fdim,T,NF}
+
+    x0,dx = reference_element(basis)
+    return get_displacement_coupling(basis,surface_quad,jac,tau,x0,dx,dim)
+end
+
 function LocalOperator(basis::TensorProductBasis{dim},
     quad::TensorProductQuadratureRule{dim},
     surface_quad::TensorProductQuadratureRule{1},
     Dhalf,jac::AffineMapJacobian,tau) where {dim}
 
-    sdim = symmetric_tensor_dim(dim)
-
-    ALL = -1.0*get_LMass(basis,quad,jac,sdim)
-    ALU = get_LUStiffness(basis,quad,Dhalf,jac,sdim)
-    AUU = get_UMass(basis,surface_quad,jac,tau)
-    return LocalOperator(ALL,ALU,AUU)
+    LL = -1.0*get_stress_coupling(basis,quad,jac)
+    LU = get_stress_displacement_coupling(basis,quad,Dhalf,jac)
+    UU = get_displacement_coupling(basis,surface_quad,jac,tau)
+    return LocalOperator(LL,LU,UU)
 end
 
 function LocalOperator(basis,quad,surface_quad,mesh,Dhalf,tau)
