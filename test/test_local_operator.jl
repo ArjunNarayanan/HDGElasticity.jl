@@ -1,6 +1,5 @@
 using Test, StaticArrays, LinearAlgebra
 using CartesianMesh, ImplicitDomainQuadrature
-using Revise
 using HDGElasticity
 
 element_size = @SVector [1.0,2.0]
