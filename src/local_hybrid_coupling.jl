@@ -165,6 +165,22 @@ function get_ALUhat(basis,surface_basis,surface_quad,Dhalf,jac)
     return ALUhat
 end
 
+function update_stress_hybrid_coupling!(LUh::Matrix,F::Function,
+    surface_basis::TensorProductBasis{1},M::AbstractMatrix,
+    surface_quad::TensorProductQuadratureRule{1},jac,dim)
+
+    for (p,w) in surface_quad
+        vals = F(p)
+        svals = surface_basis(p)
+
+        Mk = make_row_matrix(vals,M)
+        N = interpolation_matrix(svals,dim)
+
+        LUh .+= Mk'*N*jac*w
+    end
+end
+
+
 function AUUhat_face1(basis::TensorProductBasis{2,T1,NF1},
     surface_basis::TensorProductBasis{1,T2,NF2},
     surface_quad::TensorProductQuadratureRule{1},tau,jac::AffineMapJacobian) where {T1,NF1,T2,NF2}
@@ -245,7 +261,7 @@ function AUUhat_face4(basis::TensorProductBasis{2,T1,NF1},
 
     for (pvec,w) in surface_quad
         p = pvec[1]
-        
+
         vals = basis(-1.0,p)
         svals = surface_basis(p)
 
