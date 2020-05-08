@@ -166,8 +166,8 @@ function get_ALUhat(basis,surface_basis,surface_quad,Dhalf,jac)
 end
 
 function update_stress_hybrid_coupling!(LUh::Matrix,F::Function,
-    surface_basis::TensorProductBasis{1},M::AbstractMatrix,
-    surface_quad::TensorProductQuadratureRule{1},jac,dim)
+    surface_basis::TensorProductBasis{1},
+    surface_quad::TensorProductQuadratureRule{1},M::Matrix,jac,dim)
 
     for (p,w) in surface_quad
         vals = F(p)
@@ -180,6 +180,21 @@ function update_stress_hybrid_coupling!(LUh::Matrix,F::Function,
     end
 end
 
+function stress_hybrid_coupling(F::Function,surface_basis::TensorProductBasis{1},
+    surface_quad::TensorProductQuadratureRule{1},
+    normal,Dhalf,jac,dim,sdim,NF,NHF)
+
+    @assert size(Dhalf) == (sdim,sdim)
+    @assert length(normal) == dim
+    Ek = vec_to_symm_mat_converter(dim)
+    LUh = zeros(sdim*NF,dim*NHF)
+
+    for k = 1:dim
+        M = normal[k]*Ek[k]'*Dhalf
+        update_stress_hybrid_coupling!(LUh,F,surface_basis,surface_quad,M,jac,dim)
+    end
+    return LUh
+end
 
 function AUUhat_face1(basis::TensorProductBasis{2,T1,NF1},
     surface_basis::TensorProductBasis{1,T2,NF2},
