@@ -119,3 +119,30 @@ s = size.(UUh)
 
 UUh = HDGElasticity.get_displacement_hybrid_coupling(basis,surface_basis,
     surface_quad,3.0,jac)
+s = size.(UUh)
+@test all([i == (8,4) for i in s])
+
+HH = HDGElasticity.get_hybrid_coupling(surface_basis,surface_quad,1.0,1.0,1,2)
+HHtest = 1/3*[2 1
+              1 2]
+@test all(HH .≈ HHtest)
+
+HH = HDGElasticity.get_hybrid_coupling(surface_basis,surface_quad,1.0,-1.0,1,2)
+HHtest = -1/3*[2 1
+              1 2]
+@test all(HH .≈ HHtest)
+
+teststab = 3.0
+HH = HDGElasticity.get_hybrid_coupling(surface_basis,surface_quad,teststab,-1.0,1,2)
+HHtest = -teststab*1/3*[2 1
+                        1 2]
+@test all(HH .≈ HHtest)
+
+jac = HDGElasticity.AffineMapJacobian([2.0,2.0],quad)
+HH = HDGElasticity.get_hybrid_coupling(surface_basis,surface_quad,3.0,jac)
+
+s = size.(HH)
+all([i == (4,4) for i in s])
+
+local_hybrid = HDGElasticity.LocalHybridCoupling(basis,surface_basis,surface_quad,
+    Dhalf,3.0,jac)
