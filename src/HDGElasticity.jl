@@ -3,8 +3,8 @@ module HDGElasticity
 using LinearAlgebra
 using StaticArrays
 using CartesianMesh
-using ImplicitDomainQuadrature
 import ImplicitDomainQuadrature: extend
+using ImplicitDomainQuadrature
 
 include("local_operator.jl")
 include("local_hybrid_coupling.jl")

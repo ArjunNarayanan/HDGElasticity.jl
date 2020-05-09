@@ -27,11 +27,11 @@ function jacobian(mesh::UniformMesh{2},quad::TensorProductQuadratureRule{2})
     return jacobian(mesh.element_size,quad.weights)
 end
 
-function make_row_matrix(vals::AbstractVector,matrix::AbstractMatrix)
+function make_row_matrix(vals::V,matrix::M) where {V<:AbstractVector} where {M<:AbstractMatrix}
     return hcat([v*matrix for v in vals]...)
 end
 
-function interpolation_matrix(vals::AbstractVector,dim::Int64)
+function interpolation_matrix(vals::V,dim::Int64) where {V<:AbstractVector}
     return make_row_matrix(vals,diagm(ones(dim)))
 end
 
@@ -131,9 +131,9 @@ function get_stress_coupling(basis::TensorProductBasis{dim},
     return get_stress_coupling(basis,quad,jac,sdim)
 end
 
-function get_stress_displacement_coupling(basis::AbstractBasis{NF},
-    quad::TensorProductQuadratureRule,Dhalf::AbstractMatrix,Ek::Vector{M},
-    jac::AffineMapJacobian,dim,sdim) where {NF} where {M<:AbstractMatrix}
+function get_stress_displacement_coupling(basis::TensorProductBasis{D,T,NF},
+    quad::TensorProductQuadratureRule,Dhalf::Matrix,Ek::Vector{M},
+    jac::AffineMapJacobian,dim,sdim) where {D,T,NF} where {M<:AbstractMatrix}
 
     m,n = size(Dhalf)
     @assert m == n && m == sdim
@@ -158,7 +158,7 @@ function get_stress_displacement_coupling(basis::AbstractBasis{NF},
 end
 
 function get_stress_displacement_coupling(basis::TensorProductBasis{dim,T,NF},
-    quad::TensorProductQuadratureRule{dim},Dhalf::AbstractMatrix,
+    quad::TensorProductQuadratureRule{dim},Dhalf::Matrix,
     jac::AffineMapJacobian) where {dim,T,NF}
 
     sdim = symmetric_tensor_dim(dim)
