@@ -7,9 +7,9 @@ function check_all_matrix_sizes(a::Vector{Matrix{T}}) where {T}
 end
 
 struct LocalHybridCoupling{T}
-    LUhat::Vector{Matrix{T}}
-    UUhat::Vector{Matrix{T}}
-    UhatUhat::Matrix{T}
+    LUh::Vector{Matrix{T}}
+    UUh::Vector{Matrix{T}}
+    UhUh::Matrix{T}
     local_hybrid_operator::Vector{Matrix{T}}
     function LocalHybridCoupling(LUhat::Vector{Matrix{T}},
         UUhat::Vector{Matrix{T}},UhatUhat::Matrix{T}) where {T}
@@ -30,140 +30,6 @@ struct LocalHybridCoupling{T}
     end
 end
 
-function ALUhat_face1(basis::TensorProductBasis{2,T1,NF1},
-    surface_basis::TensorProductBasis{1,T2,NF2},
-    surface_quad::TensorProductQuadratureRule{1},Dhalf::AbstractMatrix,
-    jac::AffineMapJacobian,
-    sdim) where {T1,NF1,T2,NF2}
-
-    dim1 = 2
-    dim2 = 1
-
-    dim = dim1
-    Ek = vec_to_symm_mat_converter(dim)
-
-    ALUhat = zeros(sdim*NF1,dim*NF2)
-
-    ED = -1.0*Ek[2]'*Dhalf
-    J = jac.jac[1]
-
-    for (pvec,w) in surface_quad
-        p = pvec[1]
-
-        vals = basis(p,-1.0)
-        svals = surface_basis(p)
-
-        Mk = make_row_matrix(vals,ED)
-        Nhat = interpolation_matrix(svals,dim1)
-
-        ALUhat += -Mk'*Nhat*J*w
-    end
-    return ALUhat
-end
-
-function ALUhat_face2(basis::TensorProductBasis{2,T1,NF1},
-    surface_basis::TensorProductBasis{1,T2,NF2},
-    surface_quad::TensorProductQuadratureRule{1},Dhalf::AbstractMatrix,
-    jac::AffineMapJacobian,
-    sdim) where {T1,NF1,T2,NF2}
-
-    dim1 = 2
-    dim2 = 1
-
-    dim = dim1
-    Ek = vec_to_symm_mat_converter(dim)
-
-    ALUhat = zeros(sdim*NF1,dim*NF2)
-
-    ED = 1.0*Ek[1]'*Dhalf
-    J = jac.jac[2]
-
-    for (pvec,w) in surface_quad
-        p = pvec[1]
-
-        vals = basis(1.0,p)
-        svals = surface_basis(p)
-
-        Mk = make_row_matrix(vals,ED)
-        Nhat = interpolation_matrix(svals,dim1)
-
-        ALUhat += -Mk'*Nhat*J*w
-    end
-    return ALUhat
-end
-
-function ALUhat_face3(basis::TensorProductBasis{2,T1,NF1},
-    surface_basis::TensorProductBasis{1,T2,NF2},
-    surface_quad::TensorProductQuadratureRule{1},Dhalf::AbstractMatrix,
-    jac::AffineMapJacobian,
-    sdim) where {T1,NF1,T2,NF2}
-
-    dim1 = 2
-    dim2 = 1
-
-    dim = dim1
-    Ek = vec_to_symm_mat_converter(dim)
-
-    ALUhat = zeros(sdim*NF1,dim*NF2)
-
-    ED = 1.0*Ek[2]'*Dhalf
-    J = jac.jac[1]
-
-    for (pvec,w) in surface_quad
-        p = pvec[1]
-
-        vals = basis(p,1.0)
-        svals = surface_basis(p)
-
-        Mk = make_row_matrix(vals,ED)
-        Nhat = interpolation_matrix(svals,dim1)
-
-        ALUhat += -Mk'*Nhat*J*w
-    end
-    return ALUhat
-end
-
-function ALUhat_face4(basis::TensorProductBasis{2,T1,NF1},
-    surface_basis::TensorProductBasis{1,T2,NF2},
-    surface_quad::TensorProductQuadratureRule{1},Dhalf::AbstractMatrix,
-    jac::AffineMapJacobian,
-    sdim) where {T1,NF1,T2,NF2}
-
-    dim1 = 2
-    dim2 = 1
-
-    dim = dim1
-    Ek = vec_to_symm_mat_converter(dim)
-
-    ALUhat = zeros(sdim*NF1,dim*NF2)
-
-    ED = -1.0*Ek[1]'*Dhalf
-    J = jac.jac[2]
-
-    for (pvec,w) in surface_quad
-        p = pvec[1]
-
-        vals = basis(-1.0,p)
-        svals = surface_basis(p)
-
-        Mk = make_row_matrix(vals,ED)
-        Nhat = interpolation_matrix(svals,dim1)
-
-        ALUhat += -Mk'*Nhat*J*w
-    end
-    return ALUhat
-end
-
-function get_ALUhat(basis,surface_basis,surface_quad,Dhalf,jac)
-
-    sdim = symmetric_tensor_dim(2)
-
-    ALUhat = [ALUhat_face1(basis,surface_basis,surface_quad,Dhalf,jac,sdim),
-              ALUhat_face2(basis,surface_basis,surface_quad,Dhalf,jac,sdim),
-              ALUhat_face3(basis,surface_basis,surface_quad,Dhalf,jac,sdim),
-              ALUhat_face4(basis,surface_basis,surface_quad,Dhalf,jac,sdim)]
-    return ALUhat
-end
 
 function update_stress_hybrid_coupling!(LUh::Matrix,F::Function,
     surface_basis::TensorProductBasis{1},
@@ -180,7 +46,7 @@ function update_stress_hybrid_coupling!(LUh::Matrix,F::Function,
     end
 end
 
-function stress_hybrid_coupling(F::Function,surface_basis::TensorProductBasis{1},
+function get_stress_hybrid_coupling(F::Function,surface_basis::TensorProductBasis{1},
     surface_quad::TensorProductQuadratureRule{1},
     normal,Dhalf,jac,dim,sdim,NF,NHF)
 
@@ -196,104 +62,75 @@ function stress_hybrid_coupling(F::Function,surface_basis::TensorProductBasis{1}
     return LUh
 end
 
-function AUUhat_face1(basis::TensorProductBasis{2,T1,NF1},
-    surface_basis::TensorProductBasis{1,T2,NF2},
-    surface_quad::TensorProductQuadratureRule{1},tau,jac::AffineMapJacobian) where {T1,NF1,T2,NF2}
+function get_stress_hybrid_coupling(basis::TensorProductBasis{dim,T,NF},
+    surface_basis::TensorProductBasis{1,T2,NHF},
+    surface_quad::TensorProductQuadratureRule{1},Dhalf,jac::AffineMapJacobian,
+    x0,dx,normals) where {dim,T,NF,T2,NHF}
 
-    dim = 2
+    sdim = symmetric_tensor_dim(dim)
 
-    AUUhat = zeros(dim*NF1,dim*NF2)
-    J = jac.jac[1]
+    LU1 = get_stress_hybrid_coupling(x->basis(extend(x,2,x0[2])),
+        surface_basis,surface_quad,normals[1],Dhalf,jac.jac[1],dim,sdim,NF,NHF)
+    LU2 = get_stress_hybrid_coupling(x->basis(extend(x,1,x0[1]+dx[1])),
+        surface_basis,surface_quad,normals[2],Dhalf,jac.jac[2],dim,sdim,NF,NHF)
+    LU3 = get_stress_hybrid_coupling(x->basis(extend(x,2,x0[2]+dx[2])),
+        surface_basis,surface_quad,normals[3],Dhalf,-jac.jac[1],dim,sdim,NF,NHF)
+    LU4 = get_stress_hybrid_coupling(x->basis(extend(x,1,x0[1])),
+        surface_basis,surface_quad,normals[4],Dhalf,-jac.jac[2],dim,sdim,NF,NHF)
+    return [LU1,LU2,LU3,LU4]
 
-    for (pvec,w) in surface_quad
-        p = pvec[1]
+end
 
-        vals = basis(p,-1.0)
+function get_stress_hybrid_coupling(basis,surface_basis,surface_quad,Dhalf,jac)
+    x0,dx = reference_element(basis)
+    normals = reference_normals(basis)
+    return get_stress_hybrid_coupling(basis,surface_basis,surface_quad,
+        Dhalf,jac,x0,dx,normals)
+end
+
+function get_displacement_hybrid_coupling(F::Function,
+    surface_basis::TensorProductBasis{1},
+    surface_quad::TensorProductQuadratureRule{1},tau,jac,dim,NF,NHF)
+
+    UUh = zeros(dim*NF,dim*NHF)
+    for (p,w) in surface_quad
+        vals = F(p)
         svals = surface_basis(p)
 
         N = interpolation_matrix(vals,dim)
         Ntau = tau*interpolation_matrix(svals,dim)
 
-        AUUhat += -N'*Ntau*J*w
+        UUh += N'*Ntau*jac*w
     end
-    return AUUhat
+    return UUh
 end
 
-function AUUhat_face2(basis::TensorProductBasis{2,T1,NF1},
-    surface_basis::TensorProductBasis{1,T2,NF2},
-    surface_quad::TensorProductQuadratureRule{1},tau,jac::AffineMapJacobian) where {T1,NF1,T2,NF2}
+function get_displacement_hybrid_coupling(basis::TensorProductBasis{dim,T,NF},
+    surface_basis::TensorProductBasis{1,T2,NHF},surface_quad,tau,
+    jac::AffineMapJacobian,x0,dx) where {dim,T,NF,T2,NHF}
 
-    dim = 2
+    @assert length(x0) == dim
+    @assert length(dx) == dim
 
-    AUUhat = zeros(dim*NF1,dim*NF2)
-    J = jac.jac[2]
+    UU1 = get_displacement_hybrid_coupling(x->basis(extend(x,2,x0[2])),
+        surface_basis,surface_quad,tau,jac.jac[1],dim,NF,NHF)
+    UU2 = get_displacement_hybrid_coupling(x->basis(extend(x,1,x0[1]+dx[1])),
+        surface_basis,surface_quad,tau,jac.jac[2],dim,NF,NHF)
+    UU3 = get_displacement_hybrid_coupling(x->basis(extend(x,2,x0[2]+dx[2])),
+        surface_basis,surface_quad,tau,-jac.jac[1],dim,NF,NHF)
+    UU4 = get_displacement_hybrid_coupling(x->basis(extend(x,1,x0[1])),
+        surface_basis,surface_quad,tau,-jac.jac[2],dim,NF,NHF)
 
-    for (pvec,w) in surface_quad
-        p = pvec[1]
-
-        vals = basis(1.0,p)
-        svals = surface_basis(p)
-
-        N = interpolation_matrix(vals,dim)
-        Ntau = tau*interpolation_matrix(svals,dim)
-
-        AUUhat += -N'*Ntau*J*w
-    end
-    return AUUhat
+    return [UU1,UU2,UU3,UU4]
 end
 
-function AUUhat_face3(basis::TensorProductBasis{2,T1,NF1},
-    surface_basis::TensorProductBasis{1,T2,NF2},
-    surface_quad::TensorProductQuadratureRule{1},tau,jac::AffineMapJacobian) where {T1,NF1,T2,NF2}
+function get_displacement_hybrid_coupling(basis,surface_basis,surface_quad,
+    tau,jac)
 
-    dim = 2
+    x0,dx = reference_element(basis)
+    return get_displacement_hybrid_coupling(basis,surface_basis,surface_quad,
+        tau,jac,x0,dx)
 
-    AUUhat = zeros(dim*NF1,dim*NF2)
-    J = jac.jac[1]
-
-    for (pvec,w) in surface_quad
-        p = pvec[1]
-
-        vals = basis(p,1.0)
-        svals = surface_basis(p)
-
-        N = interpolation_matrix(vals,dim)
-        Ntau = tau*interpolation_matrix(svals,dim)
-
-        AUUhat += -N'*Ntau*J*w
-    end
-    return AUUhat
-end
-
-function AUUhat_face4(basis::TensorProductBasis{2,T1,NF1},
-    surface_basis::TensorProductBasis{1,T2,NF2},
-    surface_quad::TensorProductQuadratureRule{1},tau,jac::AffineMapJacobian) where {T1,NF1,T2,NF2}
-
-    dim = 2
-
-    AUUhat = zeros(dim*NF1,dim*NF2)
-    J = jac.jac[2]
-
-    for (pvec,w) in surface_quad
-        p = pvec[1]
-
-        vals = basis(-1.0,p)
-        svals = surface_basis(p)
-
-        N = interpolation_matrix(vals,dim)
-        Ntau = tau*interpolation_matrix(svals,dim)
-
-        AUUhat += -N'*Ntau*J*w
-    end
-    return AUUhat
-end
-
-function get_AUUhat(basis,surface_basis,surface_quad,tau,jac)
-    AUUhat = [AUUhat_face1(basis,surface_basis,surface_quad,tau,jac),
-              AUUhat_face2(basis,surface_basis,surface_quad,tau,jac),
-              AUUhat_face3(basis,surface_basis,surface_quad,tau,jac),
-              AUUhat_face4(basis,surface_basis,surface_quad,tau,jac)]
-    return AUUhat
 end
 
 function get_AUhatUhat(surface_basis::TensorProductBasis{1,T,NF},

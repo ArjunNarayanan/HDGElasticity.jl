@@ -183,6 +183,10 @@ function reference_element(basis::TensorProductBasis{2})
     return x0,dx
 end
 
+function reference_normals(basis::TensorProductBasis{2})
+    return [[0.0,-1.0],[1.0,0.0],[0.0,1.0],[-1.0,0.0]]
+end
+
 function get_displacement_coupling(basis::TensorProductBasis{2,T,NF},
     surface_quad::TensorProductQuadratureRule{1},
     jac::AffineMapJacobian,tau::Float64,x0,dx,dim) where {T,NF}
