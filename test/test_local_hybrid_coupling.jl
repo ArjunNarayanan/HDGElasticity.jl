@@ -1,7 +1,6 @@
 using Test, StaticArrays, LinearAlgebra
 using CartesianMesh, ImplicitDomainQuadrature
 import ImplicitDomainQuadrature: extend
-using Revise
 using HDGElasticity
 
 
