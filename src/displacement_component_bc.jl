@@ -4,11 +4,12 @@ struct DisplacementComponentBC{T}
 end
 
 function DisplacementComponentBC(surface_basis::TensorProductBasis{1},
-    surface_quad::TensorProductQuadratureRule{1},displacement::Float64,
-    direction::Vector{T},jac::Float64;penalty::Float64=1e2) where {T}
+    surface_quad::TensorProductQuadratureRule{1},displacement::S,
+    direction::Vector{S},jac::S;penalty::S=1e2) where {S<:Real}
 
-    @assert length(direction) == 2
-
+    # @assert length(direction) == 2
+    @assert norm(direction) ≈ 1.0
+    
     op = displacement_component_operator(surface_basis,surface_quad,direction,jac,penalty)
     rhs = displacement_component_rhs(surface_basis,surface_quad,displacement,direction,jac,penalty)
 
@@ -21,11 +22,9 @@ end
 
 function displacement_component_operator(surface_basis::TensorProductBasis{1,T,NF},
     surface_quad::TensorProductQuadratureRule{1},direction::Vector{S},
-    jac::Float64,penalty::Float64) where {T,NF,S}
+    jac::S,penalty::S) where {T,NF,S<:Real}
 
     dim = length(direction)
-    @assert dim == 2
-    @assert norm(direction) ≈ 1.0
 
     bc_op = zeros(dim*NF,dim*NF)
 
@@ -40,10 +39,11 @@ function displacement_component_operator(surface_basis::TensorProductBasis{1,T,N
 end
 
 function displacement_component_rhs(surface_basis::TensorProductBasis{1,T,NF},
-    surface_quad::TensorProductQuadratureRule{1},displacement::Float64,direction::Vector{S},
-    jac::Float64,penalty::Float64) where {T,NF,S}
+    surface_quad::TensorProductQuadratureRule{1},displacement::S,
+    direction::Vector{S},jac::S,penalty::S) where {T,NF,S<:Real}
 
-    dim = 2
+    dim = length(direction)
+
     bc_rhs = zeros(dim*NF)
 
     for (p,w) in surface_quad

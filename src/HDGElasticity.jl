@@ -10,7 +10,7 @@ include("utils.jl")
 include("local_operator.jl")
 include("local_hybrid_coupling.jl")
 include("displacement_component_bc.jl")
-include("hdge_assembly.jl")
+include("assembly.jl")
 include("isotropic_elasticity.jl")
 
 end # module
