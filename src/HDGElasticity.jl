@@ -9,7 +9,7 @@ using ImplicitDomainQuadrature
 include("utils.jl")
 include("local_operator.jl")
 include("local_hybrid_coupling.jl")
-include("normal_displacement_bc.jl")
+include("displacement_component_bc.jl")
 include("hdge_assembly.jl")
 include("isotropic_elasticity.jl")
 

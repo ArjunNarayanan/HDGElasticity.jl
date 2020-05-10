@@ -3,8 +3,11 @@ struct DisplacementComponentBC{T}
     rhs::Vector{T}
 end
 
-function DisplacementComponentBC(surface_basis,surface_quad,displacement,direction,
-    jac::Float64;penalty::Float64=1e2)
+function DisplacementComponentBC(surface_basis::TensorProductBasis{1},
+    surface_quad::TensorProductQuadratureRule{1},displacement::Float64,
+    direction::Vector{T},jac::Float64;penalty::Float64=1e2) where {T}
+
+    @assert length(direction) == 2
 
     op = displacement_component_operator(surface_basis,surface_quad,direction,jac,penalty)
     rhs = displacement_component_rhs(surface_basis,surface_quad,displacement,direction,jac,penalty)
@@ -17,9 +20,13 @@ function normal_basis_projection(vals::SVector{N,T},direction::Vector{T}) where 
 end
 
 function displacement_component_operator(surface_basis::TensorProductBasis{1,T,NF},
-    surface_quad::TensorProductQuadratureRule{1},direction::Vector{S},jac::Float64,penalty::Float64) where {T,NF,S}
+    surface_quad::TensorProductQuadratureRule{1},direction::Vector{S},
+    jac::Float64,penalty::Float64) where {T,NF,S}
 
-    dim = 2
+    dim = length(direction)
+    @assert dim == 2
+    @assert norm(direction) ≈ 1.0
+
     bc_op = zeros(dim*NF,dim*NF)
 
     for (p,w) in surface_quad
