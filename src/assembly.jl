@@ -1,9 +1,10 @@
-function check_lengths(rows::Vector{S},cols::Vector{S},vals::Vector{T}) where {T,S}
+function check_lengths(rows::Vector{S},cols::Vector{S},vals::Vector{T}) where {T<:Real,S<:Int}
     lr = length(rows)
     lc = length(cols)
     lv = length(vals)
     @assert lr == lc
     @assert lc == lv
+    return true
 end
 
 struct SystemMatrix{T}
@@ -11,7 +12,7 @@ struct SystemMatrix{T}
     cols::Vector{Int64}
     vals::Vector{T}
     function SystemMatrix(rows::Vector{Int64},cols::Vector{Int64},
-        vals::Vector{T}) where {T}
+        vals::Vector{T}) where {T<:Real}
 
         check_lengths(rows,cols,vals)
 
@@ -94,8 +95,8 @@ function element_dofs_to_operator_dofs(row_dofs,col_dofs)
     return rows,cols
 end
 
-function hybrid_dof_start(hid,total_element_dofs,dim,NF)
-    return total_element_dofs+(hid-1)*dim*NF+1
+function hybrid_dof_start(hid,total_element_dofs,dim,NHF)
+    return total_element_dofs+(hid-1)*dim*NHF+1
 end
 
 function hybrid_dof_stop(hid,total_element_dofs,dim,NF)
@@ -108,31 +109,58 @@ end
 
 function assemble_local_operator!(matrix::SystemMatrix{T},
     vec_local_operator_vals::Vector{T},
-    total_nelements::Int64,dim::Int64,sdim::Int64,NF::Int64) where {T}
+    elid::S,dim::S,sdim::S,NF::S) where {T<:Real,S<:Integer}
 
-    for elid in 1:total_nelements
-        edofs = element_dofs(elid,dim,sdim,NF)
-        rows,cols = element_dofs_to_operator_dofs(edofs,edofs)
-        update!(matrix,rows,cols,vec_local_operator_vals)
+    edofs = element_dofs(elid,dim,sdim,NF)
+    rows,cols = element_dofs_to_operator_dofs(edofs,edofs)
+    update!(matrix,rows,cols,vec_local_operator_vals)
+
+end
+
+function assemble_local_operator!(matrix::SystemMatrix{T},
+    vec_local_operator_vals::Vector{T},
+    elids::V,dim::S,sdim::S,NF::S) where {T<:Real,S<:Integer,V<:AbstractVector}
+
+    for elid in elids
+        assemble_local_operator!(matrix,vec_local_operator_vals,
+            elid,dim,sdim,NF)
     end
 end
 
-function assemble_local_hybrid_operator!(matrix::SystemMatrix{T},
-    vec_local_hybrid_operator_vals::Vector{Vector{T}},
-    face_to_hybrid_element_number::Matrix{Int64},
-    total_nelements::Int64,faces_per_element::Int64,total_element_dofs::Int64,
-    dim::Int64,sdim::Int64,
-    NF::Int64,NHF::Int64) where {T}
+function assemble_local_hybrid_operator!(matrix::SystemMatrix{R},
+    vec_local_hybrid_operator_vals::Vector{Vector{R}},
+    face_to_hybrid_element_number::Matrix{Z},edofs::V,elid::Z,faceid::Z,
+    total_element_dofs::Z,dim::Z,sdim::Z,NHF::Z) where {R<:Real,Z<:Integer,V<:AbstractVector}
 
-    for elid in 1:total_nelements
-        edofs = element_dofs(elid,dim,sdim,NF)
-        for faceid in 1:faces_per_element
-            hid = face_to_hybrid_element_number[faceid,elid]
-            hdofs = hybrid_dofs(hid,total_element_dofs,dim,NHF)
-            rows,cols = element_dofs_to_operator_dofs(edofs,hdofs)
-            update!(matrix,rows,cols,vec_local_hybrid_operator_vals[faceid])
-        end
+    hid = face_to_hybrid_element_number[faceid,elid]
+    hdofs = hybrid_dofs(hid,total_element_dofs,dim,NHF)
+    rows,cols = element_dofs_to_operator_dofs(edofs,hdofs)
+    update!(matrix,rows,cols,vec_local_hybrid_operator_vals[faceid])
+
+end
+
+function assemble_local_hybrid_operator!(matrix,vec_local_hybrid_operator_vals,
+    face_to_hybrid_element_number,edofs,elid,faceids::V,
+    total_element_dofs,dim,sdim,NHF) where {V<:AbstractVector}
+
+    for faceid in faceids
+        assemble_local_hybrid_operator!(matrix,vec_local_hybrid_operator_vals,
+            face_to_hybrid_element_number,edofs,elid,faceid,total_element_dofs,
+            dim,sdim,NHF)
     end
+end
+
+function assemble_local_hybrid_operator!(matrix,vec_local_hybrid_operator_vals,
+    face_to_hybrid_element_number,elids::V,faceids::V,
+    total_element_dofs,dim,sdim,NF,NHF) where {V<:AbstractVector}
+
+    for elid in elids
+        edofs = element_dofs(elid,dim,sdim,NF)
+        assemble_local_hybrid_operator!(matrix,vec_local_hybrid_operator_vals,
+        face_to_hybrid_element_number,edofs,elid,faceids,total_element_dofs,
+        dim,sdim,NHF)
+    end
+
 end
 
 function assemble_hybrid_local_operator!(matrix::SystemMatrix{T},
