@@ -157,31 +157,49 @@ function assemble_local_hybrid_operator!(matrix,vec_local_hybrid_operator_vals,
     for elid in elids
         edofs = element_dofs(elid,dim,sdim,NF)
         assemble_local_hybrid_operator!(matrix,vec_local_hybrid_operator_vals,
-        face_to_hybrid_element_number,edofs,elid,faceids,total_element_dofs,
-        dim,sdim,NHF)
+            face_to_hybrid_element_number,edofs,elid,faceids,total_element_dofs,
+            dim,sdim,NHF)
     end
 
 end
 
-function assemble_hybrid_local_operator!(matrix::SystemMatrix{T},
-    vec_hybrid_local_operator_vals::Vector{Vector{T}},
-    face_to_hybrid_element_number::Matrix{Int64},
-    face_indicator::Matrix{Symbol},total_nelements::Int64,
-    faces_per_element::Int64,total_element_dofs::Int64,
-    dim::Int64,sdim::Int64,NF::Int64,NHF::Int64) where {T}
+function assemble_hybrid_local_operator!(matrix::SystemMatrix{R},
+    vec_hybrid_local_operator_vals::Vector{Vector{R}},
+    face_to_hybrid_element_number::Matrix{Z},edofs::V,elid::Z,faceid::Z,
+    total_element_dofs::Z,dim::Z,sdim::Z,NHF::Z) where {R<:Real,Z<:Integer,V<:AbstractVector}
 
-    for elid in 1:total_nelements
+    hid = face_to_hybrid_element_number[faceid,elid]
+    hdofs = hybrid_dofs(hid,total_element_dofs,dim,NHF)
+    rows,cols = element_dofs_to_operator_dofs(hdofs,edofs)
+    update!(matrix,rows,cols,vec_hybrid_local_operator_vals[faceid])
+
+end
+
+function assemble_hybrid_local_operator!(matrix,vec_hybrid_local_operator_vals,
+    face_to_hybrid_element_number,edofs,elid,faceids::V,
+    total_element_dofs,dim,sdim,NHF) where {V<:AbstractVector}
+
+    for faceid in faceids
+        assemble_hybrid_local_operator!(matrix,vec_hybrid_local_operator_vals,
+            face_to_hybrid_element_number,edofs,elid,faceid,total_element_dofs,
+            dim,sdim,NHF)
+    end
+
+end
+
+function assemble_hybrid_local_operator!(matrix,vec_hybrid_local_operator_vals,
+    face_to_hybrid_element_number,elids::V,faceids::V,total_element_dofs,
+    dim,sdim,NF,NHF) where {V<:AbstractVector}
+
+    for elid in elids
         edofs = element_dofs(elid,dim,sdim,NF)
-        for faceid in 1:faces_per_element
-            if face_indicator[faceid,elid] == :interior
-                hid = face_to_hybrid_element_number[faceid,elid]
-                hdofs = hybrid_dofs(hid,total_element_dofs,dim,NHF)
-                rows,cols = element_dofs_to_operator_dofs(hdofs,edofs)
-                update!(matrix,rows,cols,vec_hybrid_local_operator_vals[faceid])
-            end
-        end
+        assemble_hybrid_local_operator!(matrix,vec_hybrid_local_operator_vals,
+            face_to_hybrid_element_number,edofs,elid,faceids,total_element_dofs,
+            dim,sdim,NHF)
     end
+
 end
+
 
 function assemble_hybrid_mass_operator!(matrix::SystemMatrix{T},
     vec_hybrid_mass_operator_vals::Vector{T},

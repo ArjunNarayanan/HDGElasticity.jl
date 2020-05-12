@@ -152,3 +152,79 @@ v = vcat(v,v)
 @test all(matrix.rows .== rows)
 @test all(matrix.cols .== cols)
 @test all(matrix.vals .≈ v)
+
+matrix = HDGElasticity.SystemMatrix()
+vals = [vec(rand(20,4)) for i = 1:4]
+face_to_hybrid_element_number = [1  5
+                                 2  6
+                                 3  7
+                                 4  2]
+edofs = HDGElasticity.element_dofs(2,2,3,4)
+HDGElasticity.assemble_hybrid_local_operator!(matrix,vals,
+    face_to_hybrid_element_number,edofs,2,3,40,2,3,2)
+hdofs = (40+6*4+1):(40+7*4)
+r = repeat(hdofs,20)
+c = repeat(edofs,inner=(4,))
+@test all(r .== matrix.rows)
+@test all(c .== matrix.cols)
+@test all(vals[3] .== matrix.vals)
+
+matrix = HDGElasticity.SystemMatrix()
+vals = [vec(rand(80)) for i = 1:4]
+face_to_hybrid_element_number = [1  5
+                                 2  6
+                                 3  7
+                                 4  2]
+edofs = HDGElasticity.element_dofs(1,2,3,4)
+cols = repeat(repeat(edofs,inner=(4,)),4)
+HDGElasticity.assemble_hybrid_local_operator!(matrix,vals,
+    face_to_hybrid_element_number,edofs,2,1:4,40,2,3,2)
+h1 = (40+4*4+1):(40+5*4)
+c1 = repeat(h1,20)
+h2 = (40+5*4+1):(40+6*4)
+c2 = repeat(h2,20)
+h3 = (40+6*4+1):(40+7*4)
+c3 = repeat(h3,20)
+h4 = (40+1*4+1):(40+2*4)
+c4 = repeat(h4,20)
+rows = vcat(c1,c2,c3,c4)
+v = vcat(vals...)
+@test all(rows .== matrix.rows)
+@test all(cols .== matrix.cols)
+@test all(v .≈ matrix.vals)
+
+
+
+matrix = HDGElasticity.SystemMatrix()
+vals = [vec(rand(80)) for i = 1:4]
+HDGElasticity.assemble_hybrid_local_operator!(matrix,vals,
+    face_to_hybrid_element_number,1:2,1:4,40,2,3,4,2)
+h1 = (40+0*4+1):(40+1*4)
+c1 = repeat(h1,20)
+h2 = (40+1*4+1):(40+2*4)
+c2 = repeat(h2,20)
+h3 = (40+2*4+1):(40+3*4)
+c3 = repeat(h3,20)
+h4 = (40+3*4+1):(40+4*4)
+c4 = repeat(h4,20)
+h5 = (40+4*4+1):(40+5*4)
+c5 = repeat(h5,20)
+h6 = (40+5*4+1):(40+6*4)
+c6 = repeat(h6,20)
+h7 = (40+6*4+1):(40+7*4)
+c7 = repeat(h7,20)
+h8 = (40+1*4+1):(40+2*4)
+c8 = repeat(h8,20)
+rows = vcat(c1,c2,c3,c4,c5,c6,c7,c8)
+
+edofs1 = HDGElasticity.element_dofs(1,2,3,4)
+r1 = repeat(repeat(edofs1,inner=(4,)),4)
+edofs2 = HDGElasticity.element_dofs(2,2,3,4)
+r2 = repeat(repeat(edofs2,inner=(4,)),4)
+cols = vcat(r1,r2)
+v = vcat(vals...)
+v = vcat(v,v)
+
+@test all(matrix.rows .== rows)
+@test all(matrix.cols .== cols)
+@test all(matrix.vals .≈ v)
