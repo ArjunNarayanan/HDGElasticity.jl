@@ -130,7 +130,7 @@ end
 function assemble_local_hybrid_operator!(matrix::SystemMatrix{R},
     vec_local_hybrid_operator_vals::Vector{Vector{R}},
     face_to_hybrid_element_number::Matrix{Z},edofs::V,elid::Z,faceid::Z,
-    total_element_dofs::Z,dim::Z,sdim::Z,NHF::Z) where {R<:Real,Z<:Integer,V<:AbstractVector}
+    total_element_dofs::Z,dim::Z,NHF::Z) where {R<:Real,Z<:Integer,V<:AbstractVector}
 
     hid = face_to_hybrid_element_number[faceid,elid]
     hdofs = hybrid_dofs(hid,total_element_dofs,dim,NHF)
@@ -141,12 +141,12 @@ end
 
 function assemble_local_hybrid_operator!(matrix,vec_local_hybrid_operator_vals,
     face_to_hybrid_element_number,edofs,elid,faceids::V,
-    total_element_dofs,dim,sdim,NHF) where {V<:AbstractVector}
+    total_element_dofs,dim,NHF) where {V<:AbstractVector}
 
     for faceid in faceids
         assemble_local_hybrid_operator!(matrix,vec_local_hybrid_operator_vals,
             face_to_hybrid_element_number,edofs,elid,faceid,total_element_dofs,
-            dim,sdim,NHF)
+            dim,NHF)
     end
 end
 
@@ -158,7 +158,7 @@ function assemble_local_hybrid_operator!(matrix,vec_local_hybrid_operator_vals,
         edofs = element_dofs(elid,dim,sdim,NF)
         assemble_local_hybrid_operator!(matrix,vec_local_hybrid_operator_vals,
             face_to_hybrid_element_number,edofs,elid,faceids,total_element_dofs,
-            dim,sdim,NHF)
+            dim,NHF)
     end
 
 end
@@ -166,7 +166,7 @@ end
 function assemble_hybrid_local_operator!(matrix::SystemMatrix{R},
     vec_hybrid_local_operator_vals::Vector{Vector{R}},
     face_to_hybrid_element_number::Matrix{Z},edofs::V,elid::Z,faceid::Z,
-    total_element_dofs::Z,dim::Z,sdim::Z,NHF::Z) where {R<:Real,Z<:Integer,V<:AbstractVector}
+    total_element_dofs::Z,dim::Z,NHF::Z) where {R<:Real,Z<:Integer,V<:AbstractVector}
 
     hid = face_to_hybrid_element_number[faceid,elid]
     hdofs = hybrid_dofs(hid,total_element_dofs,dim,NHF)
@@ -177,12 +177,12 @@ end
 
 function assemble_hybrid_local_operator!(matrix,vec_hybrid_local_operator_vals,
     face_to_hybrid_element_number,edofs,elid,faceids::V,
-    total_element_dofs,dim,sdim,NHF) where {V<:AbstractVector}
+    total_element_dofs,dim,NHF) where {V<:AbstractVector}
 
     for faceid in faceids
         assemble_hybrid_local_operator!(matrix,vec_hybrid_local_operator_vals,
             face_to_hybrid_element_number,edofs,elid,faceid,total_element_dofs,
-            dim,sdim,NHF)
+            dim,NHF)
     end
 
 end
@@ -195,28 +195,43 @@ function assemble_hybrid_local_operator!(matrix,vec_hybrid_local_operator_vals,
         edofs = element_dofs(elid,dim,sdim,NF)
         assemble_hybrid_local_operator!(matrix,vec_hybrid_local_operator_vals,
             face_to_hybrid_element_number,edofs,elid,faceids,total_element_dofs,
-            dim,sdim,NHF)
+            dim,NHF)
     end
 
 end
 
+function assemble_hybrid_operator!(matrix::SystemMatrix{R},
+    vec_hybrid_operator_vals::Vector{Vector{R}},
+    face_to_hybrid_element_number::Matrix{Z},elid::Z,faceid::Z,
+    total_element_dofs::Z,dim::Z,NHF::Z) where {R<:Real,Z<:Integer,V<:AbstractVector}
 
-function assemble_hybrid_mass_operator!(matrix::SystemMatrix{T},
-    vec_hybrid_mass_operator_vals::Vector{T},
-    face_to_hybrid_element_number::Matrix{Int64},
-    face_indicator::Matrix{Symbol},total_nelements::Int64,
-    faces_per_element::Int64,total_element_dofs::Int64,
-    dim::Int64,sdim::Int64,NHF::Int64) where {T}
+    hid = face_to_hybrid_element_number[faceid,elid]
+    hdofs = hybrid_dofs(hid,total_element_dofs,dim,NHF)
+    rows,cols = element_dofs_to_operator_dofs(hdofs,hdofs)
+    update!(matrix,rows,cols,vec_hybrid_operator_vals[faceid])
 
-    for elid in 1:total_nelements
-        for faceid in 1:faces_per_element
-            if face_indicator[faceid,elid] == :interior
-                hid = face_to_hybrid_element_number[faceid,elid]
-                hdofs = hybrid_dofs(hid,total_element_dofs,dim,NHF)
-                rows,cols = element_dofs_to_operator_dofs(hdofs,hdofs)
-                update!(matrix,rows,cols,vec_hybrid_mass_operator_vals)
-            end
-        end
+end
+
+function assemble_hybrid_operator!(matrix,vec_hybrid_operator_vals,
+    face_to_hybrid_element_number,elid,faceids::V,
+    total_element_dofs,dim,NHF) where {V<:AbstractVector}
+
+    for faceid in faceids
+        assemble_hybrid_operator!(matrix,vec_hybrid_operator_vals,
+            face_to_hybrid_element_number,elid,faceid,total_element_dofs,
+            dim,NHF)
+    end
+
+end
+
+function assemble_hybrid_operator!(matrix,vec_hybrid_operator_vals,
+    face_to_hybrid_element_number,elids::V,faceids::V,total_element_dofs,
+    dim,NHF) where {V<:AbstractVector}
+
+    for elid in elids
+        assemble_hybrid_operator!(matrix,vec_hybrid_operator_vals,
+            face_to_hybrid_element_number,elid,faceids,total_element_dofs,
+            dim,NHF)
     end
 
 end
