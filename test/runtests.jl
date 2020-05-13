@@ -11,3 +11,7 @@ end
 @safetestset "Test Displacement Component BC" begin
     include("test_displacement_component_bc.jl")
 end
+
+@safetestset "Test Assembly" begin
+    include("test_assembly.jl")
+end
