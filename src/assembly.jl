@@ -30,9 +30,9 @@ end
 struct SystemRHS{T}
     rows::Vector{Int64}
     vals::Vector{T}
-    function SystemRHS(rows::Vector{Int64},vals::Vector{T}) where {T}
+    function SystemRHS(rows::Vector{Z},vals::Vector{R}) where {Z<:Integer,R<:Real}
         @assert length(rows) == length(vals)
-        new{T}(rows,vals)
+        new{R}(rows,vals)
     end
 end
 

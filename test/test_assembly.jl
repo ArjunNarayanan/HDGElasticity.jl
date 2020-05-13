@@ -312,3 +312,17 @@ v = vcat(v,v)
 @test all(matrix.rows .== rows)
 @test all(matrix.cols .== cols)
 @test all(matrix.vals .≈ v)
+
+
+
+rhs = HDGElasticity.SystemRHS()
+@test isempty(rhs.rows)
+@test isempty(rhs.vals)
+rows = [1,2,3,4]
+vals = [1.0,2.0]
+@test_throws AssertionError HDGElasticity.update!(rhs,rows,vals)
+rows = [1,2,3,4]
+vals = [0.5,0.25,0.1,0.3]
+HDGElasticity.update!(rhs,rows,vals)
+@test all(rhs.rows .== rows)
+@test all(rhs.vals .== vals)
