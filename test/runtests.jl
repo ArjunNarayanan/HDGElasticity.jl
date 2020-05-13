@@ -15,3 +15,7 @@ end
 @safetestset "Test Assembly" begin
     include("test_assembly.jl")
 end
+
+@safetestset "Test Isotropic Hooke Matrix" begin
+    include("test_isotropic_elasticity.jl")
+end

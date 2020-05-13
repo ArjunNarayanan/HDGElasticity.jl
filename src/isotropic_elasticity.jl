@@ -10,8 +10,8 @@ function plane_strain_voigt_hooke_matrix(lambda,mu,dim)
     if dim == 2
         return plane_strain_voigt_hooke_matrix_2d(lambda,mu)
     elseif dim == 3
-        error("3D not implemented yet!")
+        throw(ArgumentError("dim == 3 has not been implemented yet"))
     else
-        error("Expected dim ∈ {1,2} got dim = $dim")
+        throw(ArgumentError("Expected dim ∈ {1,2} got dim = $dim"))
     end
 end
