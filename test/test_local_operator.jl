@@ -142,9 +142,27 @@ lop = HDGElasticity.LocalOperator(basis,quad,surface_quad,Dhalf,jac,3.0)
 
 @test size(lop.LL) == (12,12)
 @test size(lop.LU) == (12,8)
+@test size(lop.UU) == (8,8)
 @test size(lop.local_operator) == (20,20)
 
 @test rank(lop.local_operator) == 20
 @test !(det(lop.local_operator) ≈ 0.0)
 @test norm(lop.local_operator - lop.local_operator') ≈ 0.0
 @test issymmetric(lop.local_operator)
+
+x0 = [0.0,0.0]
+widths = [2.0,1.0]
+nelements = [1,1]
+mesh = UniformMesh(x0,widths,nelements)
+basis = TensorProductBasis(2,2)
+surface_basis = TensorProductBasis(1,2)
+quad = TensorProductQuadratureRule(2,2)
+surface_quad = TensorProductQuadratureRule(1,2)
+jac = HDGElasticity.AffineMapJacobian(mesh,quad)
+@test_throws ArgumentError HDGElasticity.LocalOperator(surface_basis,
+    surface_quad,surface_quad,Dhalf,jac,3.0)
+
+lop = HDGElasticity.LocalOperator(basis,quad,surface_quad,Dhalf,mesh,3.0)
+@test size(lop.LL) == (27,27)
+@test size(lop.LU) == (27,18)
+@test size(lop.UU) == (18,18)

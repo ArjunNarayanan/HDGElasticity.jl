@@ -126,13 +126,16 @@ function LocalOperator(basis::TensorProductBasis{dim},
     surface_quad::TensorProductQuadratureRule{1},
     Dhalf,jac::AffineMapJacobian,tau) where {dim}
 
+    if dim != 2
+        throw(ArgumentError("Expected dim = 2, got dim = $dim"))
+    end
     LL = -1.0*get_stress_coupling(basis,quad,jac)
     LU = get_stress_displacement_coupling(basis,quad,Dhalf,jac)
     UU = get_displacement_coupling(basis,surface_quad,jac,tau)
     return LocalOperator(LL,LU,UU)
 end
 
-function LocalOperator(basis,quad,surface_quad,mesh,Dhalf,tau)
-    jac = AffineMapJacobian(mesh)
+function LocalOperator(basis,quad,surface_quad,Dhalf,mesh,tau)
+    jac = AffineMapJacobian(mesh,quad)
     return LocalOperator(basis,quad,surface_quad,Dhalf,jac,tau)
 end

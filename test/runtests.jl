@@ -1,5 +1,9 @@
 using SafeTestsets
 
+@safetestset "Test Utils" begin
+    include("test_utils.jl")
+end
+
 @safetestset "Test Local Operator" begin
     include("test_local_operator.jl")
 end
