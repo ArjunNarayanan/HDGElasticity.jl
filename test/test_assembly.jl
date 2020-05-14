@@ -1,5 +1,5 @@
 using Test, LinearAlgebra
-using ImplicitDomainQuadrature
+using ImplicitDomainQuadrature, CartesianMesh
 using HDGElasticity
 
 @test_throws AssertionError HDGElasticity.check_lengths([1,2,3],[1,2],[1.0,2.0,3.0])
@@ -167,6 +167,34 @@ c = repeat(edofs,inner=(4,))
 @test all(r .== matrix.rows)
 @test all(c .== matrix.cols)
 @test all(vals[3] .== matrix.vals)
+
+x0 = [0.0,0.0]
+widths = [2.0,1.0]
+nelements = [1,1]
+mesh = UniformMesh(x0,widths,nelements)
+matrix = HDGElasticity.SystemMatrix()
+vals = [vec(rand(20,4)) for i = 1:4]
+HDGElasticity.assemble_hybrid_local_operator!(matrix,vals,mesh,20,4,2)
+@test isempty(matrix.rows)
+@test isempty(matrix.cols)
+@test isempty(matrix.vals)
+
+x0 = [0.0,0.0]
+widths = [2.0,1.0]
+nelements = [2,1]
+mesh = UniformMesh(x0,widths,nelements)
+matrix = HDGElasticity.SystemMatrix()
+vals = [vec(rand(20,4)) for i = 1:4]
+HDGElasticity.assemble_hybrid_local_operator!(matrix,vals,mesh,40,4,2)
+r1 = 45:48
+rows = repeat(repeat(r1,20),2)
+c1 = repeat(1:20,inner=(4,))
+c2 = repeat(21:40,inner=(4,))
+cols = [c1;c2]
+v = [vals[2];vals[4]]
+@test all(matrix.rows .== rows)
+@test all(matrix.cols .== cols)
+@test all(matrix.vals .≈ v)
 
 matrix = HDGElasticity.SystemMatrix()
 vals = [vec(rand(80)) for i = 1:4]

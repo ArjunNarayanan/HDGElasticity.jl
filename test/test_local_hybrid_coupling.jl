@@ -144,4 +144,4 @@ s = size.(HH)
 all([i == (4,4) for i in s])
 
 local_hybrid = HDGElasticity.LocalHybridCoupling(basis,surface_basis,surface_quad,
-    Dhalf,3.0,jac)
+    Dhalf,jac,3.0)

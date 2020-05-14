@@ -188,14 +188,28 @@ function assemble_hybrid_local_operator!(matrix,vec_hybrid_local_operator_vals,
 end
 
 function assemble_hybrid_local_operator!(matrix,vec_hybrid_local_operator_vals,
-    face_to_hybrid_element_number,elids::V,faceids::V,total_element_dofs,
-    dim,sdim,NF,NHF) where {V<:AbstractVector}
+    face_to_hybrid_element_number,elids::V1,faceids::V2,total_element_dofs,
+    dim,sdim,NF,NHF) where {V1<:AbstractVector,V2<:AbstractVector}
 
     for elid in elids
         edofs = element_dofs(elid,dim,sdim,NF)
         assemble_hybrid_local_operator!(matrix,vec_hybrid_local_operator_vals,
             face_to_hybrid_element_number,edofs,elid,faceids,total_element_dofs,
             dim,NHF)
+    end
+
+end
+
+function assemble_hybrid_local_operator!(matrix,operator_vals,
+    mesh::UniformMesh{dim},total_element_dofs,NF,NHF) where {dim}
+
+    sdim = symmetric_tensor_dim(dim)
+    for elid in 1:mesh.total_number_of_elements
+        edofs = element_dofs(elid,dim,sdim,NF)
+        faceids = findall(mesh.face_indicator[:,elid] .== :internal)
+        assemble_hybrid_local_operator!(matrix,operator_vals,
+            mesh.face_to_hybrid_element_number,edofs,elid,faceids,
+            total_element_dofs,dim,NHF)
     end
 
 end

@@ -161,8 +161,3 @@ surface_quad = TensorProductQuadratureRule(1,2)
 jac = HDGElasticity.AffineMapJacobian(mesh,quad)
 @test_throws ArgumentError HDGElasticity.LocalOperator(surface_basis,
     surface_quad,surface_quad,Dhalf,jac,3.0)
-
-lop = HDGElasticity.LocalOperator(basis,quad,surface_quad,Dhalf,mesh,3.0)
-@test size(lop.LL) == (27,27)
-@test size(lop.LU) == (27,18)
-@test size(lop.UU) == (18,18)

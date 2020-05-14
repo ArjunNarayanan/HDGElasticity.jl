@@ -41,8 +41,8 @@ function get_stress_coupling(basis::TensorProductBasis{dim},
 end
 
 function get_stress_displacement_coupling(basis::TensorProductBasis{D,T,NF},
-    quad::TensorProductQuadratureRule,Dhalf::Matrix,Ek::Vector{M},
-    jac::AffineMapJacobian,dim,sdim) where {D,T,NF} where {M<:AbstractMatrix}
+    quad::TensorProductQuadratureRule,Dhalf::M1,Ek::Vector{M2},
+    jac::AffineMapJacobian,dim,sdim) where {D,T,NF} where {M1<:AbstractMatrix,M2<:AbstractMatrix}
 
     m,n = size(Dhalf)
     @assert m == n && m == sdim
@@ -66,9 +66,9 @@ function get_stress_displacement_coupling(basis::TensorProductBasis{D,T,NF},
     return ALU
 end
 
-function get_stress_displacement_coupling(basis::TensorProductBasis{dim,T,NF},
-    quad::TensorProductQuadratureRule{dim},Dhalf::Matrix,
-    jac::AffineMapJacobian) where {dim,T,NF}
+function get_stress_displacement_coupling(basis::TensorProductBasis{dim},
+    quad::TensorProductQuadratureRule{dim},Dhalf::M,
+    jac::AffineMapJacobian) where {dim,M<:AbstractMatrix}
 
     sdim = symmetric_tensor_dim(dim)
     Ek = vec_to_symm_mat_converter(dim)
@@ -133,9 +133,4 @@ function LocalOperator(basis::TensorProductBasis{dim},
     LU = get_stress_displacement_coupling(basis,quad,Dhalf,jac)
     UU = get_displacement_coupling(basis,surface_quad,jac,tau)
     return LocalOperator(LL,LU,UU)
-end
-
-function LocalOperator(basis,quad,surface_quad,Dhalf,mesh,tau)
-    jac = AffineMapJacobian(mesh,quad)
-    return LocalOperator(basis,quad,surface_quad,Dhalf,jac,tau)
 end
