@@ -249,3 +249,16 @@ function assemble_hybrid_operator!(matrix,vec_hybrid_operator_vals,
     end
 
 end
+
+function assemble_hybrid_operator!(matrix,operator_vals,mesh::UniformMesh{dim},
+    total_element_dofs,NHF) where {dim}
+
+    sdim = symmetric_tensor_dim(dim)
+    for elid in 1:mesh.total_number_of_elements
+        faceids = findall(mesh.face_indicator[:,elid] .== :internal)
+        assemble_hybrid_operator!(matrix,operator_vals,
+            mesh.face_to_hybrid_element_number,elid,faceids,
+            total_element_dofs,dim,NHF)
+    end
+
+end

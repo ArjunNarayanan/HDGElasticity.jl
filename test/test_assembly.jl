@@ -354,3 +354,32 @@ vals = [0.5,0.25,0.1,0.3]
 HDGElasticity.update!(rhs,rows,vals)
 @test all(rhs.rows .== rows)
 @test all(rhs.vals .== vals)
+
+
+
+x0 = [0.0,0.0]
+widths = [2.0,1.0]
+nelements = [1,1]
+mesh = UniformMesh(x0,widths,nelements)
+matrix = HDGElasticity.SystemMatrix()
+vals = [vec(rand(4,4)) for i = 1:4]
+HDGElasticity.assemble_hybrid_operator!(matrix,vals,mesh,20,2)
+@test isempty(matrix.rows)
+@test isempty(matrix.cols)
+@test isempty(matrix.vals)
+
+
+x0 = [0.0,0.0]
+widths = [2.0,1.0]
+nelements = [2,1]
+mesh = UniformMesh(x0,widths,nelements)
+matrix = HDGElasticity.SystemMatrix()
+vals = [vec(rand(4,4)) for i = 1:4]
+HDGElasticity.assemble_hybrid_operator!(matrix,vals,mesh,40,2)
+r1 = 45:48
+rows = repeat(repeat(r1,4),2)
+cols = repeat(repeat(r1,inner=(4,)),2)
+v = [vals[2];vals[4]]
+@test all(matrix.rows .== rows)
+@test all(matrix.cols .== cols)
+@test all(matrix.vals .== v)
