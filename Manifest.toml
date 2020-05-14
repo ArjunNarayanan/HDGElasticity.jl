@@ -34,7 +34,7 @@ version = "0.8.0"
 
 [[CartesianMesh]]
 deps = ["LightGraphs", "StaticArrays"]
-git-tree-sha1 = "3c8798a856028635d21b5c6f139b05e644eda16c"
+git-tree-sha1 = "793380c85b94ad31b9ea3c61c99852668a2277bb"
 repo-rev = "master"
 repo-url = "https://github.com/ArjunNarayanan/CartesianMesh.jl.git"
 uuid = "c3f3b8a2-2e3b-4b62-84bb-76319e98af94"
@@ -80,9 +80,9 @@ uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 
 [[DiffEqBase]]
 deps = ["ArrayInterface", "ChainRulesCore", "ConsoleProgressMonitor", "DataStructures", "Distributed", "DocStringExtensions", "FunctionWrappers", "IterativeSolvers", "IteratorInterfaceExtensions", "LabelledArrays", "LinearAlgebra", "Logging", "LoggingExtras", "MuladdMacro", "Parameters", "Printf", "ProgressLogging", "RecipesBase", "RecursiveArrayTools", "RecursiveFactorization", "Requires", "Roots", "SparseArrays", "StaticArrays", "Statistics", "SuiteSparse", "TableTraits", "TerminalLoggers", "TreeViews", "ZygoteRules"]
-git-tree-sha1 = "cde3b2cae8af04105e4920392dfb096794e9e71d"
+git-tree-sha1 = "9e9b98997a0481b2e7f260e2094a3aa6dbc6361f"
 uuid = "2b5f629d-d688-5b77-993f-72d75c75574e"
-version = "6.32.1"
+version = "6.33.0"
 
 [[DiffResults]]
 deps = ["StaticArrays"]
@@ -163,7 +163,7 @@ uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
 
 [[ImplicitDomainQuadrature]]
 deps = ["BranchAndPrune", "DynamicPolynomials", "FastGaussQuadrature", "IntervalArithmetic", "IntervalRootFinding", "LinearAlgebra", "Roots", "StaticArrays", "StaticPolynomials", "TaylorModels"]
-git-tree-sha1 = "e3188991ac981b074eb4cb3f00952816c30d0890"
+git-tree-sha1 = "7d3f28f1baac3129ce74030f790c259fbeb57f86"
 repo-rev = "master"
 repo-url = "https://github.com/ArjunNarayanan/ImplicitDomainQuadrature.git"
 uuid = "215a9a07-c97b-423e-a99e-05c6f7357eae"
@@ -276,9 +276,9 @@ version = "0.2.2"
 
 [[MultivariatePolynomials]]
 deps = ["DataStructures", "LinearAlgebra", "MutableArithmetics"]
-git-tree-sha1 = "84b9e577a29e9e3d98b3aa5fe259dde26ce679fb"
+git-tree-sha1 = "032ad0c5c9211a3fc98e9470a7f31f5c66de64e4"
 uuid = "102ac46a-7ee4-5c85-9060-abc95bfdeaa3"
-version = "0.3.7"
+version = "0.3.8"
 
 [[MutableArithmetics]]
 deps = ["LinearAlgebra", "SparseArrays", "Test"]
@@ -349,9 +349,9 @@ version = "1.0.1"
 
 [[RecursiveArrayTools]]
 deps = ["ArrayInterface", "LinearAlgebra", "RecipesBase", "Requires", "StaticArrays", "Statistics", "ZygoteRules"]
-git-tree-sha1 = "48a8ce7a8cb156231de0477372dcaa6ada1472ef"
+git-tree-sha1 = "22c78faa1827e63f542895b5ceb5d1a1aa160751"
 uuid = "731186ca-8d62-57ce-b412-fbd966d074cd"
-version = "2.3.1"
+version = "2.3.2"
 
 [[RecursiveFactorization]]
 deps = ["LinearAlgebra"]
@@ -414,15 +414,15 @@ uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [[SpecialFunctions]]
 deps = ["OpenSpecFun_jll"]
-git-tree-sha1 = "e19b98acb182567bcb7b75bb5d9eedf3a3b5ec6c"
+git-tree-sha1 = "a69e1eaf3397fbb5a4d718538463e5cc20ef42a4"
 uuid = "276daf66-3868-5448-9aa4-cd146d93841b"
-version = "0.10.0"
+version = "0.10.2"
 
 [[StaticArrays]]
 deps = ["LinearAlgebra", "Random", "Statistics"]
-git-tree-sha1 = "5a3bcb6233adabde68ebc97be66e95dcb787424c"
+git-tree-sha1 = "5c06c0aeb81bef54aed4b3f446847905eb6cbda0"
 uuid = "90137ffa-7385-5640-81b9-e52037218182"
-version = "0.12.1"
+version = "0.12.3"
 
 [[StaticPolynomials]]
 deps = ["LinearAlgebra", "MultivariatePolynomials", "StaticArrays"]
@@ -474,9 +474,9 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[TimeZones]]
 deps = ["Dates", "EzXML", "Mocking", "Printf", "RecipesBase", "Serialization", "Unicode"]
-git-tree-sha1 = "07af1bd3226d644ca1a3235c93e7d0207ce4536a"
+git-tree-sha1 = "db7bc2051d4c2e5f336409224df81485c00de6cb"
 uuid = "f269a46b-ccf7-5d73-abea-4c690281aa53"
-version = "1.1.1"
+version = "1.2.0"
 
 [[TreeViews]]
 deps = ["Test"]
