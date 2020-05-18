@@ -165,8 +165,8 @@ function get_hybrid_coupling(surface_basis::TensorProductBasis{1,T,NHF},
 end
 
 function LocalHybridCoupling(basis,surface_basis,surface_quad,Dhalf,jac,tau)
-    LH = -get_stress_hybrid_coupling(basis,surface_basis,surface_quad,Dhalf,jac)
-    UH = -get_displacement_hybrid_coupling(basis,surface_basis,surface_quad,tau,jac)
+    LH = get_stress_hybrid_coupling(basis,surface_basis,surface_quad,Dhalf,jac)
+    UH = get_displacement_hybrid_coupling(basis,surface_basis,surface_quad,tau,jac)
     HH = get_hybrid_coupling(surface_basis,surface_quad,tau,jac)
     return LocalHybridCoupling(LH,UH,HH)
 end

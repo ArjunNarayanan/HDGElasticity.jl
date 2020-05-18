@@ -3,6 +3,11 @@ using CartesianMesh, ImplicitDomainQuadrature
 import ImplicitDomainQuadrature: extend
 using HDGElasticity
 
+a = Vector{Matrix{Float64}}(undef,0)
+@test_throws AssertionError HDGElasticity.check_all_matrix_sizes(a)
+
+a = [rand(2,3),rand(2,2)]
+@test_throws AssertionError HDGElasticity.check_all_matrix_sizes(a)
 
 basis = TensorProductBasis(2,1)
 surface_basis = TensorProductBasis(1,1)
@@ -34,18 +39,18 @@ LUhtest = testjac*[0.0  0.0
 
 LUh = zeros(4,2)
 HDGElasticity.update_stress_hybrid_coupling!(LUh,x->basis(extend(x,2,1.0)),
-    surface_basis,surface_quad,M,-1.0,1)
+    surface_basis,surface_quad,M,+1.0,1)
 LUhtest = [0.0   0.0
-          -2/3  -1/3
+          +2/3  +1/3
            0.0   0.0
-          -1/3  -2/3]
+          +1/3  +2/3]
 @test all([isapprox(LUh[i],LUhtest[i]) for i = 1:length(LUh)])
 
 LUh = zeros(4,2)
 HDGElasticity.update_stress_hybrid_coupling!(LUh,x->basis(extend(x,1,-1.0)),
-    surface_basis,surface_quad,M,-1.0,1)
-LUhtest = [-2/3  -1/3
-           -1/3  -2/3
+    surface_basis,surface_quad,M,+1.0,1)
+LUhtest = [+2/3  +1/3
+           +1/3  +2/3
             0.0   0.0
             0.0   0.0]
 @test all([isapprox(LUh[i],LUhtest[i]) for i = 1:length(LUh)])
@@ -56,9 +61,9 @@ LUh1 = HDGElasticity.get_stress_hybrid_coupling(x->basis(extend(x,2,-1.0)),
 LUh2 = HDGElasticity.get_stress_hybrid_coupling(x->basis(extend(x,1,+1.0)),
     surface_basis,surface_quad,[1.0,0.0],Dhalf,1.0,2,3,4,2)
 LUh3 = HDGElasticity.get_stress_hybrid_coupling(x->basis(extend(x,2,+1.0)),
-    surface_basis,surface_quad,[0.0,1.0],Dhalf,-0.5,2,3,4,2)
+    surface_basis,surface_quad,[0.0,1.0],Dhalf,+0.5,2,3,4,2)
 LUh4 = HDGElasticity.get_stress_hybrid_coupling(x->basis(extend(x,1,-1.0)),
-    surface_basis,surface_quad,[-1.0,0.0],Dhalf,-1.0,2,3,4,2)
+    surface_basis,surface_quad,[-1.0,0.0],Dhalf,+1.0,2,3,4,2)
 
 jac = HDGElasticity.AffineMapJacobian([1.0,2.0],quad)
 normals = [[0.0,-1.0],[1.0,0.0],[0.0,1.0],[-1.0,0.0]]
@@ -95,17 +100,17 @@ UUhtest = testjac*[0.0  0.0
 @test all([isapprox(UUh[i],UUhtest[i]) for i = 1:length(UUh)])
 
 UUh = HDGElasticity.get_displacement_hybrid_coupling(x->basis(extend(x,2,+1.0)),
-    surface_basis,surface_quad,1.0,-1.0,1,4,2)
+    surface_basis,surface_quad,1.0,+1.0,1,4,2)
 UUhtest = [0.0   0.0
-          -2/3  -1/3
+          +2/3  +1/3
            0.0   0.0
-          -1/3  -2/3]
+          +1/3  +2/3]
 @test all(UUh .≈ UUhtest)
 
 UUh = HDGElasticity.get_displacement_hybrid_coupling(x->basis(extend(x,1,-1.0)),
-    surface_basis,surface_quad,1.0,-1.0,1,4,2)
-UUhtest = [-2/3  -1/3
-           -1/3  -2/3
+    surface_basis,surface_quad,1.0,+1.0,1,4,2)
+UUhtest = [+2/3  +1/3
+           +1/3  +2/3
             0.0   0.0
             0.0   0.0]
 @test all(UUh .≈ UUhtest)
@@ -141,7 +146,7 @@ jac = HDGElasticity.AffineMapJacobian([2.0,2.0],quad)
 HH = HDGElasticity.get_hybrid_coupling(surface_basis,surface_quad,3.0,jac)
 
 s = size.(HH)
-all([i == (4,4) for i in s])
+@test all([i == (4,4) for i in s])
 
 local_hybrid = HDGElasticity.LocalHybridCoupling(basis,surface_basis,surface_quad,
     Dhalf,jac,3.0)
