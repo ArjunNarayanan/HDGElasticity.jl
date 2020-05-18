@@ -74,9 +74,9 @@ function get_stress_hybrid_coupling(basis::TensorProductBasis{dim,T,NF},
     LH2 = get_stress_hybrid_coupling(x->basis(extend(x,1,x0[1]+dx[1])),
         surface_basis,surface_quad,normals[2],Dhalf,jac.jac[2],dim,sdim,NF,NHF)
     LH3 = get_stress_hybrid_coupling(x->basis(extend(x,2,x0[2]+dx[2])),
-        surface_basis,surface_quad,normals[3],Dhalf,-jac.jac[1],dim,sdim,NF,NHF)
+        surface_basis,surface_quad,normals[3],Dhalf,jac.jac[1],dim,sdim,NF,NHF)
     LH4 = get_stress_hybrid_coupling(x->basis(extend(x,1,x0[1])),
-        surface_basis,surface_quad,normals[4],Dhalf,-jac.jac[2],dim,sdim,NF,NHF)
+        surface_basis,surface_quad,normals[4],Dhalf,jac.jac[2],dim,sdim,NF,NHF)
     return [LH1,LH2,LH3,LH4]
 
 end
@@ -117,9 +117,9 @@ function get_displacement_hybrid_coupling(basis::TensorProductBasis{dim,T,NF},
     UH2 = get_displacement_hybrid_coupling(x->basis(extend(x,1,x0[1]+dx[1])),
         surface_basis,surface_quad,tau,jac.jac[2],dim,NF,NHF)
     UH3 = get_displacement_hybrid_coupling(x->basis(extend(x,2,x0[2]+dx[2])),
-        surface_basis,surface_quad,tau,-jac.jac[1],dim,NF,NHF)
+        surface_basis,surface_quad,tau,jac.jac[1],dim,NF,NHF)
     UH4 = get_displacement_hybrid_coupling(x->basis(extend(x,1,x0[1])),
-        surface_basis,surface_quad,tau,-jac.jac[2],dim,NF,NHF)
+        surface_basis,surface_quad,tau,jac.jac[2],dim,NF,NHF)
 
     return [UH1,UH2,UH3,UH4]
 end
@@ -157,16 +157,16 @@ function get_hybrid_coupling(surface_basis::TensorProductBasis{1,T,NHF},
     HH2 = get_hybrid_coupling(surface_basis,surface_quad,tau,
         jac.jac[2],dim,NHF)
     HH3 = get_hybrid_coupling(surface_basis,surface_quad,tau,
-        -jac.jac[1],dim,NHF)
+        jac.jac[1],dim,NHF)
     HH4 = get_hybrid_coupling(surface_basis,surface_quad,tau,
-        -jac.jac[2],dim,NHF)
+        jac.jac[2],dim,NHF)
 
     return [HH1,HH2,HH3,HH4]
 end
 
 function LocalHybridCoupling(basis,surface_basis,surface_quad,Dhalf,jac,tau)
-    LH = get_stress_hybrid_coupling(basis,surface_basis,surface_quad,Dhalf,jac)
-    UH = get_displacement_hybrid_coupling(basis,surface_basis,surface_quad,tau,jac)
+    LH = -get_stress_hybrid_coupling(basis,surface_basis,surface_quad,Dhalf,jac)
+    UH = -get_displacement_hybrid_coupling(basis,surface_basis,surface_quad,tau,jac)
     HH = get_hybrid_coupling(surface_basis,surface_quad,tau,jac)
     return LocalHybridCoupling(LH,UH,HH)
 end
