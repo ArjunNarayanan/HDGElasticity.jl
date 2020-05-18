@@ -2,14 +2,15 @@ using Test, StaticArrays, LinearAlgebra
 using CartesianMesh, ImplicitDomainQuadrature
 using HDGElasticity
 
-
+basis = TensorProductBasis(2,1)
+quad = TensorProductQuadratureRule(2,2)
+jac = HDGElasticity.AffineMapJacobian([2.0,2.0],quad)
 ALL = HDGElasticity.get_stress_coupling(basis,quad,jac,1)
 @test size(ALL) == (4,4)
-row1 = [4.0 2.0 2.0 1.0]/9.0
-row2 = [2.0 4.0 1.0 2.0]/9.0
-row3 = [2.0 1.0 4.0 2.0]/9.0
-row4 = [1.0 2.0 2.0 4.0]/9.0
-ALLtest = vcat(row1,row2,row3,row4)
+ALLtest = 1.0/9.0*[4.   2   2   1
+                   2    4   1   2
+                   2    1   4   2
+                   1    2   2   4]
 @test all(ALL .≈ ALLtest)
 
 ALL = HDGElasticity.get_stress_coupling(basis,quad,jac)
@@ -24,6 +25,14 @@ jac = HDGElasticity.AffineMapJacobian([1.0,2.0],quad)
 ALL = HDGElasticity.get_stress_coupling(basis,quad,jac,1)
 @test size(ALL) == (4,4)
 @test all(ALL .≈ 0.5*ALLtest)
+
+ALL = HDGElasticity.get_stress_coupling(basis,quad,jac)
+@test size(ALL) == (12,12)
+
+basis2 = TensorProductBasis(2,2)
+quad2 = TensorProductQuadratureRule(2,4)
+ALL = HDGElasticity.get_stress_coupling(basis2,quad2,jac)
+@test size(ALL) == (27,27)
 
 Dhalf = Array{Float64}(undef,1,1)
 Dhalf[1] = 1.0
@@ -40,15 +49,18 @@ Dhalf = diagm(ones(3))
 ALU = HDGElasticity.get_stress_displacement_coupling(basis,quad,Dhalf,jac)
 @test size(ALU) == (12,8)
 
+ALU = HDGElasticity.get_stress_displacement_coupling(basis2,quad2,Dhalf,jac)
+@test size(ALU) == (27,18)
+
 basis = TensorProductBasis(2,1)
 surface_quad = TensorProductQuadratureRule(1,2)
 jac = HDGElasticity.AffineMapJacobian([2.0,2.0],quad)
 AUU = HDGElasticity.get_displacement_coupling(basis,surface_quad,jac,1.0,1)
 
-AUUtest = [0.0  -1/3  1/3  0.0
-          -1/3  -4/3  0.0 -1/3
-           1/3   0.0  4/3  1/3
-           0.0  -1/3  1/3  0.0]
+AUUtest = [+4/3  +1/3  +1/3  +0.0
+           +1/3  +4/3  +0.0  +1/3
+           +1/3   0.0  +4/3  +1/3
+           +0.0  +1/3  +1/3  +4/3]
 @test all([isapprox(AUU[i],AUUtest[i],atol=1e-15) for i = 1:length(AUU)])
 
 AUU = HDGElasticity.get_displacement_coupling(basis,surface_quad,jac,1.0)
