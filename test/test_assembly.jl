@@ -27,6 +27,18 @@ sdofs = HDGElasticity.element_stress_dofs(3,2,3,4)
 testsdofs = [41,42,43,46,47,48,51,52,53,56,57,58]
 @test all(sdofs .== testsdofs)
 
+ddofs = HDGElasticity.element_displacement_dofs(3,2,3,4)
+testddofs = [44,45,49,50,54,55,59,60]
+@test all(ddofs .== testddofs)
+
+ddofs = HDGElasticity.element_displacement_dofs(1,2,3,4)
+testddofs = [4,5,9,10,14,15,19,20]
+@test all(ddofs .== testddofs)
+
+ddofs = HDGElasticity.element_displacement_dofs(5,2,3,9)
+testddofs = [184,185,189,190,194,195,199,200,204,205,209,210,214,215,219,220,224,225]
+@test all(ddofs .== testddofs)
+
 rows = [1,2,3]
 cols = [4,5,6]
 r,c = HDGElasticity.element_dofs_to_operator_dofs(rows,cols)

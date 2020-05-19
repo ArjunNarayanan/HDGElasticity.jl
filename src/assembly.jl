@@ -87,6 +87,21 @@ function element_stress_dofs(elid,dim,sdim,NF)
     return dofs
 end
 
+function element_displacement_dofs(elid,dim,sdim,NF)
+
+    dofs = Int[]
+
+    start = element_dof_start(elid,dim,sdim,NF)+sdim
+    stop = start+dim-1
+    step = dim+sdim
+    for F in 1:NF
+        append!(dofs,start:stop)
+        start = start+step
+        stop = start+dim-1
+    end
+    return dofs
+end
+
 function element_dofs_to_operator_dofs(row_dofs,col_dofs)
     lr = length(row_dofs)
     lc = length(col_dofs)
