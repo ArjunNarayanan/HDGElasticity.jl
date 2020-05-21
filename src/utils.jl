@@ -1,3 +1,11 @@
+function default_integer_type()
+    return typeof(1)
+end
+
+function default_float_type()
+    return typeof(1.0)
+end
+
 function get_reference_element_size(::Type{<:ReferenceQuadratureRule})
     return 2.0
 end
@@ -28,11 +36,11 @@ function make_row_matrix(vals::V,matrix::M) where {V<:AbstractVector} where {M<:
     return hcat([v*matrix for v in vals]...)
 end
 
-function interpolation_matrix(vals::V,dim::Int64) where {V<:AbstractVector}
+function interpolation_matrix(vals::V,dim::Z) where {V<:AbstractVector,Z<:Integer}
     return make_row_matrix(vals,diagm(ones(dim)))
 end
 
-function vec_to_symm_mat_converter(dim::Int64)
+function vec_to_symm_mat_converter(dim::Z) where {Z<:Integer}
     if dim == 2
         E1 = @SMatrix [1.0 0.0
                        0.0 0.0
@@ -66,7 +74,7 @@ function vec_to_symm_mat_converter(dim::Int64)
     end
 end
 
-function symmetric_tensor_dim(dim::Int64)
+function symmetric_tensor_dim(dim::Z) where {Z<:Integer}
     if dim == 2
         return 3
     elseif dim == 3

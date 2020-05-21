@@ -7,16 +7,16 @@ function check_lengths(rows::Vector{S},cols::Vector{S},vals::Vector{T}) where {T
     return true
 end
 
-struct SystemMatrix{T}
-    rows::Vector{Int64}
-    cols::Vector{Int64}
+struct SystemMatrix{T,Z}
+    rows::Vector{Z}
+    cols::Vector{Z}
     vals::Vector{T}
-    function SystemMatrix(rows::Vector{Int64},cols::Vector{Int64},
-        vals::Vector{T}) where {T<:Real}
+    function SystemMatrix(rows::Vector{Z},cols::Vector{Z},
+        vals::Vector{T}) where {T<:Real,Z<:Integer}
 
         check_lengths(rows,cols,vals)
 
-        new{T}(rows,cols,vals)
+        new{T,Z}(rows,cols,vals)
     end
 end
 
@@ -27,18 +27,20 @@ function update!(matrix::SystemMatrix,rows,cols,vals)
     append!(matrix.vals,vals)
 end
 
-struct SystemRHS{T}
-    rows::Vector{Int64}
+struct SystemRHS{T,Z}
+    rows::Vector{Z}
     vals::Vector{T}
     function SystemRHS(rows::Vector{Z},vals::Vector{R}) where {Z<:Integer,R<:Real}
         @assert length(rows) == length(vals)
-        new{R}(rows,vals)
+        new{R,Z}(rows,vals)
     end
 end
 
 function SystemRHS()
-    rows = Int[]
-    vals = Float64[]
+    Z = default_integer_type()
+    R = default_float_type()
+    rows = Z[]
+    vals = R[]
     return SystemRHS(rows,vals)
 end
 
@@ -49,9 +51,11 @@ function update!(rhs::SystemRHS,rows,vals)
 end
 
 function SystemMatrix()
-    rows = Int64[]
-    cols = Int64[]
-    vals = Float64[]
+    Z = default_integer_type()
+    R = default_float_type()
+    rows = Z[]
+    cols = Z[]
+    vals = R[]
     return SystemMatrix(rows,cols,vals)
 end
 

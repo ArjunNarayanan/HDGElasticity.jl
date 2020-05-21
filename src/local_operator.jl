@@ -88,7 +88,7 @@ end
 
 function get_displacement_coupling(basis::TensorProductBasis{2,T,NF},
     surface_quad::TensorProductQuadratureRule{1},
-    jac::AffineMapJacobian,tau::Float64,x0,dx,dim) where {T,NF}
+    jac::AffineMapJacobian,tau::R,x0,dx,dim) where {T,NF,R<:Real}
 
     nudofs = dim*NF
     AUU = zeros(nudofs,nudofs)
@@ -107,7 +107,7 @@ end
 
 function get_displacement_coupling(basis::TensorProductBasis{2,T,NF},
     surface_quad::TensorProductQuadratureRule{1},
-    jac::AffineMapJacobian,tau::Float64,dim) where {T,NF}
+    jac::AffineMapJacobian,tau::R,dim) where {T,NF,R<:Real}
 
     x0,dx = reference_element(basis)
     return get_displacement_coupling(basis,surface_quad,jac,tau,x0,dx,dim)
@@ -115,7 +115,7 @@ end
 
 function get_displacement_coupling(basis::TensorProductBasis{dim,T,NF},
     surface_quad::TensorProductQuadratureRule{1},
-    jac::AffineMapJacobian,tau::Float64) where {dim,fdim,T,NF}
+    jac::AffineMapJacobian,tau::R) where {dim,fdim,T,NF,R<:Real}
 
     x0,dx = reference_element(basis)
     return get_displacement_coupling(basis,surface_quad,jac,tau,x0,dx,dim)
