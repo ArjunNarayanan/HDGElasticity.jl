@@ -98,9 +98,9 @@ function get_displacement_coupling(basis::TensorProductBasis{2,T,NF},
     update_displacement_coupling!(AUU,x->basis(extend(x,1,x0[1]+dx[1])),
         surface_quad,jac.jac[2],tau,dim)
     update_displacement_coupling!(AUU,x->basis(extend(x,2,x0[2]+dx[2])),
-        surface_quad,-jac.jac[1],tau,dim)
+        surface_quad,jac.jac[1],tau,dim)
     update_displacement_coupling!(AUU,x->basis(extend(x,1,x0[1])),
-        surface_quad,-jac.jac[2],tau,dim)
+        surface_quad,jac.jac[2],tau,dim)
 
     return AUU
 end

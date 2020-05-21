@@ -23,9 +23,25 @@ matrix = HDGElasticity.SystemMatrix()
 
 @test all(HDGElasticity.element_dofs(3,2,3,4) .== 41:60)
 
-sdofs = HDGElasticity.element_stress_dofs(3,2,3,4)
-testsdofs = [41,42,43,46,47,48,51,52,53,56,57,58]
+sdofs = HDGElasticity.element_stress_dofs(1,2,3,4)
+testsdofs = 1:12
 @test all(sdofs .== testsdofs)
+
+sdofs = HDGElasticity.element_stress_dofs(3,2,3,4)
+testsdofs = 41:52
+@test all(sdofs .== testsdofs)
+
+ddofs = HDGElasticity.element_displacement_dofs(1,2,3,4)
+testddofs = 13:20
+@test all(ddofs .== testddofs)
+
+ddofs = HDGElasticity.element_displacement_dofs(3,2,3,4)
+testddofs = 53:60
+@test all(ddofs .== testddofs)
+
+ddofs = HDGElasticity.element_displacement_dofs(5,2,3,9)
+testddofs = 208:225
+@test all(ddofs .== testddofs)
 
 rows = [1,2,3]
 cols = [4,5,6]

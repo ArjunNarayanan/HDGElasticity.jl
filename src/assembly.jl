@@ -77,14 +77,17 @@ function element_stress_dofs(elid,dim,sdim,NF)
     dofs = Int[]
 
     start = element_dof_start(elid,dim,sdim,NF)
-    stop = start+sdim-1
-    step = dim+sdim
-    for F in 1:NF
-        append!(dofs,start:stop)
-        start = start+step
-        stop = start+sdim-1
-    end
-    return dofs
+    stop = start+sdim*NF-1
+    return start:stop
+end
+
+function element_displacement_dofs(elid,dim,sdim,NF)
+
+    dofs = Int[]
+
+    start = element_dof_start(elid,dim,sdim,NF)+sdim*NF
+    stop = start+dim*NF-1
+    return start:stop
 end
 
 function element_dofs_to_operator_dofs(row_dofs,col_dofs)
