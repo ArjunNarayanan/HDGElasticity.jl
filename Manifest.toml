@@ -34,7 +34,7 @@ version = "0.8.0"
 
 [[CartesianMesh]]
 deps = ["LightGraphs", "StaticArrays"]
-git-tree-sha1 = "793380c85b94ad31b9ea3c61c99852668a2277bb"
+git-tree-sha1 = "b5f51e8e43f660bd1bceec9e5bcfb1a528746f7f"
 repo-rev = "master"
 repo-url = "https://github.com/ArjunNarayanan/CartesianMesh.jl.git"
 uuid = "c3f3b8a2-2e3b-4b62-84bb-76319e98af94"
@@ -42,9 +42,9 @@ version = "0.1.0"
 
 [[ChainRulesCore]]
 deps = ["MuladdMacro"]
-git-tree-sha1 = "e7f1b2b4ba7146575e1a30345e0ae842ae4c74d8"
+git-tree-sha1 = "32e2c6e44d4fdd985b5688b5e85c1f6892cf3d15"
 uuid = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
-version = "0.7.5"
+version = "0.8.0"
 
 [[CommonSubexpressions]]
 deps = ["Test"]
@@ -66,9 +66,9 @@ version = "0.1.2"
 
 [[DataStructures]]
 deps = ["InteractiveUtils", "OrderedCollections"]
-git-tree-sha1 = "6166ecfaf2b8bbf2b68d791bc1d54501f345d314"
+git-tree-sha1 = "7d7578b00789cf16c5f68fad71868e773edd58a2"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-version = "0.17.15"
+version = "0.17.16"
 
 [[Dates]]
 deps = ["Printf"]
@@ -80,9 +80,9 @@ uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 
 [[DiffEqBase]]
 deps = ["ArrayInterface", "ChainRulesCore", "ConsoleProgressMonitor", "DataStructures", "Distributed", "DocStringExtensions", "FunctionWrappers", "IterativeSolvers", "IteratorInterfaceExtensions", "LabelledArrays", "LinearAlgebra", "Logging", "LoggingExtras", "MuladdMacro", "Parameters", "Printf", "ProgressLogging", "RecipesBase", "RecursiveArrayTools", "RecursiveFactorization", "Requires", "Roots", "SparseArrays", "StaticArrays", "Statistics", "SuiteSparse", "TableTraits", "TerminalLoggers", "TreeViews", "ZygoteRules"]
-git-tree-sha1 = "9e9b98997a0481b2e7f260e2094a3aa6dbc6361f"
+git-tree-sha1 = "b15841f74396fc6cd2e1982656bf6473244a2d2c"
 uuid = "2b5f629d-d688-5b77-993f-72d75c75574e"
-version = "6.33.0"
+version = "6.35.0"
 
 [[DiffResults]]
 deps = ["StaticArrays"]
@@ -141,10 +141,10 @@ uuid = "442a2c76-b920-505d-bb47-c5924d526838"
 version = "0.4.2"
 
 [[FastRounding]]
-deps = ["ErrorfreeArithmetic", "LinearAlgebra"]
-git-tree-sha1 = "6344aa18f654196be82e62816935225b3b9abe44"
+deps = ["ErrorfreeArithmetic", "Test"]
+git-tree-sha1 = "224175e213fd4fe112db3eea05d66b308dc2bf6b"
 uuid = "fa42c844-2597-5d31-933b-ebd51ab2693f"
-version = "0.3.1"
+version = "0.2.0"
 
 [[ForwardDiff]]
 deps = ["CommonSubexpressions", "DiffResults", "DiffRules", "NaNMath", "Random", "SpecialFunctions", "StaticArrays"]
@@ -179,10 +179,10 @@ deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 
 [[IntervalArithmetic]]
-deps = ["CRlibm", "FastRounding", "LinearAlgebra", "Markdown", "RecipesBase", "SetRounding", "StaticArrays"]
-git-tree-sha1 = "f97d8d63c3f849b0f545062de4634bc9f100d8ec"
+deps = ["CRlibm", "FastRounding", "LinearAlgebra", "Markdown", "Random", "RecipesBase", "RoundingEmulator", "SetRounding", "StaticArrays"]
+git-tree-sha1 = "b502bb7fba674f4b98202c5da0b17f86d8a3f48e"
 uuid = "d1acc4aa-44c8-5952-acd4-ba5d80a2a253"
-version = "0.16.1"
+version = "0.17.2"
 
 [[IntervalRootFinding]]
 deps = ["ForwardDiff", "IntervalArithmetic", "LinearAlgebra", "Polynomials", "StaticArrays"]
@@ -209,9 +209,9 @@ version = "1.0.0"
 
 [[LabelledArrays]]
 deps = ["ArrayInterface", "LinearAlgebra", "MacroTools", "StaticArrays"]
-git-tree-sha1 = "8702ede2e7cfdf872fd2e5c1b5f34c618208be80"
+git-tree-sha1 = "674c830a4ac858e877906405410471f5af2a4756"
 uuid = "2ee39098-c373-598a-b85f-a56591580800"
-version = "1.2.0"
+version = "1.2.1"
 
 [[LeftChildRightSiblingTrees]]
 deps = ["AbstractTrees"]
@@ -330,9 +330,9 @@ version = "0.1.2"
 
 [[ProgressMeter]]
 deps = ["Distributed", "Printf"]
-git-tree-sha1 = "ea1f4fa0ff5e8b771bf130d87af5b7ef400760bd"
+git-tree-sha1 = "b3cb8834eee5410c7246734cc6f4f586fe0dc50e"
 uuid = "92933f4c-e287-5a05-a399-4b506db050ca"
-version = "1.2.0"
+version = "1.3.0"
 
 [[REPL]]
 deps = ["InteractiveUtils", "Markdown", "Sockets"]
@@ -349,9 +349,9 @@ version = "1.0.1"
 
 [[RecursiveArrayTools]]
 deps = ["ArrayInterface", "LinearAlgebra", "RecipesBase", "Requires", "StaticArrays", "Statistics", "ZygoteRules"]
-git-tree-sha1 = "22c78faa1827e63f542895b5ceb5d1a1aa160751"
+git-tree-sha1 = "0a422065106506f75cd7a24caf49c17523884414"
 uuid = "731186ca-8d62-57ce-b412-fbd966d074cd"
-version = "2.3.2"
+version = "2.3.3"
 
 [[RecursiveFactorization]]
 deps = ["LinearAlgebra"]
@@ -376,6 +376,11 @@ deps = ["Printf"]
 git-tree-sha1 = "955ce06c1f424ca7043c7827f5cb14d8eb397065"
 uuid = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
 version = "1.0.1"
+
+[[RoundingEmulator]]
+git-tree-sha1 = "40b9edad2e5287e05bd413a38f61a8ff55b9557b"
+uuid = "5eaf0fd0-dfba-4ccb-bf02-d820a40db705"
+version = "0.2.1"
 
 [[SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
@@ -452,15 +457,15 @@ version = "0.8.2"
 
 [[TaylorModels]]
 deps = ["IntervalArithmetic", "IntervalRootFinding", "LinearAlgebra", "Markdown", "RecipesBase", "Reexport", "TaylorIntegration", "TaylorSeries"]
-git-tree-sha1 = "e607e22d46454e607eea44b856d9abf21e6520ff"
+git-tree-sha1 = "c34bfc4bf9e70fa51f64f28011eaab5e95239b50"
 uuid = "314ce334-5f6e-57ae-acf6-00b6e903104a"
-version = "0.3.3"
+version = "0.3.5"
 
 [[TaylorSeries]]
 deps = ["InteractiveUtils", "LinearAlgebra", "Markdown", "Requires", "SparseArrays"]
-git-tree-sha1 = "46a9ffd6e70b783aef18784d74499856b07c729c"
+git-tree-sha1 = "1496aa10e2085013edd57585a39797ea02180084"
 uuid = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
-version = "0.10.3"
+version = "0.10.4"
 
 [[TerminalLoggers]]
 deps = ["LeftChildRightSiblingTrees", "Logging", "Markdown", "Printf", "ProgressLogging", "UUIDs"]
@@ -489,9 +494,9 @@ deps = ["Random", "SHA"]
 uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [[UnPack]]
-git-tree-sha1 = "bc9ef72a4a826740895bf2772b48c21f9a1c13a7"
+git-tree-sha1 = "d4bfa022cd30df012700cf380af2141961bb3bfb"
 uuid = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
-version = "1.0.0"
+version = "1.0.1"
 
 [[Unicode]]
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
@@ -504,9 +509,9 @@ version = "2.9.9+4"
 
 [[Zlib_jll]]
 deps = ["Libdl", "Pkg"]
-git-tree-sha1 = "2f6c3e15e20e036ee0a0965879b31442b7ec50fa"
+git-tree-sha1 = "a2e0d558f6031002e380a90613b199e37a8565bf"
 uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
-version = "1.2.11+9"
+version = "1.2.11+10"
 
 [[ZygoteRules]]
 deps = ["MacroTools"]
