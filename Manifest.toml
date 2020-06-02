@@ -312,6 +312,14 @@ version = "0.12.1"
 deps = ["Dates", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "UUIDs"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 
+[[PolynomialBasis]]
+deps = ["DynamicPolynomials", "StaticArrays", "StaticPolynomials"]
+git-tree-sha1 = "f6399fdf0c50da26ee0bea7a29feae5d35ce058d"
+repo-rev = "master"
+repo-url = "https://github.com/ArjunNarayanan/PolynomialBasis.jl.git"
+uuid = "776a168a-1973-4f1d-bada-3c06b642fffd"
+version = "0.1.0"
+
 [[Polynomials]]
 deps = ["Intervals", "LinearAlgebra", "RecipesBase"]
 git-tree-sha1 = "a88e0eddef9202b651f4b60b37b59ca67bb49516"

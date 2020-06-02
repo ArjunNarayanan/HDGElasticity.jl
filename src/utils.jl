@@ -6,37 +6,45 @@ function default_float_type()
     return typeof(1.0)
 end
 
-function get_reference_element_size(::Type{<:ReferenceQuadratureRule})
+function reference_element_length()
     return 2.0
 end
 
-function number_of_basis_functions(basis::TensorProductBasis{dim,T,NF}) where {dim,T,NF}
+function number_of_basis_functions(basis::TensorProductBasis{dim,T,NF}) where
+    {dim,T,NF}
+
     return NF
 end
 
-function reference_element(basis::TensorProductBasis{2})
-    x0 = [-1.0,-1.0]
-    dx = [2.0,2.0]
-    return x0,dx
+function reference_cell(basis::TensorProductBasis{2})
+    xL = [-1.0,-1.0]
+    xR = [+1.0,+1.0]
+    return xL,xR
 end
 
-function reference_normals(basis::TensorProductBasis{2})
+function reference_normals()
     return [[0.0,-1.0],[1.0,0.0],[0.0,1.0],[-1.0,0.0]]
 end
 
-function jacobian(element_size::SVector{2},quadrature_weights::SVector{N}) where {N}
-    return prod(element_size)/sum(quadrature_weights)
+function reference_cell_volume(dim)
+    return reference_element_length()^dim
 end
 
-function jacobian(mesh::UniformMesh{2},quad::TensorProductQuadratureRule{2})
-    return jacobian(mesh.element_size,quad.weights)
+function affine_map_jacobian(element_size)
+    dim = length(element_size)
+    reference_vol = reference_cell_volume(dim)
+    return prod(element_size)/reference_vol
 end
 
-function make_row_matrix(vals::V,matrix::M) where {V<:AbstractVector} where {M<:AbstractMatrix}
+function make_row_matrix(vals::V,
+        matrix::M) where {V<:AbstractVector} where {M<:AbstractMatrix}
+
     return hcat([v*matrix for v in vals]...)
 end
 
-function interpolation_matrix(vals::V,dim::Z) where {V<:AbstractVector,Z<:Integer}
+function interpolation_matrix(vals::V,
+        dim::Z) where {V<:AbstractVector,Z<:Integer}
+
     return make_row_matrix(vals,diagm(ones(dim)))
 end
 
@@ -84,33 +92,25 @@ function symmetric_tensor_dim(dim::Z) where {Z<:Integer}
     end
 end
 
-struct AffineMapJacobian{dim,T}
-    jac::SVector{dim,T}
-    invjac::SVector{dim,T}
-    detjac::T
+struct AffineMap{dim,T}
+    xL::SVector{dim,T}
+    xR::SVector{dim,T}
+    function AffineMap(xL::SVector{dim,T},xR::SVector{dim,T}) where {dim,T}
+        @assert 1 <= dim <= 3
+        @assert all(xL .< xR)
+        new{dim,T}(xL,xR)
+    end
 end
 
-function AffineMapJacobian(jac::Vector{T},invjac::Vector{T},detjac::T) where {T}
-    nj = length(jac)
-    nij = length(invjac)
-    @assert nj == nij
-    sjac = SVector{nj}(jac)
-    sinvjac = SVector{nij}(invjac)
-    return AffineMapJacobian(sjac,sinvjac,detjac)
+function AffineMap(xL,xR)
+    dim = length(xL)
+    @assert length(xR) == dim
+    sxL = SVector{dim}(xL)
+    sxR = SVector{dim}(xR)
+    return AffineMap(sxL,sxR)
 end
 
-function AffineMapJacobian(element_size::T,reference_element_size::S) where {T<:AbstractVector,S<:Real}
-    jac = element_size/reference_element_size
-    invjac = inv.(jac)
-    detjac = prod(jac)
-    return AffineMapJacobian(jac,invjac,detjac)
-end
-
-function AffineMapJacobian(element_size::S,quad::TensorProductQuadratureRule{D,T}) where {S<:AbstractVector} where {D,T}
-    reference_element_size = get_reference_element_size(T)
-    return AffineMapJacobian(element_size,reference_element_size)
-end
-
-function AffineMapJacobian(mesh::UniformMesh,quad::TensorProductQuadratureRule)
-    return AffineMapJacobian(mesh.element_size,quad)
+function (M::AffineMap{dim})(xi) where {dim}
+    @assert length(xi) == dim
+    return M.xL .+ 0.5*(1.0 .+ xi) .* (M.xR - M.xL)
 end
