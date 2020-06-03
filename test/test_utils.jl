@@ -1,6 +1,6 @@
 using Test, StaticArrays, LinearAlgebra
 using CartesianMesh, PolynomialBasis, ImplicitDomainQuadrature
-using Revise
+# using Revise
 using HDGElasticity
 
 HDGE = HDGElasticity
@@ -118,3 +118,4 @@ xL = [0.,0.]
 xR = [1.,1.]
 map = HDGE.AffineMap(xL,xR)
 @test allequal(map([0.,0.]),[0.5,0.5])
+@test allequal(map([-1.,0.]),[0.,0.5])

@@ -6,6 +6,7 @@ version = "0.1.0"
 [deps]
 CartesianMesh = "c3f3b8a2-2e3b-4b62-84bb-76319e98af94"
 ImplicitDomainQuadrature = "215a9a07-c97b-423e-a99e-05c6f7357eae"
+LightGraphs = "093fc24a-ae57-5d10-9952-331d41423f4d"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 PolynomialBasis = "776a168a-1973-4f1d-bada-3c06b642fffd"
 SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
