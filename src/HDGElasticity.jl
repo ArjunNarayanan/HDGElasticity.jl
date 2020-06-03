@@ -2,7 +2,6 @@ module HDGElasticity
 
 using LinearAlgebra
 using StaticArrays
-using LightGraphs
 using CartesianMesh
 using PolynomialBasis
 using ImplicitDomainQuadrature
