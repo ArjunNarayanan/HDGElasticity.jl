@@ -1,6 +1,6 @@
-using Test, StaticArrays, LinearAlgebra
-using CartesianMesh, PolynomialBasis, ImplicitDomainQuadrature
-# using Revise
+using Test
+using StaticArrays
+using PolynomialBasis
 using HDGElasticity
 
 HDGE = HDGElasticity
@@ -17,7 +17,9 @@ end
 basis = TensorProductBasis(2,4)
 @test HDGElasticity.number_of_basis_functions(basis) == 25
 
-xL,xR = HDGE.reference_cell(basis)
+@test_throws ArgumentError HDGE.reference_cell(1)
+@test_throws ArgumentError HDGE.reference_cell(3)
+xL,xR = HDGE.reference_cell(2)
 @test allequal(xL,[-1.0,-1.0])
 @test allequal(xR,[1.0,1.0])
 
@@ -110,7 +112,7 @@ xR = [1.,1.]
 map = HDGE.AffineMap(xL,xR)
 @test allequal(map.xL,xL)
 @test allequal(map.xR,xR)
-@test_throws AssertionError map([0.0,0.0,0.0])
+@test_throws DimensionMismatch map([0.0,0.0,0.0])
 @test allequal(map([0.0,0.0]),[0.0,0.0])
 @test allequal(map([-1.0,0.0]),[-1.0,0.0])
 
@@ -119,3 +121,9 @@ xR = [1.,1.]
 map = HDGE.AffineMap(xL,xR)
 @test allequal(map([0.,0.]),[0.5,0.5])
 @test allequal(map([-1.,0.]),[0.,0.5])
+xi = [-0.5  -0.5  0.0  1.0
+      -0.5  +0.0  0.5 -0.5]
+x = map(xi)
+testx = [0.25  0.25  0.50  1.0
+         0.25  0.50  0.75  0.25]
+@test allequal(x,testx)

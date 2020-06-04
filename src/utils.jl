@@ -16,10 +16,14 @@ function number_of_basis_functions(basis::TensorProductBasis{dim,T,NF}) where
     return NF
 end
 
-function reference_cell(basis::TensorProductBasis{2})
-    xL = [-1.0,-1.0]
-    xR = [+1.0,+1.0]
-    return xL,xR
+function reference_cell(dim)
+    if dim == 2
+        xL = [-1.0,-1.0]
+        xR = [+1.0,+1.0]
+        return xL,xR
+    else
+        throw(ArgumentError("Current support for dim = 2, got dim = $dim"))
+    end
 end
 
 function reference_normals()
@@ -110,7 +114,12 @@ function AffineMap(xL,xR)
     return AffineMap(sxL,sxR)
 end
 
-function (M::AffineMap{dim})(xi) where {dim}
-    @assert length(xi) == dim
+function AffineMap(box::IntervalBox)
+    xL = [int.lo for int in box.v]
+    xR = [int.hi for int in box.v]
+    return AffineMap(xL,xR)
+end
+
+function (M::AffineMap)(xi)
     return M.xL .+ 0.5*(1.0 .+ xi) .* (M.xR - M.xL)
 end
