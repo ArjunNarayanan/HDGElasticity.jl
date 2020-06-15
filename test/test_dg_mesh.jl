@@ -97,3 +97,8 @@ testface2hid[2,1,2] = 8
 testface2hid[3,1,2] = 9
 testface2hid[4,1,2] = 2
 @test allequal(face2hid,testface2hid)
+
+hid = maximum(face2hid)+1
+interface2hid = HDGElasticity.number_interface_hybrid_elements(isactivecell,hid)
+testinterface2hid = [10,0]
+@test allequal(interface2hid,testinterface2hid)

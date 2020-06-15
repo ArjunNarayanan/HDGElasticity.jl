@@ -2,19 +2,25 @@ struct DGMesh{dim,T}
     domain::Vector{IntervalBox{dim,T}}
     connectivity::Matrix{Int}
     isactivecell::Matrix{Bool}
-    isactiveface::Matrix{Vector{Bool}}
+    isactiveface::Array{Bool,3}
+    cell2elid::Matrix{Int}
+    face2hid::Array{Int,3}
     function DGMesh(domain::Vector{IntervalBox{dim,T}},connectivity::Matrix{T},
-        isactivecell::Matrix{Bool},isactiveface::Matrix{Vector{Bool}}) where
+        isactivecell::Matrix{Bool},isactiveface::Array{Bool,3},
+        cell2elid::Matrix{Int},face2hid::Array{Int,3}) where
         {dim,T}
 
         @assert dim == 2
+
         ncells = length(domain)
         @assert size(connectivity) == (4,ncells)
         @assert size(isactivecell) == (2,ncells)
-        @assert size(isactiveface) == (2,ncells)
-        @assert all(length.(isactiveface) .== 4)
+        @assert size(isactiveface) == (4,2,ncells)
+        @assert size(cell2elid) == (2,ncells)
+        @assert size(face2hid) == (4,2,ncells)
 
-        new{dim,T}(domain,connectivity,isactivecell,isactiveface)
+        new{dim,T}(domain,connectivity,isactivecell,isactiveface,
+            cell2elid,face2hid)
 
     end
 end
@@ -41,9 +47,10 @@ function active_cells!(isactivecell,coeffs,
     {NF,B<:TensorProductBasis{dim}} where {dim}
 
     nf,ncells = size(coeffs)
-    nphase,ncells2 = size(isactivecell)
-    @assert ncells == ncells2
+
     @assert nf == NF
+    @assert size(isactivecell) == (2,ncells)
+
 
     xL,xR = reference_cell(dim)
     box = IntervalBox(xL,xR)
@@ -87,13 +94,9 @@ end
 function active_faces!(isactiveface,coeffs,poly,isactivecell)
 
     nf,ncells = size(coeffs)
-    nphase,ncells2 = size(isactivecell)
-    @assert nphase == 2
-    @assert ncells == ncells2
-    nface,nphase,ncells2 = size(isactiveface)
-    @assert nface == 4
-    @assert nphase == 2
-    @assert ncells == ncells2
+
+    @assert size(isactivecell) == (2,ncells)
+    @assert size(isactiveface) == (4,2,ncells)
 
 
     fill!(isactiveface,false)
@@ -135,11 +138,10 @@ function active_faces(coeffs,poly,isactivecell)
 end
 
 function number_elements!(cell2elid,isactivecell)
+
     nphase,ncells = size(isactivecell)
     @assert nphase == 2
-    nphase,ncells2 = size(cell2elid)
-    @assert nphase == 2
-    @assert ncells == ncells2
+    @assert size(cell2elid) == (2,ncells)
 
     fill!(cell2elid,0)
     elid = 1
@@ -176,17 +178,10 @@ end
 
 function number_face_hybrid_elements!(face2hid,isactiveface,connectivity)
 
-    nface,nphase,ncells = size(isactiveface)
+    nface,ncells = size(connectivity)
     @assert nface == 4
-    @assert nphase == 2
-
-    nface,ncells2 = size(connectivity)
-    @assert nface == 4
-    @assert ncells2 == ncells
-    nface,nphase,ncells2 = size(face2hid)
-    @assert nface == 4
-    @assert nphase == 2
-    @assert ncells2 == ncells
+    @assert size(face2hid) == (4,2,ncells)
+    @assert size(isactiveface) == (4,2,ncells)
 
     fill!(face2hid,0)
     hid = 1
@@ -213,4 +208,29 @@ function number_face_hybrid_elements(isactiveface,connectivity)
     face2hid = zeros(Int,4,2,ncells)
     number_face_hybrid_elements!(face2hid,isactiveface,connectivity)
     return face2hid
+end
+
+function number_interface_hybrid_elements!(interface2hid,isactivecell,hid)
+
+    nphase,ncells = size(isactivecell)
+    @assert nphase == 2
+    @assert length(interface2hid) == ncells
+    @assert hid > 0
+
+    fill!(interface2hid,0)
+
+    for idx in 1:ncells
+        if isactivecell[1,idx] && isactivecell[2,idx]
+            interface2hid[idx] = hid
+            hid += 1
+        end
+    end
+
+end
+
+function number_interface_hybrid_elements(isactivecell,hid)
+    nphase,ncells = size(isactivecell)
+    interface2hid = zeros(Int,ncells)
+    number_interface_hybrid_elements!(interface2hid,isactivecell,hid)
+    return interface2hid
 end
