@@ -102,3 +102,22 @@ hid = maximum(face2hid)+1
 interface2hid = HDGElasticity.number_interface_hybrid_elements(isactivecell,hid)
 testinterface2hid = [10,0]
 @test allequal(interface2hid,testinterface2hid)
+
+dgmesh = HDGElasticity.DGMesh(domain,connectivity,isactivecell,
+    isactiveface,cell2elid,face2hid,interface2hid)
+@test allequal(dgmesh.domain,domain)
+@test allequal(dgmesh.connectivity,connectivity)
+@test allequal(dgmesh.isactivecell,isactivecell)
+@test allequal(dgmesh.isactiveface,isactiveface)
+@test allequal(dgmesh.cell2elid,cell2elid)
+@test allequal(dgmesh.face2hid,face2hid)
+@test allequal(dgmesh.interface2hid,interface2hid)
+
+dgmesh = HDGElasticity.DGMesh(mesh,coeffs,poly)
+@test allequal(dgmesh.domain,domain)
+@test allequal(dgmesh.connectivity,connectivity)
+@test allequal(dgmesh.isactivecell,isactivecell)
+@test allequal(dgmesh.isactiveface,isactiveface)
+@test allequal(dgmesh.cell2elid,cell2elid)
+@test allequal(dgmesh.face2hid,face2hid)
+@test allequal(dgmesh.interface2hid,interface2hid)

@@ -5,9 +5,14 @@ struct DGMesh{dim,T}
     isactiveface::Array{Bool,3}
     cell2elid::Matrix{Int}
     face2hid::Array{Int,3}
-    function DGMesh(domain::Vector{IntervalBox{dim,T}},connectivity::Matrix{T},
+    interface2hid::Vector{Int}
+    elids::UnitRange{Int}
+    facehids::UnitRange{Int}
+    interfacehids::UnitRange{Int}
+    function DGMesh(domain::Vector{IntervalBox{dim,T}},connectivity::Matrix{Int},
         isactivecell::Matrix{Bool},isactiveface::Array{Bool,3},
-        cell2elid::Matrix{Int},face2hid::Array{Int,3}) where
+        cell2elid::Matrix{Int},face2hid::Array{Int,3},
+        interface2hid::Vector{Int}) where
         {dim,T}
 
         @assert dim == 2
@@ -18,11 +23,32 @@ struct DGMesh{dim,T}
         @assert size(isactiveface) == (4,2,ncells)
         @assert size(cell2elid) == (2,ncells)
         @assert size(face2hid) == (4,2,ncells)
+        @assert length(interface2hid) == ncells
+
+        elidstop = maximum(cell2elid)
+        elids = 1:elidstop
+        facehidstop = maximum(face2hid)
+        facehids = 1:facehidstop
+        interfacehidstop = maximum(interface2hid)
+        interfacehids = (facehidstop+1):interfacehidstop
 
         new{dim,T}(domain,connectivity,isactivecell,isactiveface,
-            cell2elid,face2hid)
+            cell2elid,face2hid,interface2hid,elids,facehids,interfacehids)
 
     end
+end
+
+function DGMesh(mesh::UniformMesh,coeffs,poly)
+    domain = cell_domain(mesh)
+    connectivity = cell_connectivity(mesh)
+    isactivecell = active_cells(coeffs,poly)
+    isactiveface = active_faces(coeffs,poly,isactivecell)
+    cell2elid = number_elements(isactivecell)
+    face2hid = number_face_hybrid_elements(isactiveface,connectivity)
+    hid = maximum(face2hid)+1
+    interface2hid = number_interface_hybrid_elements(isactivecell,hid)
+    return DGMesh(domain,connectivity,isactivecell,isactiveface,
+        cell2elid,face2hid,interface2hid)
 end
 
 function cell_domain(mesh::UniformMesh{dim,T}) where {dim,T}

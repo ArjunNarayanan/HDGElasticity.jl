@@ -12,6 +12,7 @@ IDQ = ImplicitDomainQuadrature
 
 include("utils.jl")
 include("dg_mesh.jl")
+include("function_space.jl")
 # include("local_operator.jl")
 # include("local_hybrid_coupling.jl")
 # include("displacement_component_bc.jl")
