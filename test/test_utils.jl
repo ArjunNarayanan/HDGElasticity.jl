@@ -17,8 +17,10 @@ end
 basis = TensorProductBasis(2,4)
 @test HDGElasticity.number_of_basis_functions(basis) == 25
 
-@test_throws ArgumentError HDGE.reference_cell(1)
 @test_throws ArgumentError HDGE.reference_cell(3)
+xL,xR = HDGE.reference_cell(1)
+@test allequal(xL,[-1.])
+@test allequal(xR,[+1.])
 xL,xR = HDGE.reference_cell(2)
 @test allequal(xL,[-1.0,-1.0])
 @test allequal(xR,[1.0,1.0])

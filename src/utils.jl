@@ -17,7 +17,11 @@ function number_of_basis_functions(basis::TensorProductBasis{dim,T,NF}) where
 end
 
 function reference_cell(dim)
-    if dim == 2
+    if dim == 1
+        xL = [-1.0]
+        xR = [+1.0]
+        return xL,xR
+    elseif dim == 2
         xL = [-1.0,-1.0]
         xR = [+1.0,+1.0]
         return xL,xR
