@@ -2,27 +2,38 @@ struct FunctionSpace{dim}
     bases::Matrix{TensorProductBasis{dim}}
 end
 
-function element_bases(dim::Int,orders::M) where {M<:AbstractMatrix{Int}}
-    nphase,ncells = size(orders)
-    @assert nphase == 2
-    @assert all(orders .> 0)
+function bases(dim::Int,orders::A) where {A<:AbstractArray{Int}}
 
     unique_orders = unique(orders)
     tpbs = [TensorProductBasis(dim,o) for o in unique_orders]
     order2idx = Dict([unique_orders[i]=>i for i = 1:length(unique_orders)]...)
-    bases = Matrix{TensorProductBasis{dim}}(undef,2,ncells)
 
-    for idx = 1:ncells
-        for phase = 1:2
-            bases[phase,idx] = tpbs[order2idx[orders[phase,idx]]]
-        end
+    bs = similar(orders,TensorProductBasis{dim})
+
+    for (idx,o) in enumerate(orders)
+        bs[idx] = tpbs[order2idx[o]]
     end
-    return bases
+
+    return bs
 end
 
-function element_bases(dim::Int,order::Int,ncells::Int)
+function element_bases(dim,order::Int,ncells)
     orders = repeat([order],inner=(2,ncells))
-    return element_bases(dim,orders)
+    return bases(dim,orders)
+end
+
+function element_bases(dim,orders)
+    return bases(dim,orders)
+end
+
+function hybrid_bases(dim,order::Int,ncells)
+    @assert dim == 1
+    orders = repeat([order],inner=(4,2,ncells))
+    return bases(dim,orders)
+end
+
+function hybrid_bases(dim,orders)
+    return bases(dim,orders)
 end
 
 function element_quadratures(dim,isactivecell,coeffs,poly,nqps::M) where

@@ -15,17 +15,28 @@ end
 
 orders = [2 2 3 2
           2 1 4 2]
-bases = HDGElasticity.element_bases(2,orders)
+bs = HDGElasticity.bases(2,orders)
 nf = (orders .+ 1).^2
-nftest = HDGElasticity.number_of_basis_functions.(bases)
-@test size(bases) == (2,4)
+nftest = HDGElasticity.number_of_basis_functions.(bs)
+@test size(bs) == (2,4)
 @test allequal(nf,nftest)
 
+orders = reshape([rand(1:5) for i = 1:24],4,2,3)
+bs = HDGElasticity.bases(1,orders)
+nf = (orders .+ 1)
+nftest = HDGElasticity.number_of_basis_functions.(bs)
+@test size(bs) == (4,2,3)
+@test allequal(nf,nftest)
 
 bases = HDGElasticity.element_bases(2,3,5)
 @test size(bases) == (2,5)
 nftest = HDGElasticity.number_of_basis_functions.(bases)
 @test all(nftest .== 16)
+
+bases = HDGElasticity.hybrid_bases(1,4,5)
+@test size(bases) == (4,2,5)
+nf = HDGElasticity.number_of_basis_functions.(bases)
+@test all(nf .== 5)
 
 function distance_function(coords,xc)
     return coords[1,:] .- xc
