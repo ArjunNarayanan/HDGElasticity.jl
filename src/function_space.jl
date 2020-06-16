@@ -1,40 +1,8 @@
-struct FunctionSpace{dim}
-    bases::Matrix{TensorProductBasis{dim}}
+struct UniformFunctionSpace{vdim,sdim}
+    vbasis::TensorProductBasis{vdim}
+    sbasis::TensorProductBasis{sdim}
 end
 
-function bases(dim::Int,orders::A) where {A<:AbstractArray{Int}}
-
-    unique_orders = unique(orders)
-    tpbs = [TensorProductBasis(dim,o) for o in unique_orders]
-    order2idx = Dict([unique_orders[i]=>i for i = 1:length(unique_orders)]...)
-
-    bs = similar(orders,TensorProductBasis{dim})
-
-    for (idx,o) in enumerate(orders)
-        bs[idx] = tpbs[order2idx[o]]
-    end
-
-    return bs
-end
-
-function element_bases(dim,order::Int,ncells)
-    orders = repeat([order],inner=(2,ncells))
-    return bases(dim,orders)
-end
-
-function element_bases(dim,orders)
-    return bases(dim,orders)
-end
-
-function hybrid_bases(dim,order::Int,ncells)
-    @assert dim == 1
-    orders = repeat([order],inner=(4,2,ncells))
-    return bases(dim,orders)
-end
-
-function hybrid_bases(dim,orders)
-    return bases(dim,orders)
-end
 
 function element_quadratures(dim,isactivecell,coeffs,poly,nqps::M) where
     {M<:AbstractMatrix}
