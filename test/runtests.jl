@@ -4,6 +4,10 @@ using SafeTestsets
     include("test_utils.jl")
 end
 
+@safetestset "Test DGMesh" begin
+    include("test_dg_mesh.jl")
+end
+
 # @safetestset "Test Local Operator" begin
 #     include("test_local_operator.jl")
 # end
