@@ -127,3 +127,20 @@ end
 function (M::AffineMap)(xi)
     return M.xL .+ 0.5*(1.0 .+ xi) .* (M.xR - M.xL)
 end
+
+function nodal_coordinates(mesh::UniformMesh{dim,FT},
+    basis::TensorProductBasis{dim,T,NF}) where {dim,T,NF,FT}
+
+    ncells = mesh.total_number_of_elements
+    coords = Matrix{FT}(undef,dim,NF*ncells)
+    start = 1
+    stop = NF
+    for idx in 1:ncells
+        xL,xR = CartesianMesh.element(mesh,idx)
+        map = AffineMap(xL,xR)
+        coords[:,start:stop] = map(basis.points)
+        start = stop+1
+        stop += NF
+    end
+    return coords
+end

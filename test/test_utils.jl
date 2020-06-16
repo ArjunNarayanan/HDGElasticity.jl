@@ -1,6 +1,7 @@
 using Test
 using StaticArrays
 using PolynomialBasis
+using CartesianMesh
 using HDGElasticity
 
 HDGE = HDGElasticity
@@ -129,3 +130,10 @@ x = map(xi)
 testx = [0.25  0.25  0.50  1.0
          0.25  0.50  0.75  0.25]
 @test allequal(x,testx)
+
+mesh = UniformMesh([0.0,0.0],[1.,1.],[1,1])
+basis = TensorProductBasis(2,2)
+coords = HDGElasticity.nodal_coordinates(mesh,basis)
+testcoords = [0.0 0.0 0.0 0.5 0.5 0.5 1.0 1.0 1.0
+              0.0 0.5 1.0 0.0 0.5 1.0 0.0 0.5 1.0]
+@test allequal(coords,testcoords)
