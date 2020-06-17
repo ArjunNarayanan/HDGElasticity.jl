@@ -2,6 +2,7 @@ using Test
 using StaticArrays
 using PolynomialBasis
 using CartesianMesh
+# using Revise
 using HDGElasticity
 
 HDGE = HDGElasticity
