@@ -188,20 +188,6 @@ function number_elements(isactivecell)
     return cell2elid
 end
 
-function neighbor_faceid(faceid)
-    if faceid == 1
-        return 3
-    elseif faceid == 2
-        return 4
-    elseif faceid == 3
-        return 1
-    elseif faceid == 4
-        return 2
-    else
-        throw(ArgumentError("Expected faceid ∈ {1,2,3,4}, got faceid = $faceid"))
-    end
-end
-
 function number_face_hybrid_elements!(face2hid,isactiveface,connectivity)
 
     nface,ncells = size(connectivity)
@@ -212,14 +198,16 @@ function number_face_hybrid_elements!(face2hid,isactiveface,connectivity)
     fill!(face2hid,0)
     hid = 1
 
-    for idx = 1:ncells
-        for phase = 1:2
-            for faceid = 1:4
+    for idx in 1:ncells
+        for phase in 1:2
+            for faceid in 1:4
                 if isactiveface[faceid,phase,idx] && face2hid[faceid,phase,idx] == 0
                     face2hid[faceid,phase,idx] = hid
                     nbr = connectivity[faceid,idx]
                     if nbr != 0
                         nbrfaceid = neighbor_faceid(faceid)
+                        @assert face2hid[nbrfaceid,phase,nbr] == 0
+
                         face2hid[nbrfaceid,phase,nbr] = hid
                     end
                     hid += 1

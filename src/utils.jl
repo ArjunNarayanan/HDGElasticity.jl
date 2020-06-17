@@ -90,6 +90,20 @@ function vec_to_symm_mat_converter(dim::Z) where {Z<:Integer}
     end
 end
 
+function neighbor_faceid(faceid)
+    if faceid == 1
+        return 3
+    elseif faceid == 2
+        return 4
+    elseif faceid == 3
+        return 1
+    elseif faceid == 4
+        return 2
+    else
+        throw(ArgumentError("Expected faceid ∈ {1,2,3,4}, got faceid = $faceid"))
+    end
+end
+
 function symmetric_tensor_dim(dim::Z) where {Z<:Integer}
     if dim == 2
         return 3

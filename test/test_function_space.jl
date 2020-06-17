@@ -13,31 +13,6 @@ function allapprox(u,v)
     return all(u .≈ v)
 end
 
-orders = [2 2 3 2
-          2 1 4 2]
-bs = HDGElasticity.bases(2,orders)
-nf = (orders .+ 1).^2
-nftest = HDGElasticity.number_of_basis_functions.(bs)
-@test size(bs) == (2,4)
-@test allequal(nf,nftest)
-
-orders = reshape([rand(1:5) for i = 1:24],4,2,3)
-bs = HDGElasticity.bases(1,orders)
-nf = (orders .+ 1)
-nftest = HDGElasticity.number_of_basis_functions.(bs)
-@test size(bs) == (4,2,3)
-@test allequal(nf,nftest)
-
-bases = HDGElasticity.element_bases(2,3,5)
-@test size(bases) == (2,5)
-nftest = HDGElasticity.number_of_basis_functions.(bases)
-@test all(nftest .== 16)
-
-bases = HDGElasticity.hybrid_bases(1,4,5)
-@test size(bases) == (4,2,5)
-nf = HDGElasticity.number_of_basis_functions.(bases)
-@test all(nf .== 5)
-
 function distance_function(coords,xc)
     return coords[1,:] .- xc
 end
@@ -47,17 +22,15 @@ widths = [2.,1.]
 nelements = [2,1]
 mesh = UniformMesh(x0,widths,nelements)
 basis = TensorProductBasis(2,1)
+quad1d = ImplicitDomainQuadrature.ReferenceQuadratureRule(2)
 poly = InterpolatingPolynomial(1,basis)
 NF = HDGElasticity.number_of_basis_functions(basis)
 coords = HDGElasticity.nodal_coordinates(mesh,basis)
 xc = 0.75
 coeffs = reshape(distance_function(coords,xc),NF,:)
 isactivecell = HDGElasticity.active_cells(coeffs,poly)
-nqps = similar(isactivecell,Int)
-fill!(nqps,2)
-quads = HDGElasticity.element_quadratures(2,isactivecell,coeffs,poly,nqps)
+quads = HDGElasticity.element_quadratures(2,isactivecell,coeffs,poly,quad1d)
 
-quad1d = ImplicitDomainQuadrature.ReferenceQuadratureRule(2)
 py = quad1d.points
 
 p1,w1 = ImplicitDomainQuadrature.transform(quad1d,0.50,1.0)
@@ -77,5 +50,12 @@ testw2 = kron(quad1d.weights,w2)
 qp3 = tensor_product_quadrature(2,2)
 @test allequal(qp3.points,quads[1,2].points)
 @test allequal(qp3.weights,quads[1,2].weights)
-
 @test !isassigned(quads,2,2)
+
+isactivecell[2,1] = false
+HDGElasticity.element_quadratures!(quads,2,isactivecell,coeffs,poly,quad1d)
+@test allequal(qp3.points,quads[1,1].points)
+
+
+
+isactivecell = HDGElasticity.active_cells(coeffs,poly)
