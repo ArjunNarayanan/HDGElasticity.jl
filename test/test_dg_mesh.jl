@@ -2,7 +2,7 @@ using Test
 using IntervalArithmetic
 using PolynomialBasis
 using CartesianMesh
-# using Revise
+using Revise
 using HDGElasticity
 
 function allequal(v1,v2)
@@ -27,10 +27,10 @@ testdomain = [IntervalBox(0..1,0..1),IntervalBox(1..2,0..1)]
 @test allequal(domain,testdomain)
 
 connectivity = HDGElasticity.cell_connectivity(mesh)
-testconn = [0  0
-            2  0
-            0  0
-            0  1]
+testconn = [(0,0)  (0,0)
+            (2,4)  (0,0)
+            (0,0)  (0,0)
+            (0,0)  (1,2)]
 @test allequal(connectivity,testconn)
 
 basis = TensorProductBasis(2,1)
@@ -58,12 +58,7 @@ testcell2elid = [1 3
                  2 0]
 @test allequal(cell2elid,testcell2elid)
 
-@test HDGElasticity.neighbor_faceid(1) == 3
-@test HDGElasticity.neighbor_faceid(2) == 4
-@test HDGElasticity.neighbor_faceid(3) == 1
-@test HDGElasticity.neighbor_faceid(4) == 2
-@test_throws ArgumentError HDGElasticity.neighbor_faceid(0)
-@test_throws ArgumentError HDGElasticity.neighbor_faceid(5)
+
 
 face2hid = HDGElasticity.number_face_hybrid_elements(isactiveface,connectivity)
 testface2hid = zeros(Int,4,2,2)
@@ -83,7 +78,8 @@ testface2hid[4,1,2] = 2
 
 hid = maximum(face2hid)+1
 interface2hid = HDGElasticity.number_interface_hybrid_elements(isactivecell,hid)
-testinterface2hid = [10,0]
+testinterface2hid = [10 0
+                     11 0]
 @test allequal(interface2hid,testinterface2hid)
 
 dgmesh = HDGElasticity.DGMesh(domain,connectivity,isactivecell,
@@ -95,6 +91,9 @@ dgmesh = HDGElasticity.DGMesh(domain,connectivity,isactivecell,
 @test allequal(dgmesh.cell2elid,cell2elid)
 @test allequal(dgmesh.face2hid,face2hid)
 @test allequal(dgmesh.interface2hid,interface2hid)
+@test allequal(dgmesh.elids,1:3)
+@test allequal(dgmesh.facehids,1:9)
+@test allequal(dgmesh.interfacehids,10:11)
 
 dgmesh = HDGElasticity.DGMesh(mesh,coeffs,poly)
 @test allequal(dgmesh.domain,domain)
@@ -104,3 +103,6 @@ dgmesh = HDGElasticity.DGMesh(mesh,coeffs,poly)
 @test allequal(dgmesh.cell2elid,cell2elid)
 @test allequal(dgmesh.face2hid,face2hid)
 @test allequal(dgmesh.interface2hid,interface2hid)
+@test allequal(dgmesh.elids,1:3)
+@test allequal(dgmesh.facehids,1:9)
+@test allequal(dgmesh.interfacehids,10:11)

@@ -1,18 +1,19 @@
 struct DGMesh{dim,T}
     domain::Vector{IntervalBox{dim,T}}
-    connectivity::Matrix{Int}
+    connectivity::Matrix{Tuple{Int,Int}}
     isactivecell::Matrix{Bool}
     isactiveface::Array{Bool,3}
     cell2elid::Matrix{Int}
     face2hid::Array{Int,3}
-    interface2hid::Vector{Int}
+    interface2hid::Matrix{Int}
     elids::UnitRange{Int}
     facehids::UnitRange{Int}
     interfacehids::UnitRange{Int}
-    function DGMesh(domain::Vector{IntervalBox{dim,T}},connectivity::Matrix{Int},
+    function DGMesh(domain::Vector{IntervalBox{dim,T}},
+        connectivity::Matrix{Tuple{Int,Int}},
         isactivecell::Matrix{Bool},isactiveface::Array{Bool,3},
         cell2elid::Matrix{Int},face2hid::Array{Int,3},
-        interface2hid::Vector{Int}) where
+        interface2hid::Matrix{Int}) where
         {dim,T}
 
         @assert dim == 2
@@ -23,7 +24,7 @@ struct DGMesh{dim,T}
         @assert size(isactiveface) == (4,2,ncells)
         @assert size(cell2elid) == (2,ncells)
         @assert size(face2hid) == (4,2,ncells)
-        @assert length(interface2hid) == ncells
+        @assert size(interface2hid) == (2,ncells)
 
         elidstop = maximum(cell2elid)
         elids = 1:elidstop
@@ -61,9 +62,15 @@ function cell_domain(mesh::UniformMesh{dim,T}) where {dim,T}
 end
 
 function cell_connectivity(mesh)
-    connectivity = zeros(Int,4,mesh.total_number_of_elements)
-    for idx in 1:mesh.total_number_of_elements
-        connectivity[:,idx] .= CartesianMesh.neighbors(mesh,idx)
+    nfaces = CartesianMesh.faces_per_cell(mesh)
+    ncells = mesh.total_number_of_elements
+    connectivity = Matrix{Tuple{Int,Int}}(undef,nfaces,ncells)
+
+    for cellid in 1:ncells
+        nbrcellids = CartesianMesh.neighbors(mesh,cellid)
+        nbrfaceids = [nc == 0 ? 0 : neighbor_faceid(faceid) for (faceid,nc) in enumerate(nbrcellids)]
+        nbrcellandface = collect(zip(nbrcellids,nbrfaceids))
+        connectivity[:,cellid] .= nbrcellandface
     end
     return connectivity
 end
@@ -196,11 +203,9 @@ function number_face_hybrid_elements!(face2hid,isactiveface,connectivity)
             for faceid in 1:4
                 if isactiveface[faceid,phase,idx] && face2hid[faceid,phase,idx] == 0
                     face2hid[faceid,phase,idx] = hid
-                    nbr = connectivity[faceid,idx]
+                    nbr,nbrfaceid = connectivity[faceid,idx]
                     if nbr != 0
-                        nbrfaceid = neighbor_faceid(faceid)
                         @assert face2hid[nbrfaceid,phase,nbr] == 0
-
                         face2hid[nbrfaceid,phase,nbr] = hid
                     end
                     hid += 1
@@ -211,8 +216,7 @@ function number_face_hybrid_elements!(face2hid,isactiveface,connectivity)
 end
 
 function number_face_hybrid_elements(isactiveface,connectivity)
-    nface,ncells = size(connectivity)
-    face2hid = zeros(Int,4,2,ncells)
+    face2hid = similar(isactiveface,Int)
     number_face_hybrid_elements!(face2hid,isactiveface,connectivity)
     return face2hid
 end
@@ -221,14 +225,16 @@ function number_interface_hybrid_elements!(interface2hid,isactivecell,hid)
 
     nphase,ncells = size(isactivecell)
     @assert nphase == 2
-    @assert length(interface2hid) == ncells
+    @assert size(interface2hid) == (2,ncells)
     @assert hid > 0
 
     fill!(interface2hid,0)
 
-    for idx in 1:ncells
-        if isactivecell[1,idx] && isactivecell[2,idx]
-            interface2hid[idx] = hid
+    for cellid in 1:ncells
+        if isactivecell[1,cellid] && isactivecell[2,cellid]
+            interface2hid[1,cellid] = hid
+            hid += 1
+            interface2hid[2,cellid] = hid
             hid += 1
         end
     end
@@ -236,8 +242,7 @@ function number_interface_hybrid_elements!(interface2hid,isactivecell,hid)
 end
 
 function number_interface_hybrid_elements(isactivecell,hid)
-    nphase,ncells = size(isactivecell)
-    interface2hid = zeros(Int,ncells)
+    interface2hid = similar(isactivecell,Int)
     number_interface_hybrid_elements!(interface2hid,isactivecell,hid)
     return interface2hid
 end

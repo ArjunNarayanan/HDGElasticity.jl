@@ -51,15 +51,14 @@ function update_face_quadrature!(facequads,isactiveface,visited,
 end
 
 function update_neighbor_face_quadrature!(facequads,isactiveface,visited,
-    phase,cellid,nbrcellids)
+    phase,cellid,connectivity,nfaces)
 
-    for (faceid,nbrcellid) in enumerate(nbrcellids)
+    for faceid in 1:nfaces
+        nbrcellid,nbrfaceid = connectivity[faceid,cellid]
         if nbrcellid != 0
-            nbrfaceid = neighbor_faceid(faceid)
-            if isactiveface[faceid,phase,cellid] && !visited[nbrfaceid,phase,nbrcellid]
-                visited[nbrfaceid,phase,nbrcellid] = true
-                println(faceid," ",phase," ",cellid)
+            if isactiveface[nbrfaceid,phase,nbrcellid] && !visited[nbrfaceid,phase,nbrcellid]
                 facequads[nbrfaceid,phase,nbrcellid] = facequads[faceid,phase,cellid]
+                visited[nbrfaceid,phase,nbrcellid] = true
             end
         end
     end
@@ -70,7 +69,9 @@ function face_quadratures!(facequads,dim,isactivecell,isactiveface,connectivity,
     coeffs,poly,quad1d)
 
     nphase,ncells = size(isactivecell)
-    nface,_nphase,_ncells = size(isactiveface)
+    nfaces,_nphase,_ncells = size(isactiveface)
+    @assert nphase == _nphase
+    @assert ncells == _ncells
 
     xL,xR = reference_cell(dim)
     box = IntervalBox(xL,xR)
@@ -82,17 +83,16 @@ function face_quadratures!(facequads,dim,isactivecell,isactiveface,connectivity,
 
     for cellid in 1:ncells
         if isactivecell[1,cellid] && !isactivecell[2,cellid]
-            for faceid = 1:nface
+            for faceid = 1:nfaces
                 facequads[faceid,1,cellid] = tpq
             end
         elseif !isactivecell[2,cellid] && isactivecell[2,cellid]
-            for faceid = 1:nface
+            for faceid = 1:nfaces
                 facequads[faceid,2,cellid] = tpq
             end
         elseif isactivecell[1,cellid] && isactivecell[2,cellid]
 
             update!(poly,coeffs[:,cellid])
-
             funcs = restrict_on_faces(poly,xL[1],xR[1])
 
             update_face_quadrature!(facequads,isactiveface,visited,
@@ -100,14 +100,10 @@ function face_quadratures!(facequads,dim,isactivecell,isactiveface,connectivity,
             update_face_quadrature!(facequads,isactiveface,visited,
                 funcs,-1,2,cellid,xL[1],xR[1],quad1d)
 
-            nbrcellids = [connectivity[faceid,cellid] for faceid = 1:nface]
-
-            println(nbrcellids)
-
             update_neighbor_face_quadrature!(facequads,isactiveface,visited,1,
-                cellid,nbrcellids)
+                cellid,connectivity,nfaces)
             update_neighbor_face_quadrature!(facequads,isactiveface,visited,2,
-                cellid,nbrcellids)
+                cellid,connectivity,nfaces)
 
         end
     end

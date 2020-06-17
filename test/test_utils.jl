@@ -137,3 +137,10 @@ coords = HDGElasticity.nodal_coordinates(mesh,basis)
 testcoords = [0.0 0.0 0.0 0.5 0.5 0.5 1.0 1.0 1.0
               0.0 0.5 1.0 0.0 0.5 1.0 0.0 0.5 1.0]
 @test allequal(coords,testcoords)
+
+@test HDGElasticity.neighbor_faceid(1) == 3
+@test HDGElasticity.neighbor_faceid(2) == 4
+@test HDGElasticity.neighbor_faceid(3) == 1
+@test HDGElasticity.neighbor_faceid(4) == 2
+@test_throws ArgumentError HDGElasticity.neighbor_faceid(5)
+@test_throws ArgumentError HDGElasticity.neighbor_faceid(0)
