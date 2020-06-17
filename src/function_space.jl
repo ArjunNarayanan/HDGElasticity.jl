@@ -41,7 +41,8 @@ function update_face_quadrature!(facequads,isactiveface,visited,
 
     for (faceid,func) in enumerate(funcs)
         if isactiveface[faceid,phase,cellidx] && !visited[faceid,phase,cellidx]
-            quad = quadrature([funcs[faceid]],[sign_condition],xL,xR,quad1d)
+            tempquad = quadrature([funcs[faceid]],[sign_condition],xL,xR,quad1d)
+            quad = QuadratureRule(tempquad.points,tempquad.weights)
             facequads[faceid,phase,cellidx] = quad
             visited[faceid,phase,cellidx] = true
         end
@@ -49,14 +50,15 @@ function update_face_quadrature!(facequads,isactiveface,visited,
 
 end
 
-function update_neighbor_face_quadrature!(facequads,visited,phase,cellid,
-    nbrcellids)
+function update_neighbor_face_quadrature!(facequads,isactiveface,visited,
+    phase,cellid,nbrcellids)
 
-    for (faceid,nbrcellid) in nbrcellids
+    for (faceid,nbrcellid) in enumerate(nbrcellids)
         if nbrcellid != 0
             nbrfaceid = neighbor_faceid(faceid)
-            if !visited[nbrfaceid,phase,nbrcellid]
+            if isactiveface[faceid,phase,cellid] && !visited[nbrfaceid,phase,nbrcellid]
                 visited[nbrfaceid,phase,nbrcellid] = true
+                println(faceid," ",phase," ",cellid)
                 facequads[nbrfaceid,phase,nbrcellid] = facequads[faceid,phase,cellid]
             end
         end
@@ -64,45 +66,60 @@ function update_neighbor_face_quadrature!(facequads,visited,phase,cellid,
 
 end
 
-function face_quadratures(dim,isactivecell,isactiveface,connectivity,
+function face_quadratures!(facequads,dim,isactivecell,isactiveface,connectivity,
     coeffs,poly,quad1d)
+
+    nphase,ncells = size(isactivecell)
+    nface,_nphase,_ncells = size(isactiveface)
 
     xL,xR = reference_cell(dim)
     box = IntervalBox(xL,xR)
 
     tpq = tensor_product(quad1d,box)
 
-    facequads = similar(isactiveface, QuadratureRule{dim})
-
     visited = similar(isactiveface)
     fill!(visited,false)
 
-    for idx in 1:ncells
-        if isactivecell[1,idx] && !isactivecell[2,idx]
-            facequads[:,1,idx] .= tpq
-        elseif !isactivecell[2,idx] && isactivecell[2,idx]
-            facequads[:,2,idx] .= tpq
-        elseif isactivecell[1,idx] && isactivecell[2,idx]
+    for cellid in 1:ncells
+        if isactivecell[1,cellid] && !isactivecell[2,cellid]
+            for faceid = 1:nface
+                facequads[faceid,1,cellid] = tpq
+            end
+        elseif !isactivecell[2,cellid] && isactivecell[2,cellid]
+            for faceid = 1:nface
+                facequads[faceid,2,cellid] = tpq
+            end
+        elseif isactivecell[1,cellid] && isactivecell[2,cellid]
 
-            update!(poly,coeffs[:,idx])
-            fb(x) = poly(x,xL[1])
-            fr(y) = poly(xR[1],y)
-            ft(x) = poly(x,xR[1])
-            fl(y) = poly(xL[1],y)
+            update!(poly,coeffs[:,cellid])
 
-            funcs = [fb,fr,ft,fl]
+            funcs = restrict_on_faces(poly,xL[1],xR[1])
 
             update_face_quadrature!(facequads,isactiveface,visited,
-                funcs,+1,1,idx,xL[1],xR[1],quad1d)
+                funcs,+1,1,cellid,xL[1],xR[1],quad1d)
             update_face_quadrature!(facequads,isactiveface,visited,
-                funcs,-1,2,idx,xL[1],xR[1],quad1d)
+                funcs,-1,2,cellid,xL[1],xR[1],quad1d)
 
-            nbrcellids = [connectivity[i,idx] for i = 1:4]
+            nbrcellids = [connectivity[faceid,cellid] for faceid = 1:nface]
 
-            update_neighbor_face_quadrature!(facequads,visited,phase,
+            println(nbrcellids)
+
+            update_neighbor_face_quadrature!(facequads,isactiveface,visited,1,
+                cellid,nbrcellids)
+            update_neighbor_face_quadrature!(facequads,isactiveface,visited,2,
                 cellid,nbrcellids)
 
         end
     end
+
+end
+
+function face_quadratures(dim,isactivecell,isactiveface,connectivity,coeffs,
+    poly,quad1d)
+
+    facequads = similar(isactiveface,QuadratureRule{dim})
+    face_quadratures!(facequads,dim,isactivecell,isactiveface,connectivity,
+        coeffs,poly,quad1d)
+    return facequads
 
 end

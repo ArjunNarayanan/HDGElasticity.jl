@@ -158,3 +158,13 @@ function nodal_coordinates(mesh::UniformMesh{dim,FT},
     end
     return coords
 end
+
+function restrict_on_faces(func,xL,xR)
+
+    fb(x) = func(x,xL)
+    fr(y) = func(xR,y)
+    ft(x) = func(x,xR)
+    fl(y) = func(xL,y)
+
+    return [fb,fr,ft,fl]
+end

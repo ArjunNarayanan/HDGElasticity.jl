@@ -59,3 +59,60 @@ HDGElasticity.element_quadratures!(quads,2,isactivecell,coeffs,poly,quad1d)
 
 
 isactivecell = HDGElasticity.active_cells(coeffs,poly)
+isactiveface = HDGElasticity.active_faces(coeffs,poly,isactivecell)
+connectivity = HDGElasticity.cell_connectivity(mesh)
+facequads = similar(isactiveface,QuadratureRule{1})
+visited = similar(isactiveface)
+fill!(visited,false)
+update!(poly,coeffs[:,1])
+funcs = HDGElasticity.restrict_on_faces(poly,-1.0,1.0)
+facequads = similar(isactiveface,QuadratureRule{1})
+HDGElasticity.update_face_quadrature!(facequads,isactiveface,visited,funcs,+1,1,1,-1.,1.,quad1d)
+
+testvisited = similar(visited)
+fill!(testvisited,false)
+testvisited[1:3,1,1] .= true
+@test allequal(visited,testvisited)
+
+p1,w1 = ImplicitDomainQuadrature.transform(quad1d,0.5,1.0)
+@test allequal(facequads[1,1,1].points,p1)
+@test allequal(facequads[1,1,1].weights,w1)
+@test allequal(facequads[3,1,1].points,p1)
+@test allequal(facequads[3,1,1].weights,w1)
+
+@test allapprox(facequads[2,1,1].points,quad1d.points)
+@test allapprox(facequads[2,1,1].weights,quad1d.weights)
+
+nbrcellids = [connectivity[faceid,1] for (faceid,f) in enumerate(funcs)]
+HDGElasticity.update_neighbor_face_quadrature!(facequads,isactiveface,visited,1,1,nbrcellids)
+
+testvisited[4,1,2] = true
+@test allequal(visited,testvisited)
+@test facequads[2,1,1] == facequads[4,1,2]
+@test !isassigned(facequads,4,1,1)
+
+HDGElasticity.update_face_quadrature!(facequads,isactiveface,visited,funcs,-1,2,1,-1.,1.,quad1d)
+
+testvisited[[1,3,4],2,1] .= true
+@test allequal(testvisited,visited)
+
+p1,w1 = ImplicitDomainQuadrature.transform(quad1d,-1.,0.5)
+@test allequal(facequads[1,2,1].points,p1)
+@test allequal(facequads[1,2,1].weights,w1)
+@test !isassigned(facequads,2,2,1)
+@test allequal(facequads[3,2,1].points,p1)
+@test allequal(facequads[3,2,1].weights,w1)
+
+@test allapprox(facequads[4,2,1].points,quad1d.points)
+@test allapprox(facequads[4,2,1].weights,quad1d.weights)
+
+HDGElasticity.update_neighbor_face_quadrature!(facequads,isactiveface,visited,2,1,nbrcellids)
+@test !isassigned(facequads,2,2,1)
+@test !isassigned(facequads,4,2,2)
+
+facequads = similar(isactiveface,QuadratureRule{1})
+HDGElasticity.face_quadratures!(facequads,1,isactivecell,isactiveface,connectivity,
+    coeffs,poly,quad1d)
+
+facequads = HDGElasticity.face_quadratures(1,isactivecell,isactiveface,connectivity,
+    coeffs,poly,quad1d)

@@ -127,6 +127,7 @@ function active_faces!(isactiveface,coeffs,poly,isactivecell)
 
     fill!(isactiveface,false)
     xL,xR = reference_cell(1)
+
     box = IntervalBox(xL,xR)
 
     for idx in 1:ncells
@@ -137,20 +138,12 @@ function active_faces!(isactiveface,coeffs,poly,isactivecell)
         elseif isactivecell[1,idx] && isactivecell[2,idx]
 
             update!(poly,coeffs[:,idx])
-            fb(x) = poly(x,xL[1])
-            fr(y) = poly(xR[1],y)
-            ft(x) = poly(x,xR[1])
-            fl(y) = poly(xL[1],y)
+            funcs = restrict_on_faces(poly,xL[1],xR[1])
+            facesigns = [sign(f,box) for f in funcs]
 
-            sb = sign(fb,box)
-            sr = sign(fr,box)
-            st = sign(ft,box)
-            sl = sign(fl,box)
-
-            update_active_faces!(isactiveface,1,sb,idx)
-            update_active_faces!(isactiveface,2,sr,idx)
-            update_active_faces!(isactiveface,3,st,idx)
-            update_active_faces!(isactiveface,4,sl,idx)
+            for (faceid,fs) in enumerate(facesigns)
+                update_active_faces!(isactiveface,faceid,fs,idx)
+            end
 
         end
     end
