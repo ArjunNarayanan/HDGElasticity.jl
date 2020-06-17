@@ -28,3 +28,7 @@ NF = HDGElasticity.number_of_basis_functions(basis)
 coords = HDGElasticity.nodal_coordinates(mesh,basis)
 xc = 0.75
 coeffs = reshape(distance_function(coords,xc),NF,:)
+update!(poly,coeffs[:,1])
+funcs = HDGElasticity.restrict_on_faces(poly,-1.,1.)
+
+roots,flags = HDGElasticity.roots_of_restrictions(funcs,-1.,1.)

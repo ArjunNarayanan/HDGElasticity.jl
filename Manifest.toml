@@ -33,7 +33,7 @@ version = "0.8.0"
 
 [[CartesianMesh]]
 deps = ["StaticArrays"]
-git-tree-sha1 = "d1cfb9296a9019f99f4defc11339ffed0ad2b984"
+git-tree-sha1 = "cbc499fa89edd3d5b63f5c078cfd9a6e87532762"
 repo-rev = "master"
 repo-url = "https://github.com/ArjunNarayanan/CartesianMesh.jl.git"
 uuid = "c3f3b8a2-2e3b-4b62-84bb-76319e98af94"
