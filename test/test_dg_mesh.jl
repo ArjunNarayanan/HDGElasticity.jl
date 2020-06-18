@@ -44,7 +44,7 @@ testactivecells = [true true
                    true false]
 @test allequal(isactivecell,testactivecells)
 
-isactiveface = HDGElasticity.active_faces(coeffs,poly,isactivecell)
+isactiveface = HDGElasticity.active_faces(isactivecell,coeffs,poly)
 testactiveface = zeros(Bool,4,2,2)
 testactiveface[:,1,1] = [true,true,true,false]
 testactiveface[:,1,2] = [true,true,true,true]

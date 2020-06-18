@@ -1,5 +1,6 @@
 using Test
 using StaticArrays
+using IntervalArithmetic
 using PolynomialBasis
 using CartesianMesh
 # using Revise
@@ -8,6 +9,10 @@ using HDGElasticity
 HDGE = HDGElasticity
 
 function allequal(v1,v2)
+    return all(v1 .== v2)
+end
+
+function allapprox(v1,v2)
     return all(v1 .≈ v2)
 end
 
@@ -20,12 +25,13 @@ basis = TensorProductBasis(2,4)
 @test HDGElasticity.number_of_basis_functions(basis) == 25
 
 @test_throws ArgumentError HDGE.reference_cell(3)
-xL,xR = HDGE.reference_cell(1)
-@test allequal(xL,[-1.])
-@test allequal(xR,[+1.])
-xL,xR = HDGE.reference_cell(2)
-@test allequal(xL,[-1.0,-1.0])
-@test allequal(xR,[1.0,1.0])
+box = HDGE.reference_cell(1)
+testbox = IntervalBox([-1.0],[1.0])
+@test allequal(box,testbox)
+
+box = HDGE.reference_cell(2)
+testbox = IntervalBox([-1.,-1.],[1.,1.])
+@test allequal(box,testbox)
 
 normals = HDGE.reference_normals()
 @test allequal(normals[1],[0.0,-1.0])
@@ -145,3 +151,13 @@ testcoords = [0.0 0.0 0.0 0.5 0.5 0.5 1.0 1.0 1.0
 @test HDGElasticity.neighbor_faceid(4) == 2
 @test_throws ArgumentError HDGElasticity.neighbor_faceid(5)
 @test_throws ArgumentError HDGElasticity.neighbor_faceid(0)
+
+f(x,y) = 2x + 3y
+box = HDGE.reference_cell(2)
+restricted_funcs = HDGE.restrict_on_faces(f,box)
+@test allequal(restricted_funcs[1].([-0.5,0.5]),[-4.,-2.0])
+@test allequal(restricted_funcs[2].([-0.5,0.5]),[0.5,3.5])
+@test allequal(restricted_funcs[3].([-0.5,0.5]),[2.0,4.0])
+@test allequal(restricted_funcs[4].([-0.5,0.5]),[-3.5,-0.5])
+
+@test HDGE.dimension(poly) == 2

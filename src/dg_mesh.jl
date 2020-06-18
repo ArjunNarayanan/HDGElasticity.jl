@@ -43,7 +43,7 @@ function DGMesh(mesh::UniformMesh,coeffs,poly)
     domain = cell_domain(mesh)
     connectivity = cell_connectivity(mesh)
     isactivecell = active_cells(coeffs,poly)
-    isactiveface = active_faces(coeffs,poly,isactivecell)
+    isactiveface = active_faces(isactivecell,coeffs,poly)
     cell2elid = number_elements(isactivecell)
     face2hid = number_face_hybrid_elements(isactiveface,connectivity)
     hid = maximum(face2hid)+1
@@ -75,18 +75,14 @@ function cell_connectivity(mesh)
     return connectivity
 end
 
-function active_cells!(isactivecell,coeffs,
-    poly::InterpolatingPolynomial{1,NF,B}) where
-    {NF,B<:TensorProductBasis{dim}} where {dim}
+function active_cells!(isactivecell,coeffs,poly)
 
     nf,ncells = size(coeffs)
 
-    @assert nf == NF
     @assert size(isactivecell) == (2,ncells)
 
-
-    xL,xR = reference_cell(dim)
-    box = IntervalBox(xL,xR)
+    dim = dimension(poly)
+    box = reference_cell(dim)
     fill!(isactivecell,false)
 
     for idx in 1:ncells
@@ -124,7 +120,7 @@ function update_active_faces!(isactiveface,faceid,s,cellid)
     end
 end
 
-function active_faces!(isactiveface,coeffs,poly,isactivecell)
+function active_faces!(isactiveface,isactivecell,coeffs,poly)
 
     nf,ncells = size(coeffs)
 
@@ -133,9 +129,10 @@ function active_faces!(isactiveface,coeffs,poly,isactivecell)
 
 
     fill!(isactiveface,false)
-    xL,xR = reference_cell(1)
 
-    box = IntervalBox(xL,xR)
+    dim = dimension(poly)
+    cell = reference_cell(dim)
+    face = reference_cell(dim-1)
 
     for idx in 1:ncells
         if isactivecell[1,idx] && !isactivecell[2,idx]
@@ -145,8 +142,8 @@ function active_faces!(isactiveface,coeffs,poly,isactivecell)
         elseif isactivecell[1,idx] && isactivecell[2,idx]
 
             update!(poly,coeffs[:,idx])
-            funcs = restrict_on_faces(poly,xL[1],xR[1])
-            facesigns = [sign(f,box) for f in funcs]
+            funcs = restrict_on_faces(poly,cell)
+            facesigns = [sign(f,face) for f in funcs]
 
             for (faceid,fs) in enumerate(facesigns)
                 update_active_faces!(isactiveface,faceid,fs,idx)
@@ -156,10 +153,10 @@ function active_faces!(isactiveface,coeffs,poly,isactivecell)
     end
 end
 
-function active_faces(coeffs,poly,isactivecell)
+function active_faces(isactivecell,coeffs,poly)
     nf,ncells = size(coeffs)
     isactiveface = zeros(Bool,4,2,ncells)
-    active_faces!(isactiveface,coeffs,poly,isactivecell)
+    active_faces!(isactiveface,isactivecell,coeffs,poly)
     return isactiveface
 end
 

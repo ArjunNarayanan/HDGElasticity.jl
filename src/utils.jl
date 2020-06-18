@@ -20,13 +20,13 @@ function reference_cell(dim)
     if dim == 1
         xL = [-1.0]
         xR = [+1.0]
-        return xL,xR
+        return IntervalBox(xL,xR)
     elseif dim == 2
         xL = [-1.0,-1.0]
         xR = [+1.0,+1.0]
-        return xL,xR
+        return IntervalBox(xL,xR)
     else
-        throw(ArgumentError("Current support for dim = 2, got dim = $dim"))
+        throw(ArgumentError("Expected dim ∈ {1,2}, got dim = $dim"))
     end
 end
 
@@ -159,12 +159,18 @@ function nodal_coordinates(mesh::UniformMesh{dim,FT},
     return coords
 end
 
-function restrict_on_faces(func,xL,xR)
+function restrict_on_faces(func,box::IntervalBox{2})
 
-    fb(x) = func(x,xL)
-    fr(y) = func(xR,y)
-    ft(x) = func(x,xR)
-    fl(y) = func(xL,y)
+    fb(x) = func(x,box[2].lo)
+    fr(y) = func(box[1].hi,y)
+    ft(x) = func(x,box[2].hi)
+    fl(y) = func(box[1].lo,y)
 
     return [fb,fr,ft,fl]
+end
+
+function dimension(poly::InterpolatingPolynomial{1,NF,B}) where
+    {NF,B<:TensorProductBasis{dim}} where {dim}
+
+    return dim
 end
