@@ -160,4 +160,7 @@ restricted_funcs = HDGE.restrict_on_faces(f,box)
 @test allequal(restricted_funcs[3].([-0.5,0.5]),[2.0,4.0])
 @test allequal(restricted_funcs[4].([-0.5,0.5]),[-3.5,-0.5])
 
-@test HDGE.dimension(poly) == 2
+poly = InterpolatingPolynomial(1,1,3)
+@test HDGE.dimension(poly) == 1
+poly = InterpolatingPolynomial(1,2,3)
+@test HDGElasticity.dimension(poly) == 2

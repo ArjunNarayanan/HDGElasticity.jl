@@ -1,31 +1,28 @@
 function roots_of_restrictions(funcs,xL,xR)
-    roots = ImplicitDomainQuadrature.unique_roots.(funcs,xL,xR)
-    flags = [!isempty(r) for r in roots]
-    @assert count(flags) == 2
-    indices = findall(flags)
-    return roots,indices
+    _roots = ImplicitDomainQuadrature.unique_roots.(funcs,xL,xR)
+    lengths = length.(_roots)
+    @assert all([l == 0 || l == 1 for l in lengths])
+    roots = vcat(_roots...)
+    faceids = vcat([repeat([fid],length(r)) for (fid,r) in enumerate(_roots)]...)
+    return roots,faceids
 end
 
-function extend_to_face(x,faceid,xL,xR)
+function extend_to_face(x,faceid,cell::IntervalBox{2})
     if faceid == 1
-        return extend(x,2,xL)
+        return extend(x,2,cell[2].lo)
     elseif faceid == 2
-        return extend(x,1,xR)
+        return extend(x,1,cell[1].hi)
     elseif faceid == 3
-        return extend(x,2,xR)
+        return extend(x,2,cell[2].hi)
     elseif faceid == 4
-        return extend(x,1,xL)
+        return extend(x,1,cell[1].lo)
     else
         throw(ArgumentError("Expected faceid ∈ {1,2,3,4}, got faceid = $faceid"))
     end
 end
 
-function extend_face_roots(dim,roots,indices,xL,xR)
-    numroots = length(indices)
-    extended_roots = zeros(dim,numroots)
-    for (count,idx) in enumerate(indices)
-        extended_roots[:,count] .= extend_to_face(roots[idx],idx,xL,xR)
-    end
+function extend_face_roots(dim,roots,faceids,cell)
+    extended_roots = hcat([extend_to_face(r,f,cell) for (r,f) in zip(roots,faceids)]...)
     return extended_roots
 end
 
