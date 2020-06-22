@@ -24,6 +24,11 @@ end
 basis = TensorProductBasis(2,4)
 @test HDGElasticity.number_of_basis_functions(basis) == 25
 
+@test HDGElasticity.in_reference_interval(-0.25)
+@test !HDGElasticity.in_reference_interval(+1.2)
+
+@test HDGElasticity.reference_interval_1d() == (-1.0,+1.0)
+
 @test_throws ArgumentError HDGE.reference_cell(3)
 box = HDGE.reference_cell(1)
 testbox = IntervalBox([-1.0],[1.0])

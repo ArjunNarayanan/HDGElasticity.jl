@@ -3,6 +3,7 @@ module HDGElasticity
 using LinearAlgebra
 using StaticArrays
 using IntervalArithmetic
+using Roots
 using CartesianMesh
 using PolynomialBasis
 using ImplicitDomainQuadrature

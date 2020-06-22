@@ -31,17 +31,23 @@ update!(poly,coeffs[:,1])
 cell = HDGElasticity.reference_cell(2)
 funcs = HDGElasticity.restrict_on_faces(poly,cell)
 
+@test allequal(HDGElasticity.extend_to_face(0.1,1,cell),[0.1,-1.0])
+@test allequal(HDGElasticity.extend_to_face(0.2,2,cell),[1.0,0.2])
+@test allequal(HDGElasticity.extend_to_face(0.3,3,cell),[0.3,+1.0])
+@test allequal(HDGElasticity.extend_to_face(0.4,4,cell),[-1.0,0.4])
 
-roots,faceids = HDGElasticity.roots_of_restrictions(funcs,-1.,1.)
-@test allequal(roots,[0.5,0.5])
-@test allequal(faceids,[1,3])
+roots = [0.5,0.8]
+faceids = [1,3]
+extroots = HDGElasticity.extend_face_roots(roots,faceids,cell)
+testextroots = [0.5  0.8
+               -1.0 1.0]
+@test allequal(testextroots,extroots)
 
-@test allequal(HDGElasticity.extend_to_face(roots[1],1,cell),[0.5,-1.0])
-@test allequal(HDGElasticity.extend_to_face(roots[1],2,cell),[1.0,0.5])
-@test allequal(HDGElasticity.extend_to_face(roots[1],3,cell),[0.5,+1.0])
-@test allequal(HDGElasticity.extend_to_face(roots[1],4,cell),[-1.0,0.5])
+roots,faceids = HDGElasticity.roots_on_edges(funcs,-1.0,1.0,-1.0,1.0)
+testroots = [0.5,0.5]
+@test allapprox(roots,testroots)
 
-extended_roots = HDGElasticity.extend_face_roots(2,roots,faceids,cell)
-test_extended_roots = [0.5  0.5
-                       -1.0 1.0]
-@test allequal(test_extended_roots,extended_roots)
+extroots = HDGElasticity.element_face_intersections(poly,cell)
+testextroots = [0.5  0.5
+                -1.0  1.0]
+@test allapprox(extroots,testextroots)

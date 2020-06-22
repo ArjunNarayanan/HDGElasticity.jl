@@ -1,12 +1,3 @@
-function roots_of_restrictions(funcs,xL,xR)
-    _roots = ImplicitDomainQuadrature.unique_roots.(funcs,xL,xR)
-    lengths = length.(_roots)
-    @assert all([l == 0 || l == 1 for l in lengths])
-    roots = vcat(_roots...)
-    faceids = vcat([repeat([fid],length(r)) for (fid,r) in enumerate(_roots)]...)
-    return roots,faceids
-end
-
 function extend_to_face(x,faceid,cell::IntervalBox{2})
     if faceid == 1
         return extend(x,2,cell[2].lo)
@@ -21,15 +12,38 @@ function extend_to_face(x,faceid,cell::IntervalBox{2})
     end
 end
 
-function extend_face_roots(dim,roots,faceids,cell)
+function extend_face_roots(roots,faceids,cell)
     extended_roots = hcat([extend_to_face(r,f,cell) for (r,f) in zip(roots,faceids)]...)
     return extended_roots
 end
 
-function element_face_intersections(poly::InterpolatingPolynomial{dim},
-    coeffs) where {dim}
+function roots_on_edges(funcs,xL,xR,yL,yR)
+    r1 = find_zeros(funcs[1],xL,xR)
+    f1 = repeat([1],length(r1))
 
-    xL,xR = reference_cell(dim)
-    funcs = restrict_on_faces(poly,xL[1],xR[1])
-    roots,indices = roots_of_restrictions(funcs,xL[1],xR[1])
+    r2 = find_zeros(funcs[2],yL,yR)
+    f2 = repeat([2],length(r2))
+
+    r3 = find_zeros(funcs[3],xL,xR)
+    f3 = repeat([3],length(r3))
+
+    r4 = find_zeros(funcs[4],yL,yR)
+    f4 = repeat([4],length(r4))
+
+    r = vcat(r1,r2,r3,r4)
+    f = vcat(f1,f2,f3,f4)
+
+    return r,f
+end
+
+function element_face_intersections(poly,cell::IntervalBox{2})
+
+    xL,xR = (cell[1].lo,cell[1].hi)
+    yL,yR = (cell[2].lo,cell[2].hi)
+
+    funcs = restrict_on_faces(poly,cell)
+
+    roots,faceids = roots_on_edges(funcs,xL,xR,yL,yR)
+
+    return extend_face_roots(roots,faceids,cell)
 end

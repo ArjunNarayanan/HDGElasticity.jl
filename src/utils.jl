@@ -16,6 +16,14 @@ function number_of_basis_functions(basis::TensorProductBasis{dim,T,NF}) where
     return NF
 end
 
+function in_reference_interval(x)
+    return -1.0 <= x <= +1.0
+end
+
+function reference_interval_1d()
+    return (-1.0,+1.0)
+end
+
 function reference_cell(dim)
     if dim == 1
         xL = [-1.0]
