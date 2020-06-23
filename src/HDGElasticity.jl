@@ -12,6 +12,7 @@ import ImplicitDomainQuadrature: extend
 IDQ = ImplicitDomainQuadrature
 
 include("utils.jl")
+include("variational_form_utils.jl")
 include("dg_mesh.jl")
 include("function_space.jl")
 include("fit_interface_hybrid_element.jl")

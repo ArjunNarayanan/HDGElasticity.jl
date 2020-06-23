@@ -126,3 +126,11 @@ function number_of_basis_functions(basis::TensorProductBasis{dim,T,NF}) where
 
     return NF
 end
+
+function number_of_quadrature_points(quad::QuadratureRule{D,Q}) where {D,Q}
+    return Q
+end
+
+function Base.length(quad::QuadratureRule)
+    return number_of_quadrature_points(quad)
+end

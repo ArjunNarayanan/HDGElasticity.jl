@@ -53,3 +53,30 @@ function symmetric_tensor_dim(dim::Z) where {Z<:Integer}
         throw(ArgumentError("Expected dim ∈ {2,3}, got dim = $dim"))
     end
 end
+
+function mass_matrix(ndofs,basis,quad)
+    nf = number_of_basis_functions(basis)
+    nfndofs = nf*ndofs
+    matrix = zeros(nfndofs,nfndofs)
+    for (p,w) in quad
+        vals = basis(p)
+        N = interpolation_matrix(vals,ndofs)
+        matrix += N'*N*w
+    end
+    return matrix
+end
+
+function linear_form(rhsvals::M,basis,quad) where {M<:AbstractMatrix}
+    ndofs,nq = size(rhsvals)
+    @assert number_of_quadrature_points(quad) == nq
+
+    nf = number_of_basis_functions(basis)
+    rhs = zeros(nf*ndofs)
+
+    for (idx,(p,w)) in enumerate(quad)
+        vals = basis(p)
+        N = interpolation_matrix(vals,ndofs)
+        rhs += N'*rhsvals[:,idx]*w
+    end
+    return rhs
+end

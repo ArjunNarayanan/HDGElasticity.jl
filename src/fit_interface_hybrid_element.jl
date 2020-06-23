@@ -62,7 +62,10 @@ function element_face_intersections(poly,cell::IntervalBox{2})
 
     @assert length(roots) == 2
 
-    return extend_face_roots(roots,faceids,cell)
+    x1 = extend_to_face(roots[1],faceids[1],cell)
+    x2 = extend_to_face(roots[2],faceids[2],cell)
+
+    return x1,x2
 end
 
 
@@ -88,7 +91,7 @@ function gradient_descent_to_zero!(P::InterpolatingPolynomial,x,atol,maxiter)
     gradient_descent_to_zero!(P,x->gradient(P,x),x,atol,maxiter)
 end
 
-function resolve_zero_levelset(poly,refpoints,xL,xR;atol=1e-10,maxiter=50)
+function resolve_zero_levelset(poly,refpoints,xL,xR;atol=1e-12,maxiter=50)
     dim = dimension(poly)
     @assert dim == 2
     np = length(refpoints)
@@ -102,4 +105,12 @@ function resolve_zero_levelset(poly,refpoints,xL,xR;atol=1e-10,maxiter=50)
         points[:,idx] = x
     end
     return points
+end
+
+function fit_zero_levelset(poly,basis1d,quad1d,mass,cell;atol=1e-12,maxiter=50)
+
+    xL,xR = element_face_intersections(poly,cell)
+    intp = resolve_zero_levelset(poly,quad1d.points,xL,xR,atol=atol,maxiter=maxiter)
+    rhs = linear_form(intp,basis1d,quad1d)
+    return mass\rhs
 end

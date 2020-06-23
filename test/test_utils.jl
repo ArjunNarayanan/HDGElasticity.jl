@@ -21,9 +21,6 @@ end
 
 @test HDGE.reference_element_length() == 2.0
 
-basis = TensorProductBasis(2,4)
-@test HDGElasticity.number_of_basis_functions(basis) == 25
-
 @test HDGElasticity.in_reference_interval(-0.25)
 @test !HDGElasticity.in_reference_interval(+1.2)
 
@@ -50,62 +47,6 @@ normals = HDGE.reference_normals()
 
 element_size = [1.0,2.0]
 @test HDGE.affine_map_jacobian(element_size) == 0.5
-
-m = [1.0 2.0
-     3.0 4.0]
-v = [5.0,6.0,7.0]
-result = [5.0  10.0 6.0  12.0  7.0  14.0
-          15.0 20.0 18.0 24.0  21.0 28.0]
-@test allequal(HDGE.make_row_matrix(v,m),result)
-
-
-result = [5.0 0.0 6.0 0.0 7.0 0.0
-          0.0 5.0 0.0 6.0 0.0 7.0]
-@test allequal(HDGE.interpolation_matrix(v,2),result)
-result = [5.0 0.0 0.0 6.0 0.0 0.0 7.0 0.0 0.0
-          0.0 5.0 0.0 0.0 6.0 0.0 0.0 7.0 0.0
-          0.0 0.0 5.0 0.0 0.0 6.0 0.0 0.0 7.0]
-@test allequal(HDGE.interpolation_matrix(v,3),result)
-
-
-Ek = HDGE.vec_to_symm_mat_converter(2)
-@test length(Ek) == 2
-E1 = [1.0 0.0 0.0
-      0.0 0.0 1.0]'
-E2 = [0.0 0.0 1.0
-      0.0 1.0 0.0]'
-@test allequal(Ek[1],E1)
-@test allequal(Ek[2],E2)
-
-Ek = HDGElasticity.vec_to_symm_mat_converter(3)
-@test length(Ek) == 3
-E1 = zeros(3,6)
-E1[1,1] = 1.0
-E1[2,4] = 1.0
-E1[3,5] = 1.0
-E1 = E1'
-@test allequal(Ek[1],E1)
-E2 = zeros(3,6)
-E2[1,4] = 1.0
-E2[2,2] = 1.0
-E2[3,6] = 1.0
-E2 = E2'
-@test allequal(Ek[2],E2)
-E3 = zeros(3,6)
-E3[1,5] = 1.0
-E3[2,6] = 1.0
-E3[3,3] = 1.0
-E3 = E3'
-@test allequal(Ek[3],E3)
-
-@test_throws ArgumentError HDGE.vec_to_symm_mat_converter(4)
-@test_throws ArgumentError HDGE.vec_to_symm_mat_converter(1)
-
-@test HDGE.symmetric_tensor_dim(2) == 3
-@test HDGE.symmetric_tensor_dim(3) == 6
-
-@test_throws ArgumentError HDGE.symmetric_tensor_dim(1)
-@test_throws ArgumentError HDGE.symmetric_tensor_dim(4)
 
 xL = @SVector [-1.,-1.,-1.,-1.]
 xR = @SVector [+1.,+1.,+1.,+1.]
@@ -165,7 +106,16 @@ restricted_funcs = HDGE.restrict_on_faces(f,box)
 @test allequal(restricted_funcs[3].([-0.5,0.5]),[2.0,4.0])
 @test allequal(restricted_funcs[4].([-0.5,0.5]),[-3.5,-0.5])
 
+
+basis = TensorProductBasis(2,4)
+@test HDGElasticity.number_of_basis_functions(basis) == 25
+
 poly = InterpolatingPolynomial(1,1,3)
 @test HDGE.dimension(poly) == 1
 poly = InterpolatingPolynomial(1,2,3)
 @test HDGElasticity.dimension(poly) == 2
+
+quad = tensor_product_quadrature(1,5)
+@test HDGElasticity.number_of_quadrature_points(quad) == 5
+quad = tensor_product_quadrature(2,6)
+@test HDGElasticity.number_of_quadrature_points(quad) == 36

@@ -64,10 +64,10 @@ roots,faceids = HDGElasticity.roots_on_edges(funcs,-1.0,1.0,-1.0,1.0)
 testroots = [0.5,0.5]
 @test allapprox(roots,testroots)
 
-extroots = HDGElasticity.element_face_intersections(poly,cell)
-testextroots = [0.5  0.5
-                -1.0  1.0]
-@test allapprox(extroots,testextroots)
+x1,x2 = HDGElasticity.element_face_intersections(poly,cell)
+testx1 = [0.5,-1.0]
+testx2 = [0.5,1.0]
+@test allapprox(x1,testx1)
 
 x0 = [1.0,0.0]
 n = [1.0,1.0]
@@ -80,10 +80,11 @@ testfid = [2,4]
 @test allapprox(r,testr)
 @test allequal(fid,testfid)
 
-extroots = HDGElasticity.element_face_intersections(poly,cell)
-testextroots = [1.0   -1.0
-                -1.0   1.0]
-@test allapprox(extroots,testextroots)
+x1,x2 = HDGElasticity.element_face_intersections(poly,cell)
+testx1 = [1.0,-1.0]
+testx2 = [-1.0,1.0]
+@test allapprox(x1,testx1)
+@test allapprox(x2,testx2)
 
 x = [1.0,1.0]
 HDGElasticity.gradient_descent_to_zero!(poly,x,1e-3,50)
@@ -117,3 +118,19 @@ x = [1.0,0.0]
 HDGElasticity.gradient_descent_to_zero!(poly,x,1e-15,50)
 testx = [-0.4,0.0]
 @test allapprox(testx,x)
+
+basis = TensorProductBasis(2,1)
+coords = HDGElasticity.nodal_coordinates(mesh,basis)
+poly = InterpolatingPolynomial(1,basis)
+NF = HDGElasticity.number_of_basis_functions(basis)
+xc = 0.75
+coeffs = reshape(distance_function(coords,xc),NF,:)
+update!(poly,coeffs[:,1])
+quad1d = tensor_product_quadrature(1,2)
+basis1d = TensorProductBasis(1,1)
+mass = HDGElasticity.mass_matrix(2,basis1d,quad1d)
+coeffs1d = HDGElasticity.fit_zero_levelset(poly,basis1d,quad1d,mass,cell)
+poly1d = InterpolatingPolynomial(2,basis1d)
+update!(poly1d,coeffs1d)
+@test allapprox(poly1d(-1.0),[0.5,-1.0])
+@test allapprox(poly1d(1.0),[0.5,1.0])
