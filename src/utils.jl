@@ -10,12 +10,6 @@ function reference_element_length()
     return 2.0
 end
 
-function number_of_basis_functions(basis::TensorProductBasis{dim,T,NF}) where
-    {dim,T,NF}
-
-    return NF
-end
-
 function in_reference_interval(x)
     return -1.0 <= x <= +1.0
 end
@@ -52,52 +46,6 @@ function affine_map_jacobian(element_size)
     return prod(element_size)/reference_vol
 end
 
-function make_row_matrix(vals::V,
-        matrix::M) where {V<:AbstractVector} where {M<:AbstractMatrix}
-
-    return hcat([v*matrix for v in vals]...)
-end
-
-function interpolation_matrix(vals::V,
-        dim::Z) where {V<:AbstractVector,Z<:Integer}
-
-    return make_row_matrix(vals,diagm(ones(dim)))
-end
-
-function vec_to_symm_mat_converter(dim::Z) where {Z<:Integer}
-    if dim == 2
-        E1 = @SMatrix [1.0 0.0
-                       0.0 0.0
-                       0.0 1.0]
-        E2 = @SMatrix [0.0 0.0
-                       0.0 1.0
-                       1.0 0.0]
-        return [E1,E2]
-    elseif dim == 3
-        E1 = @SMatrix [1.0   0.0   0.0
-                       0.0   0.0   0.0
-                       0.0   0.0   0.0
-                       0.0   1.0   0.0
-                       0.0   0.0   1.0
-                       0.0   0.0   0.0]
-        E2 = @SMatrix [0.0   0.0   0.0
-                       0.0   1.0   0.0
-                       0.0   0.0   0.0
-                       1.0   0.0   0.0
-                       0.0   0.0   0.0
-                       0.0   0.0   1.0]
-        E3 = @SMatrix [0.0   0.0   0.0
-                       0.0   0.0   0.0
-                       0.0   0.0   1.0
-                       0.0   0.0   0.0
-                       1.0   0.0   0.0
-                       0.0   1.0   0.0]
-        return [E1,E2,E3]
-    else
-        throw(ArgumentError("Expected dim ∈ {1,2} got dim = $dim"))
-    end
-end
-
 function neighbor_faceid(faceid)
     if faceid == 1
         return 3
@@ -109,16 +57,6 @@ function neighbor_faceid(faceid)
         return 2
     else
         throw(ArgumentError("Expected faceid ∈ {1,2,3,4}, got faceid = $faceid"))
-    end
-end
-
-function symmetric_tensor_dim(dim::Z) where {Z<:Integer}
-    if dim == 2
-        return 3
-    elseif dim == 3
-        return 6
-    else
-        throw(ArgumentError("Expected dim ∈ {2,3}, got dim = $dim"))
     end
 end
 
@@ -181,4 +119,10 @@ function dimension(poly::InterpolatingPolynomial{1,NF,B}) where
     {NF,B<:TensorProductBasis{dim}} where {dim}
 
     return dim
+end
+
+function number_of_basis_functions(basis::TensorProductBasis{dim,T,NF}) where
+    {dim,T,NF}
+
+    return NF
 end

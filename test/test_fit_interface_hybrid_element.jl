@@ -17,6 +17,10 @@ function distance_function(coords,xc)
     return coords[1,:] .- xc
 end
 
+function plane_distance_function(coords,n,x0)
+    return [n'*(coords[:,idx]-x0) for idx in 1:size(coords)[2]]
+end
+
 x0 = [0.,0.]
 widths = [2.,1.]
 nelements = [2,1]
@@ -43,6 +47,19 @@ testextroots = [0.5  0.8
                -1.0 1.0]
 @test allequal(testextroots,extroots)
 
+f(x) = x^2 - 1.0
+r = HDGElasticity.roots_without_end(f,-1.0,1.0,0.0)
+@test allapprox(r,[-1.0])
+
+r = HDGElasticity.roots_without_end(f,-1.0,1.5,0.0)
+@test allapprox(r,[-1.0,1.0])
+
+r = HDGElasticity.roots_without_start(f,-1.0,1.0,0.0)
+@test allapprox(r,[1.0])
+
+r = HDGElasticity.roots_without_start(f,-1.5,1.0,0.0)
+@test allapprox(r,[-1.0,1.0])
+
 roots,faceids = HDGElasticity.roots_on_edges(funcs,-1.0,1.0,-1.0,1.0)
 testroots = [0.5,0.5]
 @test allapprox(roots,testroots)
@@ -51,3 +68,52 @@ extroots = HDGElasticity.element_face_intersections(poly,cell)
 testextroots = [0.5  0.5
                 -1.0  1.0]
 @test allapprox(extroots,testextroots)
+
+x0 = [1.0,0.0]
+n = [1.0,1.0]
+coeffs = reshape(plane_distance_function(coords,n,x0),NF,:)
+update!(poly,coeffs[:,1])
+funcs = HDGElasticity.restrict_on_faces(poly,cell)
+r,fid = HDGElasticity.roots_on_edges(funcs,-1.0,1.0,-1.0,1.0)
+testr = [-1.0,+1.0]
+testfid = [2,4]
+@test allapprox(r,testr)
+@test allequal(fid,testfid)
+
+extroots = HDGElasticity.element_face_intersections(poly,cell)
+testextroots = [1.0   -1.0
+                -1.0   1.0]
+@test allapprox(extroots,testextroots)
+
+x = [1.0,1.0]
+HDGElasticity.gradient_descent_to_zero!(poly,x,1e-3,50)
+@test allapprox(x,[0.0,0.0])
+
+
+function circle_distance_function(x::V,xc,r) where {V<:AbstractVector}
+    return (x-xc)'*(x-xc) - r^2
+end
+
+function circle_distance_function(x::M,xc,r) where {M<:AbstractMatrix}
+    dim,nnodes = size(x)
+    vals = zeros(nnodes)
+    for idx = 1:nnodes
+        vals[idx] = circle_distance_function(x[:,idx],xc,r)
+    end
+    return vals
+end
+
+xc = [1.5,0.5]
+radius = 1.2
+basis = TensorProductBasis(2,2)
+poly = InterpolatingPolynomial(1,basis)
+coords = HDGElasticity.nodal_coordinates(mesh,basis)
+NF = HDGElasticity.number_of_basis_functions(basis)
+coords = HDGElasticity.nodal_coordinates(mesh,basis)
+coeffs = reshape(circle_distance_function(coords,xc,radius),NF,:)
+update!(poly,coeffs[:,1])
+
+x = [1.0,0.0]
+HDGElasticity.gradient_descent_to_zero!(poly,x,1e-15,50)
+testx = [-0.4,0.0]
+@test allapprox(testx,x)

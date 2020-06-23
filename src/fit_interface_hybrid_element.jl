@@ -17,17 +17,33 @@ function extend_face_roots(roots,faceids,cell)
     return extended_roots
 end
 
-function roots_on_edges(funcs,xL,xR,yL,yR)
-    r1 = find_zeros(funcs[1],xL,xR)
+function roots_without_end(f,xL,xR,atol)
+    r = sort!(find_zeros(f,xL,xR))
+    if length(r) > 0
+        isapprox(r[end],xR,atol=atol) ? pop!(r) : nothing
+    end
+    return r
+end
+
+function roots_without_start(f,xL,xR,atol)
+    r = sort!(find_zeros(f,xL,xR))
+    if length(r) > 0
+        isapprox(r[1],xL,atol=atol) ? popfirst!(r) : nothing
+    end
+    return r
+end
+
+function roots_on_edges(funcs,xL,xR,yL,yR;atol=0.0)
+    r1 = roots_without_end(funcs[1],xL,xR,atol)
     f1 = repeat([1],length(r1))
 
-    r2 = find_zeros(funcs[2],yL,yR)
+    r2 = roots_without_end(funcs[2],yL,yR,atol)
     f2 = repeat([2],length(r2))
 
-    r3 = find_zeros(funcs[3],xL,xR)
+    r3 = roots_without_start(funcs[3],xL,xR,atol)
     f3 = repeat([3],length(r3))
 
-    r4 = find_zeros(funcs[4],yL,yR)
+    r4 = roots_without_start(funcs[4],yL,yR,atol)
     f4 = repeat([4],length(r4))
 
     r = vcat(r1,r2,r3,r4)
@@ -42,8 +58,48 @@ function element_face_intersections(poly,cell::IntervalBox{2})
     yL,yR = (cell[2].lo,cell[2].hi)
 
     funcs = restrict_on_faces(poly,cell)
-
     roots,faceids = roots_on_edges(funcs,xL,xR,yL,yR)
 
+    @assert length(roots) == 2
+
     return extend_face_roots(roots,faceids,cell)
+end
+
+
+function gradient_descent_to_zero!(P,∇P,x,atol,maxiter)
+    @assert atol > 0.0
+    @assert maxiter > 0
+
+    val = P(x)
+    iter = 1
+    while abs(val) > atol && iter < maxiter
+        dval = vec(∇P(x))
+        alpha = val/dot(dval,dval)
+        x .-= alpha*dval
+        val = P(x)
+        iter += 1
+    end
+    if iter == maxiter
+        throw(ErrorException("Newton iteration failed to converge in $maxiter iterations"))
+    end
+end
+
+function gradient_descent_to_zero!(P::InterpolatingPolynomial,x,atol,maxiter)
+    gradient_descent_to_zero!(P,x->gradient(P,x),x,atol,maxiter)
+end
+
+function resolve_zero_levelset(poly,refpoints,xL,xR;atol=1e-10,maxiter=50)
+    dim = dimension(poly)
+    @assert dim == 2
+    np = length(refpoints)
+
+    points = zeros(2,np)
+    dx = xR - xL
+
+    for (idx,p) in enumerate(refpoints)
+        x = xL + 0.5*(1.0+p)*dx
+        gradient_descent_to_zero!(poly,x,atol,maxiter)
+        points[:,idx] = x
+    end
+    return points
 end
