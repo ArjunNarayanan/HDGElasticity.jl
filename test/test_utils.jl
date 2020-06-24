@@ -2,6 +2,7 @@ using Test
 using StaticArrays
 using IntervalArithmetic
 using PolynomialBasis
+using ImplicitDomainQuadrature
 using CartesianMesh
 # using Revise
 using HDGElasticity

@@ -108,7 +108,6 @@ function resolve_zero_levelset(poly,refpoints,xL,xR;atol=1e-12,maxiter=50)
 end
 
 function fit_zero_levelset(poly,basis1d,quad1d,mass,cell;atol=1e-12,maxiter=50)
-
     xL,xR = element_face_intersections(poly,cell)
     intp = resolve_zero_levelset(poly,quad1d.points,xL,xR,atol=atol,maxiter=maxiter)
     rhs = linear_form(intp,basis1d,quad1d)

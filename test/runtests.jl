@@ -4,8 +4,16 @@ using SafeTestsets
     include("test_utils.jl")
 end
 
+@safetestset "Test Variational Form Utils" begin
+    include("test_variational_form_utils.jl")
+end
+
 @safetestset "Test DGMesh" begin
     include("test_dg_mesh.jl")
+end
+
+@safetestset "Test Interface Fitting" begin
+    include("test_fit_interface_hybrid_element.jl")
 end
 
 @safetestset "Test Function Space Construction" begin
