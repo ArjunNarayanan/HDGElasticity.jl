@@ -1,8 +1,49 @@
-struct UniformFunctionSpace{vdim,sdim}
+struct UniformFunctionSpace{vdim,sdim,T}
     vbasis::TensorProductBasis{vdim}
     sbasis::TensorProductBasis{sdim}
+    vquads::Matrix{QuadratureRule{vdim}}
+    fquads::Array{QuadratureRule{sdim},3}
+    icoeffs::Matrix{T}
+    iquad::QuadratureRule{sdim}
+    function UniformFunctionSpace(vbasis::TensorProductBasis{vdim},
+        sbasis::TensorProductBasis{sdim},
+        vquads::Matrix{QuadratureRule{vdim}},
+        fquads::Array{QuadratureRule{sdim},3},icoeffs::Matrix{T},
+        iquad::QuadratureRule{sdim}) where {vdim,sdim,NQ,T}
+
+            @assert sdim == vdim-1
+            ndofs,ncells = size(icoeffs)
+
+            @assert size(vquads) == (2,ncells)
+            nfaces = number_of_faces(vdim)
+            @assert size(fquads) == (nfaces,2,ncells)
+
+            nf = number_of_basis_functions(vbasis.basis)
+            @assert number_of_basis_functions(sbasis.basis) == nf
+
+            return new{vdim,sdim,T}(vbasis,sbasis,vquads,fquads,icoeffs,iquad)
+
+        end
 end
 
+function UniformFunctionSpace(dgmesh::DGMesh{vdim},polyorder,nquad,
+    coeffs,poly) where {vdim}
+
+    sdim = vdim-1
+
+    vbasis = TensorProductBasis(vdim,polyorder)
+    sbasis = TensorProductBasis(sdim,polyorder)
+    quad1d = ImplicitDomainQuadrature.ReferenceQuadratureRule(nquad)
+    iquad = tensor_product_quadrature(sdim,nquad)
+
+    vquads = element_quadratures(dgmesh.isactivecell,coeffs,poly,quad1d)
+    fquads = face_quadratures(dgmesh.isactivecell,dgmesh.isactiveface,
+        dgmesh.connectivity,coeffs,poly,quad1d)
+    icoeffs = interface_coefficients(dgmesh.isactivecell,coeffs,poly,sbasis,iquad)
+
+    return UniformFunctionSpace(vbasis,sbasis,vquads,fquads,icoeffs,iquad)
+
+end
 
 function element_quadratures!(equads,isactivecell,coeffs,poly,quad1d)
 
@@ -123,4 +164,38 @@ function face_quadratures(isactivecell,isactiveface,connectivity,coeffs,
         coeffs,poly,quad1d)
     return facequads
 
+end
+
+function interface_coefficients!(icoeffs,isactivecell,coeffs,poly,basis,quad)
+
+    dim = dimension(poly)
+
+    sdim = dimension(basis)
+    @assert sdim == dim-1
+    @assert dimension(quad) == sdim
+
+    nphase,ncells = size(isactivecell)
+    @assert nphase == 2
+    nf = number_of_basis_functions(basis)
+    @assert size(icoeffs) == (dim*nf,ncells)
+
+    cell = reference_cell(dim)
+    mass = lu(mass_matrix(dim,basis,quad))
+
+    for cellid in 1:ncells
+        if isactivecell[1,cellid] && isactivecell[2,cellid]
+            update!(poly,coeffs[:,cellid])
+            icoeffs[:,cellid] = fit_zero_levelset(poly,basis,quad,mass,cell)
+        end
+    end
+
+end
+
+function interface_coefficients(isactivecell,coeffs,poly,basis,quad)
+    nf = number_of_basis_functions(basis)
+    dim = dimension(poly)
+    ncells = size(isactivecell)[2]
+    icoeffs = zeros(dim*nf,ncells)
+    interface_coefficients!(icoeffs,isactivecell,coeffs,poly,basis,quad)
+    return icoeffs
 end

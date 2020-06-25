@@ -36,6 +36,11 @@ box = HDGE.reference_cell(2)
 testbox = IntervalBox([-1.,-1.],[1.,1.])
 @test allequal(box,testbox)
 
+@test_throws ArgumentError HDGElasticity.number_of_faces(1)
+@test_throws ArgumentError HDGElasticity.number_of_faces(4)
+@test HDGElasticity.number_of_faces(2) == 4
+@test HDGElasticity.number_of_faces(3) == 6
+
 normals = HDGE.reference_normals()
 @test allequal(normals[1],[0.0,-1.0])
 @test allequal(normals[2],[1.0,0.0])
@@ -110,6 +115,8 @@ restricted_funcs = HDGE.restrict_on_faces(f,box)
 
 basis = TensorProductBasis(2,4)
 @test HDGElasticity.number_of_basis_functions(basis) == 25
+@test HDGElasticity.dimension(basis) == 2
+@test HDGElasticity.number_of_basis_functions(basis.basis) == 5
 
 poly = InterpolatingPolynomial(1,1,3)
 @test HDGE.dimension(poly) == 1
@@ -118,5 +125,7 @@ poly = InterpolatingPolynomial(1,2,3)
 
 quad = tensor_product_quadrature(1,5)
 @test HDGElasticity.number_of_quadrature_points(quad) == 5
+@test HDGElasticity.dimension(quad) == 1
 quad = tensor_product_quadrature(2,6)
+@test HDGElasticity.dimension(quad) == 2
 @test HDGElasticity.number_of_quadrature_points(quad) == 36

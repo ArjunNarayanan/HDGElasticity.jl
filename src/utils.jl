@@ -32,6 +32,16 @@ function reference_cell(dim)
     end
 end
 
+function number_of_faces(dim)
+    if dim == 2
+        return 4
+    elseif dim == 3
+        return 6
+    else
+        throw(ArgumentError("Expected dim ∈ {2,3}, got $dim == dim"))
+    end
+end
+
 function reference_normals()
     return [[0.0,-1.0],[1.0,0.0],[0.0,1.0],[-1.0,0.0]]
 end
@@ -115,14 +125,20 @@ function restrict_on_faces(func,box::IntervalBox{2})
     return [fb,fr,ft,fl]
 end
 
-function dimension(poly::InterpolatingPolynomial{1,NF,B}) where
-    {NF,B<:TensorProductBasis{dim}} where {dim}
-
+function dimension(basis::TensorProductBasis{dim}) where {dim}
     return dim
 end
 
-function number_of_basis_functions(basis::TensorProductBasis{dim,T,NF}) where
-    {dim,T,NF}
+function dimension(poly::InterpolatingPolynomial)
+    return dimension(poly.basis)
+end
+
+function dimension(quad::QuadratureRule{dim}) where dim
+    return dim
+end
+
+function number_of_basis_functions(basis::T) where
+    {T<:PolynomialBasis.AbstractBasis{dim,NF}} where {dim,NF}
 
     return NF
 end

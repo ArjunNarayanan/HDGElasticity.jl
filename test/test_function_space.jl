@@ -2,7 +2,7 @@ using Test
 using PolynomialBasis
 using ImplicitDomainQuadrature
 using CartesianMesh
-# using Revise
+using Revise
 using HDGElasticity
 
 function allequal(u,v)
@@ -130,3 +130,29 @@ facequads = HDGElasticity.face_quadratures(isactivecell,isactiveface,connectivit
 @test allapprox(facequads[4,2,1].weights,quad1d.weights)
 @test !isassigned(facequads,2,2,1)
 @test !isassigned(facequads,4,2,2)
+
+basis1d = TensorProductBasis(1,1)
+quad1d = tensor_product_quadrature(1,2)
+icoeffs = HDGElasticity.interface_coefficients(isactivecell,coeffs,poly,basis1d,quad1d)
+testicoeffs = zeros(4,2)
+testicoeffs[:,1] = [0.5,-1.0,0.5,1.0]
+@test allapprox(icoeffs,testicoeffs)
+
+vbasis = TensorProductBasis(2,4)
+sbasis = TensorProductBasis(1,4)
+poly = InterpolatingPolynomial(1,vbasis)
+quad1d = ImplicitDomainQuadrature.ReferenceQuadratureRule(5)
+iquad = tensor_product_quadrature(1,5)
+coords = HDGElasticity.nodal_coordinates(mesh,vbasis)
+NF = HDGElasticity.number_of_basis_functions(vbasis)
+xc = 0.75
+coeffs = reshape(distance_function(coords,xc),NF,:)
+isactivecell = HDGElasticity.active_cells(coeffs,poly)
+vquads = HDGElasticity.element_quadratures(isactivecell,coeffs,poly,quad1d)
+fquads = HDGElasticity.face_quadratures(isactivecell,isactiveface,connectivity,coeffs,poly,quad1d)
+icoeffs = HDGElasticity.interface_coefficients(isactivecell,coeffs,poly,sbasis,iquad)
+
+ufs = HDGElasticity.UniformFunctionSpace(vbasis,sbasis,vquads,fquads,icoeffs,iquad)
+
+dgmesh = HDGElasticity.DGMesh(mesh,coeffs,poly)
+ufs = HDGElasticity.UniformFunctionSpace(dgmesh,4,5,coeffs,poly)
