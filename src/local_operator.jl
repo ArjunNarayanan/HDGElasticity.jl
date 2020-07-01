@@ -19,25 +19,13 @@ struct LocalOperator{T}
     end
 end
 
-function get_stress_coupling(basis::TensorProductBasis{dim,T,NF},
-    quad::TensorProductQuadratureRule,jac::AffineMapJacobian,sdim) where {dim,T,NF}
+function get_stress_coupling(basis,quad,jac)
 
-    nldofs = sdim*NF
-    ALL = zeros(nldofs,nldofs)
+    dim = dimension(basis)
+    sdim = symmetric_tensor_dimension(dim)
+    detjac = determinant_jacobian(jac)
 
-    for (p,w) in quad
-        vals = basis(p)
-        M = interpolation_matrix(vals,sdim)
-        ALL += M'*M*jac.detjac*w
-    end
-    return ALL
-end
-
-function get_stress_coupling(basis::TensorProductBasis{dim},
-    quad::TensorProductQuadratureRule{dim},jac::AffineMapJacobian) where {dim}
-
-    sdim = symmetric_tensor_dim(dim)
-    return get_stress_coupling(basis,quad,jac,sdim)
+    return detjac*mass_matrix(sdim,basis,quad)
 end
 
 function get_stress_displacement_coupling(basis::TensorProductBasis{D,T,NF},

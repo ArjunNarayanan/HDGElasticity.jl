@@ -50,12 +50,6 @@ function reference_cell_volume(dim)
     return reference_element_length()^dim
 end
 
-function affine_map_jacobian(element_size)
-    dim = length(element_size)
-    reference_vol = reference_cell_volume(dim)
-    return prod(element_size)/reference_vol
-end
-
 function neighbor_faceid(faceid)
     if faceid == 1
         return 3
@@ -96,6 +90,16 @@ end
 
 function (M::AffineMap)(xi)
     return M.xL .+ 0.5*(1.0 .+ xi) .* (M.xR - M.xL)
+end
+
+function determinant_jacobian(element_size)
+    dim = length(element_size)
+    reference_vol = reference_cell_volume(dim)
+    return prod(element_size)/reference_vol
+end
+
+function determinant_jacobian(M::AffineMap)
+    return determinant_jacobian(M.xR - M.xL)
 end
 
 function nodal_coordinates(mesh::UniformMesh{dim,FT},

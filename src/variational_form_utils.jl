@@ -44,7 +44,7 @@ function vec_to_symm_mat_converter(dim::Z) where {Z<:Integer}
     end
 end
 
-function symmetric_tensor_dim(dim::Z) where {Z<:Integer}
+function symmetric_tensor_dim(dim)
     if dim == 2
         return 3
     elseif dim == 3

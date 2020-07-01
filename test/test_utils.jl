@@ -52,7 +52,7 @@ normals = HDGE.reference_normals()
 @test HDGE.reference_cell_volume(3) == 8.0
 
 element_size = [1.0,2.0]
-@test HDGE.affine_map_jacobian(element_size) == 0.5
+@test HDGE.determinant_jacobian(element_size) == 0.5
 
 xL = @SVector [-1.,-1.,-1.,-1.]
 xR = @SVector [+1.,+1.,+1.,+1.]
@@ -66,6 +66,7 @@ xR = @SVector [+1.,+1.]
 map = HDGE.AffineMap(xL,xR)
 @test allequal(map.xL,xL)
 @test allequal(map.xR,xR)
+@test HDGE.determinant_jacobian(map) ≈ 1.0
 
 xL = [-1.,-1.]
 xR = [1.,1.,1.]
@@ -81,6 +82,7 @@ map = HDGE.AffineMap(xL,xR)
 xL = [0.,0.]
 xR = [1.,1.]
 map = HDGE.AffineMap(xL,xR)
+@test HDGE.determinant_jacobian(map) ≈ 0.25
 @test allequal(map([0.,0.]),[0.5,0.5])
 @test allequal(map([-1.,0.]),[0.,0.5])
 xi = [-0.5  -0.5  0.0  1.0
@@ -89,6 +91,11 @@ x = map(xi)
 testx = [0.25  0.25  0.50  1.0
          0.25  0.50  0.75  0.25]
 @test allequal(x,testx)
+
+xL = [0.,0.]
+xR = [2.,1.]
+map = HDGE.AffineMap(xL,xR)
+@test HDGE.determinant_jacobian(map) ≈ 0.5
 
 mesh = UniformMesh([0.0,0.0],[1.,1.],[1,1])
 basis = TensorProductBasis(2,2)

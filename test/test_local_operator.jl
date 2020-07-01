@@ -1,5 +1,6 @@
-using Test, StaticArrays, LinearAlgebra
-using CartesianMesh, ImplicitDomainQuadrature
+using Test
+using PolynomialBasis
+using ImplicitDomainQuadrature
 using HDGElasticity
 
 basis = TensorProductBasis(2,1)
