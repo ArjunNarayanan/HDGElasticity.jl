@@ -92,14 +92,16 @@ function (M::AffineMap)(xi)
     return M.xL .+ 0.5*(1.0 .+ xi) .* (M.xR - M.xL)
 end
 
-function determinant_jacobian(element_size)
-    dim = length(element_size)
-    reference_vol = reference_cell_volume(dim)
-    return prod(element_size)/reference_vol
+function jacobian(M::AffineMap)
+    return (M.xR - M.xL)/reference_element_length()
+end
+
+function inverse_jacobian(M::AffineMap)
+    return 1.0 ./ jacobian(M)
 end
 
 function determinant_jacobian(M::AffineMap)
-    return determinant_jacobian(M.xR - M.xL)
+    return prod(jacobian(M))
 end
 
 function nodal_coordinates(mesh::UniformMesh{dim,FT},

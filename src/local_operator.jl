@@ -19,24 +19,30 @@ struct LocalOperator{T}
     end
 end
 
-function get_stress_coupling(basis,quad,jac)
+function LLop(basis,quad)
 
     dim = dimension(basis)
     sdim = symmetric_tensor_dimension(dim)
-    detjac = determinant_jacobian(jac)
 
-    return detjac*mass_matrix(sdim,basis,quad)
+    return mass_matrix(sdim,basis,quad)
 end
 
-function get_stress_displacement_coupling(basis::TensorProductBasis{D,T,NF},
-    quad::TensorProductQuadratureRule,Dhalf::M1,Ek::Vector{M2},
-    jac::AffineMapJacobian,dim,sdim) where {D,T,NF} where {M1<:AbstractMatrix,M2<:AbstractMatrix}
+function LLop(basis,quad,map)
+    return determinant_jacobian(map)*LLop(basis,quad)
+end
 
-    m,n = size(Dhalf)
-    @assert m == n && m == sdim
+function LUop(basis,quad,Dhalf,Ek,map)
+
+    NF = number_of_basis_functions(basis)
+    sdim,n = size(Dhalf)
+    @assert sdim == n
+    @assert length(Ek) > 0
+
+    dim = size(Ek[1])[2]
     @assert all([size(E) == (sdim,dim) for E in Ek])
 
     ALU = zeros(sdim*NF,dim*NF)
+    invjac = inverse_jacobian(map)
 
     for k = 1:length(Ek)
         E = Ek[k]
@@ -55,8 +61,8 @@ function get_stress_displacement_coupling(basis::TensorProductBasis{D,T,NF},
 end
 
 function get_stress_displacement_coupling(basis::TensorProductBasis{dim},
-    quad::TensorProductQuadratureRule{dim},Dhalf::M,
-    jac::AffineMapJacobian) where {dim,M<:AbstractMatrix}
+    quad::QuadratureRule{dim},Dhalf::M,
+    jac::AffineMap) where {dim,M<:AbstractMatrix}
 
     sdim = symmetric_tensor_dim(dim)
     Ek = vec_to_symm_mat_converter(dim)
@@ -64,7 +70,7 @@ function get_stress_displacement_coupling(basis::TensorProductBasis{dim},
 end
 
 function update_displacement_coupling!(AUU::Matrix,F::Function,
-    surface_quad::TensorProductQuadratureRule{1},jac,tau,dim)
+    surface_quad::QuadratureRule{1},jac,tau,dim)
 
     for (p,w) in surface_quad
         vals = F(p)
@@ -75,8 +81,8 @@ function update_displacement_coupling!(AUU::Matrix,F::Function,
 end
 
 function get_displacement_coupling(basis::TensorProductBasis{2,T,NF},
-    surface_quad::TensorProductQuadratureRule{1},
-    jac::AffineMapJacobian,tau::R,x0,dx,dim) where {T,NF,R<:Real}
+    surface_quad::QuadratureRule{1},
+    jac::AffineMap,tau::R,x0,dx,dim) where {T,NF,R<:Real}
 
     nudofs = dim*NF
     AUU = zeros(nudofs,nudofs)
@@ -94,25 +100,25 @@ function get_displacement_coupling(basis::TensorProductBasis{2,T,NF},
 end
 
 function get_displacement_coupling(basis::TensorProductBasis{2,T,NF},
-    surface_quad::TensorProductQuadratureRule{1},
-    jac::AffineMapJacobian,tau::R,dim) where {T,NF,R<:Real}
+    surface_quad::QuadratureRule{1},
+    jac::AffineMap,tau::R,dim) where {T,NF,R<:Real}
 
     x0,dx = reference_element(basis)
     return get_displacement_coupling(basis,surface_quad,jac,tau,x0,dx,dim)
 end
 
 function get_displacement_coupling(basis::TensorProductBasis{dim,T,NF},
-    surface_quad::TensorProductQuadratureRule{1},
-    jac::AffineMapJacobian,tau::R) where {dim,fdim,T,NF,R<:Real}
+    surface_quad::QuadratureRule{1},
+    jac::AffineMap,tau::R) where {dim,fdim,T,NF,R<:Real}
 
     x0,dx = reference_element(basis)
     return get_displacement_coupling(basis,surface_quad,jac,tau,x0,dx,dim)
 end
 
 function LocalOperator(basis::TensorProductBasis{dim},
-    quad::TensorProductQuadratureRule{dim},
-    surface_quad::TensorProductQuadratureRule{1},
-    Dhalf,jac::AffineMapJacobian,tau) where {dim}
+    quad::QuadratureRule{dim},
+    surface_quad::QuadratureRule{1},
+    Dhalf,jac::AffineMap,tau) where {dim}
 
     if dim != 2
         throw(ArgumentError("Expected dim = 2, got dim = $dim"))

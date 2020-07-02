@@ -64,11 +64,11 @@ E3 = E3'
 @test_throws ArgumentError HDGE.vec_to_symm_mat_converter(4)
 @test_throws ArgumentError HDGE.vec_to_symm_mat_converter(1)
 
-@test HDGE.symmetric_tensor_dim(2) == 3
-@test HDGE.symmetric_tensor_dim(3) == 6
+@test HDGE.symmetric_tensor_dimension(2) == 3
+@test HDGE.symmetric_tensor_dimension(3) == 6
 
-@test_throws ArgumentError HDGE.symmetric_tensor_dim(1)
-@test_throws ArgumentError HDGE.symmetric_tensor_dim(4)
+@test_throws ArgumentError HDGE.symmetric_tensor_dimension(1)
+@test_throws ArgumentError HDGE.symmetric_tensor_dimension(4)
 
 
 basis = TensorProductBasis(1,1)

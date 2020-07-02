@@ -1,39 +1,26 @@
 using Test
 using PolynomialBasis
 using ImplicitDomainQuadrature
+using Revise
 using HDGElasticity
 
+function allapprox(v1,v2)
+    return all(v1 .≈ v2)
+end
+
 basis = TensorProductBasis(2,1)
-quad = TensorProductQuadratureRule(2,2)
-jac = HDGElasticity.AffineMapJacobian([2.0,2.0],quad)
-ALL = HDGElasticity.get_stress_coupling(basis,quad,jac,1)
-@test size(ALL) == (4,4)
-ALLtest = 1.0/9.0*[4.   2   2   1
-                   2    4   1   2
-                   2    1   4   2
-                   1    2   2   4]
-@test all(ALL .≈ ALLtest)
+quad = tensor_product_quadrature(2,2)
+ALL = HDGElasticity.LLop(basis,quad)
+rows = 1.0/9.0*[4.   2   2   1
+                2    4   1   2
+                2    1   4   2
+                1    2   2   4]
+ALLtest = vcat([HDGElasticity.interpolation_matrix(rows[i,:],3) for i = 1:4]...)
+@test allapprox(ALL,ALLtest)
 
-ALL = HDGElasticity.get_stress_coupling(basis,quad,jac)
-@test size(ALL) == (12,12)
-
-jac = HDGElasticity.AffineMapJacobian([1.0,1.0],quad)
-ALL = HDGElasticity.get_stress_coupling(basis,quad,jac,1)
-@test size(ALL) == (4,4)
-@test all(ALL .≈ 0.25*ALLtest)
-
-jac = HDGElasticity.AffineMapJacobian([1.0,2.0],quad)
-ALL = HDGElasticity.get_stress_coupling(basis,quad,jac,1)
-@test size(ALL) == (4,4)
-@test all(ALL .≈ 0.5*ALLtest)
-
-ALL = HDGElasticity.get_stress_coupling(basis,quad,jac)
-@test size(ALL) == (12,12)
-
-basis2 = TensorProductBasis(2,2)
-quad2 = TensorProductQuadratureRule(2,4)
-ALL = HDGElasticity.get_stress_coupling(basis2,quad2,jac)
-@test size(ALL) == (27,27)
+map = HDGElasticity.AffineMap([0.0,0.0],[1.0,1.0])
+ALL = HDGElasticity.LLop(basis,quad,map)
+@test allapprox(ALL,0.25*ALLtest)
 
 Dhalf = Array{Float64}(undef,1,1)
 Dhalf[1] = 1.0
