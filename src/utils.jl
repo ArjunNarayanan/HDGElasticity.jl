@@ -123,10 +123,10 @@ end
 
 function restrict_on_faces(func,box::IntervalBox{2})
 
-    fb(x) = func(x,box[2].lo)
-    fr(y) = func(box[1].hi,y)
-    ft(x) = func(x,box[2].hi)
-    fl(y) = func(box[1].lo,y)
+    fb(x) = func(extend(x,2,box[2].lo))
+    fr(y) = func(extend(y,1,box[1].hi))
+    ft(x) = func(extend(x,2,box[2].hi))
+    fl(y) = func(extend(y,1,box[1].lo))
 
     return [fb,fr,ft,fl]
 end

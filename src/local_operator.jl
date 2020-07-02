@@ -31,7 +31,7 @@ function LLop(basis,quad,map)
     return determinant_jacobian(map)*LLop(basis,quad)
 end
 
-function LUop(basis,quad,Dhalf,Ek,map)
+function LUop(basis,quad,Dhalf,map,Ek)
 
     NF = number_of_basis_functions(basis)
     sdim,n = size(Dhalf)
@@ -43,57 +43,56 @@ function LUop(basis,quad,Dhalf,Ek,map)
 
     ALU = zeros(sdim*NF,dim*NF)
     invjac = inverse_jacobian(map)
+    detjac = determinant_jacobian(map)
 
     for k = 1:length(Ek)
         E = Ek[k]
         ED = E'*Dhalf
-        invjac = jac.invjac[k]
         for (p,w) in quad
-            dvals = invjac*gradient(basis,k,p)
+            dvals = invjac[k]*gradient(basis,k,p)
             vals = basis(p)
             Mk = make_row_matrix(dvals,ED)
             N = interpolation_matrix(vals,dim)
 
-            ALU += Mk'*N*jac.detjac*w
+            ALU += Mk'*N*detjac*w
         end
     end
     return ALU
 end
 
-function get_stress_displacement_coupling(basis::TensorProductBasis{dim},
-    quad::QuadratureRule{dim},Dhalf::M,
-    jac::AffineMap) where {dim,M<:AbstractMatrix}
-
-    sdim = symmetric_tensor_dim(dim)
+function LUop(basis,quad,Dhalf,map)
+    dim = dimension(basis)
     Ek = vec_to_symm_mat_converter(dim)
-    return get_stress_displacement_coupling(basis,quad,Dhalf,Ek,jac,dim,sdim)
+    return LUop(basis,quad,Dhalf,map,Ek)
 end
 
-function update_displacement_coupling!(AUU::Matrix,F::Function,
-    surface_quad::QuadratureRule{1},jac,tau,dim)
 
+function update_LUUop!(AUU,func,surface_quad,detjac,stabilization,ndofs)
     for (p,w) in surface_quad
-        vals = F(p)
-        N = interpolation_matrix(vals,dim)
-        Ntau = tau*N
-        AUU .+= N'*Ntau*jac*w
+        vals = func(p)
+        N = interpolation_matrix(vals,ndofs)
+        AUU .+= stabilization*N'*N*detjac*w
     end
 end
 
-function get_displacement_coupling(basis::TensorProductBasis{2,T,NF},
-    surface_quad::QuadratureRule{1},
-    jac::AffineMap,tau::R,x0,dx,dim) where {T,NF,R<:Real}
+function get_displacement_coupling(basis,surface_quad,map,stabilization)
 
-    nudofs = dim*NF
-    AUU = zeros(nudofs,nudofs)
+    dim = dimension(basis)
+    NF = number_of_basis_functions(basis)
+    cell = reference_cell(dim)
 
-    update_displacement_coupling!(AUU,x->basis(extend(x,2,x0[2])),
+    ndofs = dim*NF
+    AUU = zeros(ndofs,ndofs)
+
+    funcs = restrict_on_faces(basis,cell)
+
+    update_LUUop!(AUU,x->basis(extend(x,2,x0[2])),
         surface_quad,jac.jac[1],tau,dim)
-    update_displacement_coupling!(AUU,x->basis(extend(x,1,x0[1]+dx[1])),
+    update_LUUop!(AUU,x->basis(extend(x,1,x0[1]+dx[1])),
         surface_quad,jac.jac[2],tau,dim)
-    update_displacement_coupling!(AUU,x->basis(extend(x,2,x0[2]+dx[2])),
+    update_LUUop!(AUU,x->basis(extend(x,2,x0[2]+dx[2])),
         surface_quad,jac.jac[1],tau,dim)
-    update_displacement_coupling!(AUU,x->basis(extend(x,1,x0[1])),
+    update_LUUop!(AUU,x->basis(extend(x,1,x0[1])),
         surface_quad,jac.jac[2],tau,dim)
 
     return AUU

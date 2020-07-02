@@ -114,7 +114,7 @@ testcoords = [0.0 0.0 0.0 0.5 0.5 0.5 1.0 1.0 1.0
 @test_throws ArgumentError HDGElasticity.neighbor_faceid(5)
 @test_throws ArgumentError HDGElasticity.neighbor_faceid(0)
 
-f(x,y) = 2x + 3y
+f(x) = 2x[1] + 3x[2]
 box = HDGE.reference_cell(2)
 restricted_funcs = HDGE.restrict_on_faces(f,box)
 @test allequal(restricted_funcs[1].([-0.5,0.5]),[-4.,-2.0])

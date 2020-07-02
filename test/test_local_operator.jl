@@ -1,4 +1,5 @@
 using Test
+using LinearAlgebra
 using PolynomialBasis
 using ImplicitDomainQuadrature
 using Revise
@@ -6,6 +7,11 @@ using HDGElasticity
 
 function allapprox(v1,v2)
     return all(v1 .≈ v2)
+end
+
+function allapprox(v1,v2,tol)
+    @assert length(v1) == length(v2)
+    return all([isapprox(v1[i],v2[i],atol=tol) for i = 1:length(v1)])
 end
 
 basis = TensorProductBasis(2,1)
@@ -22,26 +28,27 @@ map = HDGElasticity.AffineMap([0.0,0.0],[1.0,1.0])
 ALL = HDGElasticity.LLop(basis,quad,map)
 @test allapprox(ALL,0.25*ALLtest)
 
-Dhalf = Array{Float64}(undef,1,1)
-Dhalf[1] = 1.0
-jac = HDGElasticity.AffineMapJacobian([2.0,2.0],quad)
+Dhalf = reshape([1.0],1,1)
+map = HDGElasticity.AffineMap([-1.,-1.],[1.,1.])
 Ek = [Dhalf,Dhalf]
 ALUtest = [-2/3 -1/2 -1/2 -1/3
             1/6  0.0  0.0 -1/6
             1/6  0.0  0.0 -1/6
             1/3  1/2  1/2  2/3]
-ALU = HDGElasticity.get_stress_displacement_coupling(basis,quad,Dhalf,Ek,jac,1,1)
-@test all([isapprox(ALU[i],ALUtest[i],atol=1e-15) for i = 1:length(ALU)])
+ALU = HDGElasticity.LUop(basis,quad,Dhalf,map,Ek)
+@test allapprox(ALU,ALUtest,1e-15)
 
 Dhalf = diagm(ones(3))
-ALU = HDGElasticity.get_stress_displacement_coupling(basis,quad,Dhalf,jac)
+ALU = HDGElasticity.LUop(basis,quad,Dhalf,map)
 @test size(ALU) == (12,8)
 
-ALU = HDGElasticity.get_stress_displacement_coupling(basis2,quad2,Dhalf,jac)
+basis2 = TensorProductBasis(2,2)
+quad2 = tensor_product_quadrature(2,3)
+ALU = HDGElasticity.LUop(basis2,quad2,Dhalf,map)
 @test size(ALU) == (27,18)
 
 basis = TensorProductBasis(2,1)
-surface_quad = TensorProductQuadratureRule(1,2)
+surface_quad = tensor_product_quadrature(1,2)
 jac = HDGElasticity.AffineMapJacobian([2.0,2.0],quad)
 AUU = HDGElasticity.get_displacement_coupling(basis,surface_quad,jac,1.0,1)
 
