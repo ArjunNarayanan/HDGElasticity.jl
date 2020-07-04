@@ -96,12 +96,25 @@ function jacobian(M::AffineMap)
     return (M.xR - M.xL)/reference_element_length()
 end
 
+function jacobian(M::AffineMap{2},cell::IntervalBox{2})
+    j = jacobian(M)
+    return [j[1],j[2],j[1],j[2]]
+end
+
+function jacobian(map::InterpolatingPolynomial,p)
+    return gradient(map,p)
+end
+
 function inverse_jacobian(M::AffineMap)
     return 1.0 ./ jacobian(M)
 end
 
 function determinant_jacobian(M::AffineMap)
     return prod(jacobian(M))
+end
+
+function determinant_jacobian(map::InterpolatingPolynomial{2},p)
+    return norm(jacobian(map,p))
 end
 
 function nodal_coordinates(mesh::UniformMesh{dim,FT},

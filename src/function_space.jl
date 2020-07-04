@@ -180,7 +180,7 @@ function interface_coefficients!(icoeffs,isactivecell,coeffs,poly,basis,quad)
     @assert size(icoeffs) == (dim*nf,ncells)
 
     cell = reference_cell(dim)
-    mass = lu(mass_matrix(dim,basis,quad))
+    mass = lu(mass_matrix(basis,quad,dim,1.0))
 
     for cellid in 1:ncells
         if isactivecell[1,cellid] && isactivecell[2,cellid]

@@ -24,7 +24,7 @@ function LLop(basis,quad)
     dim = dimension(basis)
     sdim = symmetric_tensor_dimension(dim)
 
-    return mass_matrix(sdim,basis,quad)
+    return mass_matrix(basis,quad,sdim,1.0)
 end
 
 function LLop(basis,quad,map)
@@ -67,43 +67,84 @@ function LUop(basis,quad,Dhalf,map)
 end
 
 
-function update_LUUop!(AUU,func,surface_quad,detjac,stabilization,ndofs)
-    for (p,w) in surface_quad
+function update_UUop!(AUU,func,facequad,detjac::T,
+    stabilization,ndofs) where {T<:Real}
+
+    for (p,w) in facequad
         vals = func(p)
         N = interpolation_matrix(vals,ndofs)
-        AUU .+= stabilization*N'*N*detjac*w
+        AUU .+= detjac*stabilization*N'*N*w
     end
+
 end
 
-function get_displacement_coupling(basis,surface_quad,map,stabilization)
+function update_UUop!(AUU,basis,isactiveface,facequads,map::AffineMap,
+    stabilization,ndofs)
+
+    dim = dimension(basis)
+    cell = reference_cell(dim)
+
+    funcs = restrict_on_faces(basis,cell)
+    jac = jacobian(map,cell)
+
+    for (faceid,f) in enumerate(funcs)
+        if isactiveface[faceid]
+            update_UUop!(AUU,f,facequads[faceid],jac[faceid],stabilization,ndofs)
+        end
+    end
+
+end
+
+function update_UUop!(AUU,basis,iquad,imap::InterpolatingPolynomial,
+    stabilization,ndofs)
+
+    for (p,w) in iquad
+        vals = basis(imap(p))
+        detjac = determinant_jacobian(imap,p)
+        N = interpolation_matrix(vals,ndofs)
+        AUU .+= detjac*stabilization*N'*N*w
+    end
+
+end
+
+function UUop(basis,isactiveface,facequads,iquad,cellmap,imap,stabilization,ndofs)
 
     dim = dimension(basis)
     NF = number_of_basis_functions(basis)
     cell = reference_cell(dim)
 
-    ndofs = dim*NF
-    AUU = zeros(ndofs,ndofs)
+    nudofs = ndofs*NF
+    AUU = zeros(nudofs,nudofs)
+
+    update_UUop!(AUU,basis,isactiveface,facequads,cellmap,stabilization,ndofs)
+    update_UUop!(AUU,basis,iquad,imap,stabilization,ndofs)
+
+    return AUU
+
+end
+
+function UUop(basis,facequad,map,stabilization,ndofs)
+
+    dim = dimension(basis)
+    NF = number_of_basis_functions(basis)
+    cell = reference_cell(dim)
+
+    nudofs = ndofs*NF
+    AUU = zeros(nudofs,nudofs)
 
     funcs = restrict_on_faces(basis,cell)
+    jac = jacobian(map,cell)
 
-    update_LUUop!(AUU,x->basis(extend(x,2,x0[2])),
-        surface_quad,jac.jac[1],tau,dim)
-    update_LUUop!(AUU,x->basis(extend(x,1,x0[1]+dx[1])),
-        surface_quad,jac.jac[2],tau,dim)
-    update_LUUop!(AUU,x->basis(extend(x,2,x0[2]+dx[2])),
-        surface_quad,jac.jac[1],tau,dim)
-    update_LUUop!(AUU,x->basis(extend(x,1,x0[1])),
-        surface_quad,jac.jac[2],tau,dim)
+    for (faceid,f) in enumerate(funcs)
+        update_UUop!(AUU,f,facequad,jac[faceid],stabilization,ndofs)
+    end
 
     return AUU
 end
 
-function get_displacement_coupling(basis::TensorProductBasis{2,T,NF},
-    surface_quad::QuadratureRule{1},
-    jac::AffineMap,tau::R,dim) where {T,NF,R<:Real}
-
-    x0,dx = reference_element(basis)
-    return get_displacement_coupling(basis,surface_quad,jac,tau,x0,dx,dim)
+function UUop(basis,facequad,map,stabilization)
+    dim = dimension(basis)
+    return UUop(basis,facequad,map,stabilization,dim)
 end
 
 function get_displacement_coupling(basis::TensorProductBasis{dim,T,NF},

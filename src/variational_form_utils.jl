@@ -54,15 +54,38 @@ function symmetric_tensor_dimension(dim)
     end
 end
 
-function mass_matrix(ndofs,basis,quad)
-    nf = number_of_basis_functions(basis)
-    nfndofs = nf*ndofs
-    matrix = zeros(nfndofs,nfndofs)
+function update_mass_matrix!(matrix,basis,quad,ndofs,scale)
     for (p,w) in quad
         vals = basis(p)
         N = interpolation_matrix(vals,ndofs)
-        matrix += N'*N*w
+        matrix .+= scale*N'*N*w
     end
+end
+
+function mass_matrix(basis,quad,ndofs,scale)
+    nf = number_of_basis_functions(basis)
+    nfndofs = nf*ndofs
+    matrix = zeros(nfndofs,nfndofs)
+    update_mass_matrix!(matrix,basis,quad,ndofs,scale)
+    return matrix
+end
+
+function mass_matrix_on_boundary(basis,quad,ndofs,cellmap)
+
+    dim = dimension(basis)
+    NF = number_of_basis_functions(basis)
+    cell = reference_cell(dim)
+
+    totaldofs = ndofs*NF
+    matrix = zeros(totaldofs,totaldofs)
+
+    funcs = restrict_on_faces(basis,cell)
+    jac = jacobian(map,cell)
+
+    for (faceid,func) in enumerate(funcs)
+        update_mass_matrix!(matrix,func,quad,ndofs,jac[faceid])
+    end
+
     return matrix
 end
 

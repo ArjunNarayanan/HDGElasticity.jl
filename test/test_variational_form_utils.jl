@@ -73,7 +73,7 @@ E3 = E3'
 
 basis = TensorProductBasis(1,1)
 quad = tensor_product_quadrature(1,2)
-matrix = HDGE.mass_matrix(1,basis,quad)
+matrix = HDGE.mass_matrix(basis,quad,1,1.0)
 testmatrix = [2/3 1/3
               1/3 2/3]
 @test allapprox(matrix,testmatrix)

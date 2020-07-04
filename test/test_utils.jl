@@ -67,6 +67,18 @@ map = HDGE.AffineMap(xL,xR)
 @test allapprox(HDGE.inverse_jacobian(map),[1.0,1.0])
 @test HDGE.determinant_jacobian(map) ≈ 1.0
 
+map = InterpolatingPolynomial(2,1,1)
+coeffs = [0.0  0.0
+          0.0  1.0]
+update!(map,coeffs)
+@test HDGE.determinant_jacobian(map,0.0) ≈ 0.5
+
+map = InterpolatingPolynomial(2,1,2)
+coeffs = [-1. 0. 1.
+           0. -1 0]
+update!(map,coeffs)
+@test HDGE.determinant_jacobian(map,-0.5) ≈ sqrt(2)
+
 xL = [-1.,-1.]
 xR = [1.,1.,1.]
 @test_throws AssertionError HDGE.AffineMap(xL,xR)
@@ -81,7 +93,9 @@ map = HDGE.AffineMap(xL,xR)
 xL = [0.,0.]
 xR = [1.,1.]
 map = HDGE.AffineMap(xL,xR)
+cell = HDGE.reference_cell(2)
 @test allapprox(HDGE.jacobian(map),[0.5,0.5])
+@test allapprox(HDGE.jacobian(map,cell),repeat([0.5],4))
 @test allapprox(HDGE.inverse_jacobian(map),[2.,2.])
 @test HDGE.determinant_jacobian(map) ≈ 0.25
 @test allequal(map([0.,0.]),[0.5,0.5])
@@ -96,7 +110,9 @@ testx = [0.25  0.25  0.50  1.0
 xL = [0.,0.]
 xR = [2.,1.]
 map = HDGE.AffineMap(xL,xR)
+cell = HDGE.reference_cell(2)
 @test allapprox(HDGE.jacobian(map),[1.0,0.5])
+@test allapprox(HDGE.jacobian(map,cell),[1.0,0.5,1.0,0.5])
 @test allapprox(HDGE.inverse_jacobian(map),[1.0,2.])
 @test HDGE.determinant_jacobian(map) ≈ 0.5
 
