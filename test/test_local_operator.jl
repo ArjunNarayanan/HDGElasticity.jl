@@ -3,7 +3,7 @@ using LinearAlgebra
 using PolynomialBasis
 using ImplicitDomainQuadrature
 using CartesianMesh
-using Revise
+# using Revise
 using HDGElasticity
 
 function allapprox(v1,v2)
@@ -18,10 +18,10 @@ end
 basis = TensorProductBasis(2,1)
 quad = tensor_product_quadrature(2,2)
 ALL = HDGElasticity.LLop(basis,quad)
-rows = 1.0/9.0*[4.   2   2   1
-                2    4   1   2
-                2    1   4   2
-                1    2   2   4]
+rows = -1.0/9.0*[4.   2   2   1
+                 2    4   1   2
+                 2    1   4   2
+                 1    2   2   4]
 ALLtest = vcat([HDGElasticity.interpolation_matrix(rows[i,:],3) for i = 1:4]...)
 @test allapprox(ALL,ALLtest)
 
@@ -51,59 +51,12 @@ ALU = HDGElasticity.LUop(basis2,quad2,Dhalf,map)
 basis = TensorProductBasis(2,1)
 facequad = tensor_product_quadrature(1,2)
 map = HDGElasticity.AffineMap([-1.,-1],[1.,1.])
-AUU = HDGElasticity.UUop(basis,facequad,map,1.0,1)
+AUU = HDGElasticity.UUop(basis,facequad,map,4.0)
 
-AUUtest = [+4/3  +1/3  +1/3  +0.0
-           +1/3  +4/3  +0.0  +1/3
-           +1/3   0.0  +4/3  +1/3
-           +0.0  +1/3  +1/3  +4/3]
+rows = [[4/3,1/3,1/3,0.0],[1/3,4/3,0.0,1/3],[1/3,0.0,4/3,1/3],[0.0,1/3,1/3,4/3]]
+AUUtest = 4.0*vcat([HDGElasticity.interpolation_matrix(r,2) for r in rows]...)
 @test allapprox(AUU,AUUtest)
 
-map = HDGElasticity.AffineMap([0.,0.],[1.,1.])
-AUU = HDGElasticity.UUop(basis,facequad,map,1.0,1)
-@test allapprox(AUU,0.5*AUUtest)
-
-AUU = HDGElasticity.UUop(basis,facequad,map,5.0,1)
-@test allapprox(AUU,2.5*AUUtest)
-
-AUU = HDGElasticity.UUop(basis,facequad,map,1.0)
-@test size(AUU) == (8,8)
-
-map = InterpolatingPolynomial(2,1,1)
-coeffs = [1.  1.
-          -1. 1.]
-update!(map,coeffs)
-AUU = zeros(4,4)
-HDGElasticity.update_UUop!(AUU,basis,facequad,map,1.0,1)
-testAUU = [0.0  0.0  0.0  0.0
-           0.0  0.0  0.0  0.0
-           0.0  0.0  2/3  1/3
-           0.0  0.0  1/3  2/3]
-@test allapprox(AUU,testAUU)
-
-AUU = zeros(4,4)
-isactiveface = [true,false,false,true]
-facequads = Vector{QuadratureRule{1}}(undef,4)
-facequads[1] = facequad
-facequads[4] = facequad
-map = HDGElasticity.AffineMap([-1.,-1.],[1.,1.])
-HDGElasticity.update_UUop!(AUU,basis,isactiveface,facequads,map,1.0,1)
-testAUU = [4/3  1/3  1/3  0.0
-           1/3  2/3  0.0  0.0
-           1/3  0.0  2/3  0.0
-           0.0  0.0  0.0  0.0]
-@test allapprox(AUU,testAUU)
-
-quad1d = ImplicitDomainQuadrature.ReferenceQuadratureRule(2)
-facequads[1] = QuadratureRule(ImplicitDomainQuadrature.transform(quad1d,-1.,0.)...)
-facequads[4] = facequads[1]
-AUU = zeros(4,4)
-HDGElasticity.update_UUop!(AUU,basis,isactiveface,facequads,map,1.0,1)
-testAUU = [7/6  1/6  1/6  0.
-           1/6  1/12 0.0  0.
-           1/6  0.0  1/12 0.
-           0.   0.   0.   0.]
-@test allapprox(AUU,testAUU)
 
 function plane_distance_function(coords,n,x0)
     return [n'*(coords[:,idx]-x0) for idx in 1:size(coords)[2]]
@@ -122,6 +75,33 @@ ufs = HDGElasticity.UniformFunctionSpace(dgmesh,1,3,coeffs,poly)
 cellmap = HDGElasticity.AffineMap([-1.,-1.],[1.,1.])
 imap = InterpolatingPolynomial(2,ufs.sbasis)
 update!(imap,ufs.icoeffs[:,1])
-AUU = zeros(4,4)
-HDGElasticity.update_UUop!(AUU,basis,ufs.iquad,imap,1.,1)
-@test AUU[1,1] ≈ 4.7/16*sqrt(2)
+UU = HDGElasticity.UUop(ufs.vbasis,view(ufs.fquads,:,2,1),
+    ufs.iquad,dgmesh.isactiveface[:,2,1],cellmap,imap,1.0)
+@test UU[1] ≈ 7/6+4.7/16*sqrt(2.)
+
+Dhalf = HDGElasticity.plane_strain_voigt_hooke_matrix(1.,2.,2)
+lop = HDGElasticity.LocalOperator(ufs.vbasis,ufs.vquads[2,1],
+    view(ufs.fquads,:,2,1),ufs.iquad,dgmesh.isactiveface[:,2,1],Dhalf,
+    cellmap,imap,1.0)
+@test size(lop.local_operator) == (20,20)
+@test rank(lop.local_operator) == 20
+
+LL = Array(reshape(1:16,4,4))
+LU = Array(reshape(21:28,4,2))
+UU = Array(reshape(31:34,2,2))
+lop = HDGElasticity.LocalOperator(LL,LU,UU)
+@test allapprox(LL,lop.LL)
+@test allapprox(LU,lop.LU)
+@test allapprox(UU,lop.UU)
+testmat = [LL  LU
+           LU' UU]
+@test allapprox(lop.local_operator,testmat)
+
+basis = TensorProductBasis(2,1)
+quad = tensor_product_quadrature(2,2)
+facequad = tensor_product_quadrature(1,2)
+Dhalf = HDGElasticity.plane_strain_voigt_hooke_matrix(1.,2.,2)
+cellmap = HDGElasticity.AffineMap([0.,0.],[2.,1.])
+lop = HDGElasticity.LocalOperator(basis,quad,facequad,Dhalf,cellmap,2.0)
+@test size(lop.local_operator) == (20,20)
+@test rank(lop.local_operator) == 20

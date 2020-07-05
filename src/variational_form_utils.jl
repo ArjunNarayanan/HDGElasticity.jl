@@ -62,6 +62,33 @@ function update_mass_matrix!(matrix,basis,quad,ndofs,scale)
     end
 end
 
+function update_mass_matrix!(matrix,basis,quad,map::InterpolatingPolynomial,
+    ndofs)
+    for (p,w) in quad
+        vals = basis(map(p))
+        detjac = determinant_jacobian(map,p)
+        N = interpolation_matrix(vals,ndofs)
+        matrix .+= detjac*N'*N*w
+    end
+end
+
+function update_mass_matrix_on_active_faces!(matrix,basis,facequads,
+    isactiveface,ndofs,cellmap)
+
+    dim = dimension(basis)
+    cell = reference_cell(dim)
+
+    funcs = restrict_on_faces(basis,cell)
+    jac = jacobian(cellmap,cell)
+
+    for (faceid,func) in enumerate(funcs)
+        if isactiveface[faceid]
+            update_mass_matrix!(matrix,func,facequads[faceid],ndofs,jac[faceid])
+        end
+    end
+
+end
+
 function mass_matrix(basis,quad,ndofs,scale)
     nf = number_of_basis_functions(basis)
     nfndofs = nf*ndofs
@@ -80,13 +107,31 @@ function mass_matrix_on_boundary(basis,quad,ndofs,cellmap)
     matrix = zeros(totaldofs,totaldofs)
 
     funcs = restrict_on_faces(basis,cell)
-    jac = jacobian(map,cell)
+    jac = jacobian(cellmap,cell)
 
     for (faceid,func) in enumerate(funcs)
         update_mass_matrix!(matrix,func,quad,ndofs,jac[faceid])
     end
 
     return matrix
+end
+
+function mass_matrix_on_boundary(basis,facequads,isactiveface,iquad,imap,
+    ndofs,cellmap)
+
+    dim = dimension(basis)
+    NF = number_of_basis_functions(basis)
+    cell = reference_cell(dim)
+
+    totaldofs = ndofs*NF
+    matrix = zeros(totaldofs,totaldofs)
+
+    update_mass_matrix_on_active_faces!(matrix,basis,facequads,
+        isactiveface,ndofs,cellmap)
+    update_mass_matrix!(matrix,basis,iquad,imap,ndofs)
+
+    return matrix
+
 end
 
 function linear_form(rhsvals::M,basis,quad) where {M<:AbstractMatrix}

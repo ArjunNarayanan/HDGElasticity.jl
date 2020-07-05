@@ -17,9 +17,10 @@ include("dg_mesh.jl")
 include("function_space.jl")
 include("fit_interface_hybrid_element.jl")
 include("local_operator.jl")
+include("isotropic_elasticity.jl")
 # include("local_hybrid_coupling.jl")
 # include("displacement_component_bc.jl")
 # include("assembly.jl")
-# include("isotropic_elasticity.jl")
+
 
 end # module
