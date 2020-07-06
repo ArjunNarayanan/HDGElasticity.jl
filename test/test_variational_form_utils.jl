@@ -14,6 +14,11 @@ function allapprox(v1,v2)
     return all(v1 .≈ v2)
 end
 
+function allapprox(v1,v2,tol)
+    @assert length(v1) == length(v2)
+    return all([isapprox(v1[i],v2[i],atol=tol) for i = 1:length(v1)])
+end
+
 m = [1.0 2.0
      3.0 4.0]
 v = [5.0,6.0,7.0]

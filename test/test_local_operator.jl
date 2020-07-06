@@ -86,6 +86,7 @@ lop = HDGElasticity.LocalOperator(ufs.vbasis,ufs.vquads[2,1],
 @test size(lop.local_operator) == (20,20)
 @test rank(lop.local_operator) == 20
 
+
 LL = Array(reshape(1:16,4,4))
 LU = Array(reshape(21:28,4,2))
 UU = Array(reshape(31:34,2,2))

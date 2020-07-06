@@ -1,79 +1,73 @@
-using Test, StaticArrays, LinearAlgebra
-using CartesianMesh, ImplicitDomainQuadrature
+using Test
+using LinearAlgebra
+using CartesianMesh
+using PolynomialBasis
+using ImplicitDomainQuadrature
 import ImplicitDomainQuadrature: extend
+using Revise
 using HDGElasticity
 
-a = Vector{Matrix{Float64}}(undef,0)
-@test_throws AssertionError HDGElasticity.check_all_matrix_sizes(a)
-
-a = [rand(2,3),rand(2,2)]
-@test_throws AssertionError HDGElasticity.check_all_matrix_sizes(a)
+function allapprox(v1,v2)
+    return all(v1 .≈ v2)
+end
 
 basis = TensorProductBasis(2,1)
-surface_basis = TensorProductBasis(1,1)
-quad = TensorProductQuadratureRule(2,2)
-surface_quad = TensorProductQuadratureRule(1,2)
-jac = HDGElasticity.AffineMapJacobian([2.0,2.0],quad)
+sbasis = TensorProductBasis(1,1)
+quad = tensor_product_quadrature(2,2)
+squad = tensor_product_quadrature(1,2)
 
-LUh = zeros(4,2)
-M = Matrix{Float64}(undef,1,1)
-M[1] = 1.0
-HDGElasticity.update_stress_hybrid_coupling!(LUh,x->basis(extend(x,2,-1.0)),
-    surface_basis,surface_quad,M,jac.jac[1],1)
-
-LUhtest = [2/3  1/3
+LH = zeros(4,2)
+M = [1.0]
+HDGElasticity.update_LHop!(LH,x->basis(extend(x,2,-1.0)),sbasis,squad,M,1.0,1)
+LHtest =  [2/3  1/3
            0.0  0.0
            1/3  2/3
            0.0  0.0]
-@test all([isapprox(LUh[i],LUhtest[i]) for i in 1:length(LUh)])
+@test allapprox(LH,LHtest)
 
-LUh = zeros(4,2)
+LH = zeros(4,2)
 testjac = 3.0
-HDGElasticity.update_stress_hybrid_coupling!(LUh,x->basis(extend(x,1,1.0)),
-    surface_basis,surface_quad,M,testjac,1)
-LUhtest = testjac*[0.0  0.0
+HDGElasticity.update_LHop!(LH,x->basis(extend(x,1,1.0)),sbasis,squad,M,testjac,1)
+LHtest =  testjac*[0.0  0.0
                    0.0  0.0
                    2/3  1/3
                    1/3  2/3]
-@test all([isapprox(LUh[i],LUhtest[i]) for i in 1:length(LUh)])
+@test allapprox(LH,LHtest)
 
-LUh = zeros(4,2)
-HDGElasticity.update_stress_hybrid_coupling!(LUh,x->basis(extend(x,2,1.0)),
-    surface_basis,surface_quad,M,+1.0,1)
-LUhtest = [0.0   0.0
+LH = zeros(4,2)
+HDGElasticity.update_LHop!(LH,x->basis(extend(x,2,1.0)),sbasis,squad,M,+1.0,1)
+LHtest = [0.0   0.0
           +2/3  +1/3
            0.0   0.0
           +1/3  +2/3]
-@test all([isapprox(LUh[i],LUhtest[i]) for i = 1:length(LUh)])
+@test allapprox(LH,LHtest)
 
-LUh = zeros(4,2)
-HDGElasticity.update_stress_hybrid_coupling!(LUh,x->basis(extend(x,1,-1.0)),
-    surface_basis,surface_quad,M,+1.0,1)
-LUhtest = [+2/3  +1/3
+LH = zeros(4,2)
+HDGElasticity.update_LHop!(LH,x->basis(extend(x,1,-1.0)),sbasis,squad,M,+1.0,1)
+LHtest =  [+2/3  +1/3
            +1/3  +2/3
             0.0   0.0
             0.0   0.0]
-@test all([isapprox(LUh[i],LUhtest[i]) for i = 1:length(LUh)])
+@test allapprox(LH,LHtest)
 
+Ek = HDGElasticity.vec_to_symm_mat_converter(2)
 Dhalf = diagm(ones(3))
-LUh1 = HDGElasticity.get_stress_hybrid_coupling(x->basis(extend(x,2,-1.0)),
-    surface_basis,surface_quad,[0.0,-1.0],Dhalf,0.5,2,3,4,2)
-LUh2 = HDGElasticity.get_stress_hybrid_coupling(x->basis(extend(x,1,+1.0)),
-    surface_basis,surface_quad,[1.0,0.0],Dhalf,1.0,2,3,4,2)
-LUh3 = HDGElasticity.get_stress_hybrid_coupling(x->basis(extend(x,2,+1.0)),
-    surface_basis,surface_quad,[0.0,1.0],Dhalf,+0.5,2,3,4,2)
-LUh4 = HDGElasticity.get_stress_hybrid_coupling(x->basis(extend(x,1,-1.0)),
-    surface_basis,surface_quad,[-1.0,0.0],Dhalf,+1.0,2,3,4,2)
+LH1 = HDGElasticity.LHop(x->basis(extend(x,2,-1.0)),
+    sbasis,squad,[0.0,-1.0],Dhalf,Ek,0.5,2,3,4,2)
+LH2 = HDGElasticity.LHop(x->basis(extend(x,1,+1.0)),
+    sbasis,squad,[1.0,0.0],Dhalf,Ek,1.0,2,3,4,2)
+LH3 = HDGElasticity.LHop(x->basis(extend(x,2,+1.0)),
+    sbasis,squad,[0.0,1.0],Dhalf,Ek,+0.5,2,3,4,2)
+LH4 = HDGElasticity.LHop(x->basis(extend(x,1,-1.0)),
+    sbasis,squad,[-1.0,0.0],Dhalf,Ek,+1.0,2,3,4,2)
 
-jac = HDGElasticity.AffineMapJacobian([1.0,2.0],quad)
-normals = [[0.0,-1.0],[1.0,0.0],[0.0,1.0],[-1.0,0.0]]
-LUh = HDGElasticity.get_stress_hybrid_coupling(basis,surface_basis,surface_quad,
-    Dhalf,jac,[-1.0,-1.0],[2.0,2.0],normals)
+cellmap = HDGElasticity.AffineMap([0.,0.],[1.,2.])
+LH = HDGElasticity.LHop(basis,sbasis,squad,Dhalf,cellmap)
 
-@test all(LUh[1] .≈ LUh1)
-@test all(LUh[2] .≈ LUh2)
-@test all(LUh[3] .≈ LUh3)
-@test all(LUh[4] .≈ LUh4)
+@test allapprox(LH[1],LH1)
+@test allapprox(LH[2],LH2)
+@test allapprox(LH[3],LH3)
+@test allapprox(LH[4],LH4)
 
 LUh = HDGElasticity.get_stress_hybrid_coupling(basis,surface_basis,surface_quad,
     Dhalf,jac)

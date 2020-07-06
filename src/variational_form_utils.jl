@@ -1,13 +1,9 @@
-function make_row_matrix(vals::V,
-        matrix::M) where {V<:AbstractVector} where {M<:AbstractMatrix}
-
+function make_row_matrix(vals,matrix)
     return hcat([v*matrix for v in vals]...)
 end
 
-function interpolation_matrix(vals::V,
-        dim::Z) where {V<:AbstractVector,Z<:Integer}
-
-    return make_row_matrix(vals,diagm(ones(dim)))
+function interpolation_matrix(vals,ndofs)
+    return make_row_matrix(vals,diagm(ones(ndofs)))
 end
 
 function vec_to_symm_mat_converter(dim::Z) where {Z<:Integer}

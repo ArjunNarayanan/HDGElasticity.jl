@@ -117,11 +117,14 @@ function determinant_jacobian(map::InterpolatingPolynomial{2},p)
     return norm(jacobian(map,p))
 end
 
-function nodal_coordinates(mesh::UniformMesh{dim,FT},
-    basis::TensorProductBasis{dim,T,NF}) where {dim,T,NF,FT}
+function nodal_coordinates(mesh,basis)
+
+    dim = dimension(mesh)
+    @assert dimension(basis) == dim
+    NF = number_of_basis_functions(basis)
 
     ncells = mesh.total_number_of_elements
-    coords = Matrix{FT}(undef,dim,NF*ncells)
+    coords = zeros(dim,NF*ncells)
     start = 1
     stop = NF
     for idx in 1:ncells
@@ -153,6 +156,10 @@ function dimension(poly::InterpolatingPolynomial)
 end
 
 function dimension(quad::QuadratureRule{dim}) where dim
+    return dim
+end
+
+function dimension(mesh::UniformMesh{dim}) where dim
     return dim
 end
 

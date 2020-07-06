@@ -1,11 +1,3 @@
-function check_all_matrix_sizes(a::Vector{Matrix{T}}) where {T}
-    @assert length(a) > 0
-    m,n = size(a[1])
-    for matrix in a
-        @assert size(matrix) == (m,n)
-    end
-end
-
 struct LocalHybridCoupling{T}
     LH::Vector{Matrix{T}}
     UH::Vector{Matrix{T}}
@@ -31,66 +23,59 @@ struct LocalHybridCoupling{T}
 end
 
 
-function update_stress_hybrid_coupling!(LH::Matrix,F::Function,
-    surface_basis::TensorProductBasis{1},
-    surface_quad::TensorProductQuadratureRule{1},M::Matrix,jac,dim)
+function update_LHop!(LH,restricted_vbasis,sbasis,squad,matrix,detjac,nhdofs)
+    for (p,w) in squad
+        vals = restricted_vbasis(p)
+        svals = sbasis(p)
 
-    for (p,w) in surface_quad
-        vals = F(p)
-        svals = surface_basis(p)
+        Mk = make_row_matrix(vals,matrix)
+        N = interpolation_matrix(svals,nhdofs)
 
-        Mk = make_row_matrix(vals,M)
-        N = interpolation_matrix(svals,dim)
-
-        LH .+= Mk'*N*jac*w
+        LH .+= Mk'*N*detjac*w
     end
 end
 
-function get_stress_hybrid_coupling(F::Function,surface_basis::TensorProductBasis{1},
-    surface_quad::TensorProductQuadratureRule{1},
-    normal,Dhalf,jac,dim,sdim,NF,NHF)
+function LHop(restricted_vbasis,sbasis,squad,normal,Dhalf,Ek,detjac,
+    dim,sdim,NF,NHF)
 
     @assert size(Dhalf) == (sdim,sdim)
     @assert length(normal) == dim
-    Ek = vec_to_symm_mat_converter(dim)
+
     LH = zeros(sdim*NF,dim*NHF)
 
     for k = 1:dim
         M = normal[k]*Ek[k]'*Dhalf
-        update_stress_hybrid_coupling!(LH,F,surface_basis,surface_quad,M,jac,dim)
+        update_LHop!(LH,restricted_vbasis,sbasis,squad,M,detjac,dim)
     end
     return LH
 end
 
-function get_stress_hybrid_coupling(basis::TensorProductBasis{dim,T,NF},
-    surface_basis::TensorProductBasis{1,T2,NHF},
-    surface_quad::TensorProductQuadratureRule{1},Dhalf,jac::AffineMapJacobian,
-    x0,dx,normals) where {dim,T,NF,T2,NHF}
+function LHop(vbasis,sbasis,squad,Dhalf,cellmap)
 
-    sdim = symmetric_tensor_dim(dim)
+    dim = dimension(vbasis)
+    sdim = symmetric_tensor_dimension(dim)
+    Ek = vec_to_symm_mat_converter(dim)
+    NF = number_of_basis_functions(vbasis)
+    NHF = number_of_basis_functions(sbasis)
 
-    LH1 = get_stress_hybrid_coupling(x->basis(extend(x,2,x0[2])),
-        surface_basis,surface_quad,normals[1],Dhalf,jac.jac[1],dim,sdim,NF,NHF)
-    LH2 = get_stress_hybrid_coupling(x->basis(extend(x,1,x0[1]+dx[1])),
-        surface_basis,surface_quad,normals[2],Dhalf,jac.jac[2],dim,sdim,NF,NHF)
-    LH3 = get_stress_hybrid_coupling(x->basis(extend(x,2,x0[2]+dx[2])),
-        surface_basis,surface_quad,normals[3],Dhalf,jac.jac[1],dim,sdim,NF,NHF)
-    LH4 = get_stress_hybrid_coupling(x->basis(extend(x,1,x0[1])),
-        surface_basis,surface_quad,normals[4],Dhalf,jac.jac[2],dim,sdim,NF,NHF)
-    return [LH1,LH2,LH3,LH4]
+    cell = reference_cell(dim)
+    funcs = restrict_on_faces(vbasis,cell)
+    jac = jacobian(cellmap,cell)
+
+    normals = reference_normals()
+
+    nfaces = length(funcs)
+
+    LH = [LHop(funcs[faceid],sbasis,squad,normals[faceid],Dhalf,Ek,jac[faceid],dim,sdim,NF,NHF) for faceid in 1:nfaces]
+
+    return LH
 
 end
 
-function get_stress_hybrid_coupling(basis,surface_basis,surface_quad,Dhalf,jac)
-    x0,dx = reference_element(basis)
-    normals = reference_normals(basis)
-    return get_stress_hybrid_coupling(basis,surface_basis,surface_quad,
-        Dhalf,jac,x0,dx,normals)
-end
 
 function get_displacement_hybrid_coupling(F::Function,
     surface_basis::TensorProductBasis{1},
-    surface_quad::TensorProductQuadratureRule{1},tau,jac,dim,NF,NHF)
+    surface_quad::QuadratureRule{1},tau,jac,dim,NF,NHF)
 
     UH = zeros(dim*NF,dim*NHF)
     for (p,w) in surface_quad
@@ -107,7 +92,7 @@ end
 
 function get_displacement_hybrid_coupling(basis::TensorProductBasis{dim,T,NF},
     surface_basis::TensorProductBasis{1,T2,NHF},surface_quad,tau,
-    jac::AffineMapJacobian,x0,dx) where {dim,T,NF,T2,NHF}
+    jac,x0,dx) where {dim,T,NF,T2,NHF}
 
     @assert length(x0) == dim
     @assert length(dx) == dim
@@ -133,7 +118,7 @@ function get_displacement_hybrid_coupling(basis,surface_basis,surface_quad,
 end
 
 function get_hybrid_coupling(surface_basis::TensorProductBasis{1},
-    surface_quad::TensorProductQuadratureRule{1},tau,jac,dim,NHF)
+    surface_quad::QuadratureRule{1},tau,jac,dim,NHF)
 
     HH = zeros(dim*NHF,dim*NHF)
     for (p,w) in surface_quad
@@ -148,8 +133,8 @@ function get_hybrid_coupling(surface_basis::TensorProductBasis{1},
 end
 
 function get_hybrid_coupling(surface_basis::TensorProductBasis{1,T,NHF},
-    surface_quad::TensorProductQuadratureRule{1},
-    tau,jac::AffineMapJacobian) where {T,NHF}
+    surface_quad::QuadratureRule{1},
+    tau,jac) where {T,NHF}
 
     dim = 2
     HH1 = get_hybrid_coupling(surface_basis,surface_quad,tau,

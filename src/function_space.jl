@@ -5,6 +5,7 @@ struct UniformFunctionSpace{vdim,sdim,T}
     fquads::Array{QuadratureRule{sdim},3}
     icoeffs::Matrix{T}
     iquad::QuadratureRule{sdim}
+    imap::InterpolatingPolynomial{vdim}
     function UniformFunctionSpace(vbasis::TensorProductBasis{vdim},
         sbasis::TensorProductBasis{sdim},
         vquads::Matrix{QuadratureRule{vdim}},
@@ -21,7 +22,10 @@ struct UniformFunctionSpace{vdim,sdim,T}
             nf = number_of_basis_functions(vbasis.basis)
             @assert number_of_basis_functions(sbasis.basis) == nf
 
-            return new{vdim,sdim,T}(vbasis,sbasis,vquads,fquads,icoeffs,iquad)
+            imap = InterpolatingPolynomial(vdim,sbasis)
+
+            return new{vdim,sdim,T}(vbasis,sbasis,vquads,fquads,icoeffs,
+                iquad,imap)
 
         end
 end
