@@ -176,3 +176,37 @@ end
 function Base.length(quad::QuadratureRule)
     return number_of_quadrature_points(quad)
 end
+
+function levelset_normal(poly,p::V,cellmap) where {V<:AbstractVector}
+    g = vec(gradient(poly,p))
+    invjac = inverse_jacobian(cellmap)
+    return diagm(invjac)*g
+end
+
+function levelset_normal(poly,p::M,cellmap) where {M<:AbstractMatrix}
+    g = hcat([gradient(poly,p[:,i])' for i in 1:size(p)[2]]...)
+    invjac = inverse_jacobian(cellmap)
+    return diagm(invjac)*g
+end
+
+function tangents(normal::V) where {V<:AbstractVector}
+    @assert length(normal) == 2
+    return [normal[2],-normal[1]]
+end
+
+function tangents(normals::M) where {M<:AbstractMatrix}
+    m,n = size(normals)
+    @assert m == 2
+
+    t = similar(normals)
+    t[1,:] = normals[2,:]
+    t[2,:] = -normals[1,:]
+    return t
+end
+
+function scale_area(cellmap,normals)
+    t = tangents(normals)
+    invjac = inverse_jacobian(cellmap)
+    den = sqrt.((t.^2)'*(invjac.^2))
+    return 1.0 ./ den
+end

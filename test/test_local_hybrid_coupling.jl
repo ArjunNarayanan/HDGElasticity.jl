@@ -61,12 +61,13 @@ nk = ones(length(squad))
 imap = InterpolatingPolynomial(2,sbasis)
 update!(imap,[0.,-1.,-1.,0.])
 LH = reshape([0.0],1,1)
-HDGElasticity.update_LHop!(LH,vf,sf,squad,nk,[1.0],imap,1)
+HDGElasticity.update_LHop!(LH,vf,sf,squad,nk,[1.0],imap,1,nk)
 @test allapprox(LH,[0.0],1e-15)
 
 normals = repeat([1.,1.]/sqrt(2.),inner=(1,length(squad)))
 Dhalf = diagm(ones(3))
-LH = HDGElasticity.LHop_on_interface(vbasis,sbasis,squad,normals,Dhalf,imap)
+cellmap = HDGElasticity.AffineMap([-1.,-1.],[1.,1.])
+LH = HDGElasticity.LHop_on_interface(vbasis,sbasis,squad,normals,Dhalf,imap,cellmap)
 @test size(LH) == (12,4)
 
 quad1d = ImplicitDomainQuadrature.ReferenceQuadratureRule(2)
@@ -120,6 +121,20 @@ UHtest = [+2/3  +1/3
             0.0   0.0]
 @test all(UH .≈ UHtest)
 
+vf(x) = [x[1] + x[2]]
+sf(x) = [x]
+squad = tensor_product_quadrature(1,4)
+scale = ones(length(squad))
+imap = InterpolatingPolynomial(2,1,1)
+update!(imap,[0.,-1.,-1.,0.])
+UH = reshape([0.0],1,1)
+HDGElasticity.UHop_on_interface!(UH,vf,sf,squad,1.,imap,1,1,1,scale)
+@test allapprox(UH,[0.0],1e-15)
+
+cellmap = HDGElasticity.AffineMap([-1.,-1.],[1.,1.])
+normals = reshape(1/sqrt(2)*ones(2*length(squad)),2,:)
+UH = HDGElasticity.UHop_on_interface(vbasis,sbasis,squad,normals,1.0,imap,cellmap)
+@test size(UH) == (8,4)
 
 quad1d = ImplicitDomainQuadrature.ReferenceQuadratureRule(2)
 facequads = Vector{QuadratureRule{1}}(undef,4)

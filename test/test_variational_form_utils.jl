@@ -87,28 +87,15 @@ vals = [1. 1.]
 rhs = HDGE.linear_form(vals,basis,quad)
 @test allapprox(rhs,ones(2))
 
-
 basis = TensorProductBasis(2,1)
 facequad = tensor_product_quadrature(1,2)
-map = HDGE.AffineMap([-1.,-1],[1.,1.])
-matrix = HDGE.mass_matrix_on_boundary(basis,facequad,1,map)
-
-testmatrix = [+4/3  +1/3  +1/3  +0.0
-              +1/3  +4/3  +0.0  +1/3
-              +1/3   0.0  +4/3  +1/3
-              +0.0  +1/3  +1/3  +4/3]
-@test allapprox(matrix,testmatrix)
-
-map = HDGElasticity.AffineMap([0.,0.],[1.,1.])
-matrix = HDGElasticity.mass_matrix_on_boundary(basis,facequad,1,map)
-@test allapprox(matrix,0.5*testmatrix)
 
 map = InterpolatingPolynomial(2,1,1)
 coeffs = [1.  1.
           -1. 1.]
 update!(map,coeffs)
 matrix = zeros(4,4)
-HDGElasticity.update_mass_matrix!(matrix,basis,facequad,map,1)
+HDGElasticity.update_mass_matrix!(matrix,basis,facequad,map,1,[1.,1.])
 testmatrix = [0.0  0.0  0.0  0.0
            0.0  0.0  0.0  0.0
            0.0  0.0  2/3  1/3
@@ -145,14 +132,13 @@ testmatrix = [7/6  1/6  1/6  0.
 
 
 N(x) = [(1.0-x[1])*(1.0-x[2])/4.0]
-sbasis = TensorProductBasis(1,1)
 quad = tensor_product_quadrature(1,3)
-imap = InterpolatingPolynomial(2,sbasis)
+imap = InterpolatingPolynomial(2,1,1)
 icoeffs = [0.0  -1.0
           -1.0   0.0]
 update!(imap,icoeffs)
 matrix = reshape([0.0],1,1)
-HDGElasticity.update_mass_matrix!(matrix,N,quad,imap,1)
+HDGElasticity.update_mass_matrix!(matrix,N,quad,imap,1,[1.,1.,1.])
 @test matrix[1] ≈ 4.7/16*sqrt(2.)
 
 basis = TensorProductBasis(2,1)
@@ -162,9 +148,10 @@ facequads[4] = facequads[1]
 iquad = tensor_product_quadrature(1,3)
 isactiveface = [true,false,false,true]
 cellmap = HDGElasticity.AffineMap([-1.,-1.],[1.,1.])
-imap = InterpolatingPolynomial(2,sbasis)
+imap = InterpolatingPolynomial(2,1,1)
 icoeffs = [0.0  -1.0
           -1.0   0.0]
 update!(imap,icoeffs)
+normals = reshape(1/sqrt(2)*ones(6),2,3)
 matrix = HDGElasticity.mass_matrix_on_boundary(basis,facequads,isactiveface,
-    iquad,imap,1,cellmap)
+    iquad,normals,imap,1,cellmap)

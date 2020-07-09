@@ -155,3 +155,40 @@ quad = tensor_product_quadrature(1,5)
 quad = tensor_product_quadrature(2,6)
 @test HDGElasticity.dimension(quad) == 2
 @test HDGElasticity.number_of_quadrature_points(quad) == 36
+
+
+function plane_distance_function(coords,n,x0)
+    return [n'*(coords[:,idx]-x0) for idx in 1:size(coords)[2]]
+end
+poly = InterpolatingPolynomial(1,2,1)
+coords = [0. 0. 2.  2.
+          0. 1. 0.  1.]
+testn = [1.,1.]/sqrt(2.)
+coeffs = plane_distance_function(coords,testn,[0.5,0.])
+update!(poly,coeffs)
+cellmap = HDGElasticity.AffineMap([0.,0.],[2.,1.])
+p = [-0.25,-0.5]
+n = HDGElasticity.levelset_normal(poly,p,cellmap)
+@test allapprox(testn,n)
+
+points = [-0.4  -0.9
+          -0.8   -0.2]
+n = HDGElasticity.levelset_normal(poly,points,cellmap)
+@test allapprox(n,hcat(testn,testn))
+
+
+normal = [1,2]
+@test HDGElasticity.tangents(normal) == [2,-1]
+
+normals = [1 2 3 4
+           5 6 7 8]
+testt = [5 6 7 8
+         -1 -2 -3 -4]
+@test allapprox(HDGElasticity.tangents(normals),testt)
+
+cellmap = HDGElasticity.AffineMap([0.,0.],[2.,1.])
+@test HDGElasticity.scale_area(cellmap,[1.,0.]) ≈ 0.5
+@test HDGElasticity.scale_area(cellmap,[0.,1.]) ≈ 1.0
+n = [1. 0.
+     0. 1.]
+@test allapprox(HDGElasticity.scale_area(cellmap,n),[0.5,1.])

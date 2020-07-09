@@ -11,8 +11,10 @@ function update_LHop!(LH,rvbasis,sbasis,squad,NkEkD,detjac,nhdofs)
     end
 end
 
-function update_LHop!(LH,vbasis,sbasis,squad,nk,EkD,imap,nhdofs)
+function update_LHop!(LH,vbasis,sbasis,squad,nk,EkD,imap,nhdofs,scale)
 
+    @assert length(scale) == length(squad)
+    @assert length(nk) == length(squad)
     for (idx,(p,w)) in enumerate(squad)
         vals = vbasis(imap(p))
         svals = sbasis(p)
@@ -21,7 +23,7 @@ function update_LHop!(LH,vbasis,sbasis,squad,nk,EkD,imap,nhdofs)
         Mk = make_row_matrix(vals,EkD)
         N = interpolation_matrix(svals,nhdofs)
 
-        LH .+= nk[idx]*Mk'*N*detjac*w
+        LH .+= nk[idx]*Mk'*N*scale[idx]*detjac*w
     end
 
 end
@@ -72,7 +74,7 @@ function LHop_on_active_faces(vbasis,sbasis,facequads,isactiveface,Dhalf,cellmap
     return LH
 end
 
-function LHop_on_interface(vbasis,sbasis,squad,normals,Dhalf,imap)
+function LHop_on_interface(vbasis,sbasis,squad,normals,Dhalf,imap,cellmap)
 
     dim = dimension(vbasis)
     sdim = symmetric_tensor_dimension(dim)
@@ -86,18 +88,18 @@ function LHop_on_interface(vbasis,sbasis,squad,normals,Dhalf,imap)
     NHF = number_of_basis_functions(sbasis)
 
     LH = zeros(sdim*NF,dim*NHF)
+    scale = scale_area(cellmap,normals)
 
     for k = 1:dim
         EkD = Ek[k]'*Dhalf
         nk = normals[k,:]
-        update_LHop!(LH,vbasis,sbasis,squad,nk,EkD,imap,dim)
+        update_LHop!(LH,vbasis,sbasis,squad,nk,EkD,imap,dim,scale)
     end
 
     return LH
 end
 
 function UHop!(UH,rvbasis,sbasis,squad,stabilization,detjac,nudofs,NF,NHF)
-
     for (p,w) in squad
         vals = rvbasis(p)
         svals = sbasis(p)
@@ -106,6 +108,21 @@ function UHop!(UH,rvbasis,sbasis,squad,stabilization,detjac,nudofs,NF,NHF)
         Ns = interpolation_matrix(svals,nudofs)
 
         UH .+= stabilization*Nv'*Ns*detjac*w
+    end
+end
+
+function UHop_on_interface!(UH,vbasis,sbasis,squad,stabilization,imap,
+        nudofs,NF,NHF,scale)
+
+    for (idx,(p,w)) in enumerate(squad)
+        vals = vbasis(imap(p))
+        svals = sbasis(p)
+        detjac = determinant_jacobian(imap,p)
+
+        Nv = interpolation_matrix(vals,nudofs)
+        Ns = interpolation_matrix(svals,nudofs)
+
+        UH .+= stabilization*Nv'*Ns*detjac*scale[idx]*w
     end
 end
 
@@ -136,5 +153,22 @@ function UHop_on_active_faces(vbasis,sbasis,facequads,isactiveface,
                 stabilization,jac[faceid],dim,NF,NHF)
         end
     end
+    return UH
+end
+
+function UHop_on_interface(vbasis,sbasis,squad,normals,stabilization,imap,cellmap)
+
+    dim = dimension(vbasis)
+    sdim = dimension(sbasis)
+    @assert sdim == dim-1
+
+    NF = number_of_basis_functions(vbasis)
+    NHF = number_of_basis_functions(sbasis)
+
+    UH = zeros(dim*NF,dim*NHF)
+    scale = scale_area(cellmap,normals)
+
+    UHop_on_interface!(UH,vbasis,sbasis,squad,stabilization,imap,dim,NF,NHF,scale)
+
     return UH
 end

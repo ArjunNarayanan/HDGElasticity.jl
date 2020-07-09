@@ -20,12 +20,20 @@ end
     include("test_function_space.jl")
 end
 
+@safetestset "Test Isotropic Hooke Matrix" begin
+    include("test_isotropic_elasticity.jl")
+end
+
 @safetestset "Test Local Operator" begin
     include("test_local_operator.jl")
 end
 
 @safetestset "Test Local Hybrid Operator" begin
     include("test_local_hybrid_coupling.jl")
+end
+
+@safetestset "Test Full Displacement BC on single element" begin
+    include("test_full_displacement_bc_on_cells.jl")
 end
 #
 # @safetestset "Test Displacement Component BC" begin
@@ -36,6 +44,3 @@ end
 #     include("test_assembly.jl")
 # end
 #
-# @safetestset "Test Isotropic Hooke Matrix" begin
-#     include("test_isotropic_elasticity.jl")
-# end
