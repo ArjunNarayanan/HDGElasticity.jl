@@ -59,6 +59,8 @@ rows = [[4/3,1/3,1/3,0.0],[1/3,4/3,0.0,1/3],[1/3,0.0,4/3,1/3],[0.0,1/3,1/3,4/3]]
 AUUtest = 4.0*vcat([HDGElasticity.interpolation_matrix(r,2) for r in rows]...)
 @test allapprox(AUU,AUUtest)
 
+AUU = HDGElasticity.UUop(basis,facequad,cellmap,4.0)
+@test allapprox(AUU,AUUtest)
 
 function plane_distance_function(coords,n,x0)
     return [n'*(coords[:,idx]-x0) for idx in 1:size(coords)[2]]
@@ -97,14 +99,3 @@ lop = HDGElasticity.LocalOperator(ufs.vbasis,ufs.vquads[1,1],
     view(ufs.fquads,:,1,1),dgmesh.isactiveface[:,1,1],Dhalf,cellmap,1.0)
 @test size(lop.local_operator) == (20,20)
 @test rank(lop.local_operator) == 20
-
-LL = Array(reshape(1:16,4,4))
-LU = Array(reshape(21:28,4,2))
-UU = Array(reshape(31:34,2,2))
-lop = HDGElasticity.LocalOperator(LL,LU,UU)
-@test allapprox(LL,lop.LL)
-@test allapprox(LU,lop.LU)
-@test allapprox(UU,lop.UU)
-testmat = [LL  LU
-           LU' UU]
-@test allapprox(lop.local_operator,testmat)

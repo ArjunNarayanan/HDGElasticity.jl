@@ -60,7 +60,7 @@ end
 
 function update_mass_matrix!(matrix,basis,quad,map::InterpolatingPolynomial,
     ndofs,scale)
-    
+
     @assert length(scale) == length(quad)
     for (idx,(p,w)) in enumerate(quad)
         vals = basis(map(p))
@@ -95,24 +95,24 @@ function mass_matrix(basis,quad,ndofs,scale)
     return matrix
 end
 
-# function mass_matrix_on_boundary(basis,quad,ndofs,cellmap)
-#
-#     dim = dimension(basis)
-#     NF = number_of_basis_functions(basis)
-#     cell = reference_cell(dim)
-#
-#     totaldofs = ndofs*NF
-#     matrix = zeros(totaldofs,totaldofs)
-#
-#     funcs = restrict_on_faces(basis,cell)
-#     jac = jacobian(cellmap,cell)
-#
-#     for (faceid,func) in enumerate(funcs)
-#         update_mass_matrix!(matrix,func,quad,ndofs,jac[faceid])
-#     end
-#
-#     return matrix
-# end
+function mass_matrix_on_boundary(basis,facequad,ndofs,cellmap)
+
+    dim = dimension(basis)
+    NF = number_of_basis_functions(basis)
+    cell = reference_cell(dim)
+
+    totaldofs = ndofs*NF
+    matrix = zeros(totaldofs,totaldofs)
+
+    funcs = restrict_on_faces(basis,cell)
+    jac = jacobian(cellmap,cell)
+
+    for (faceid,func) in enumerate(funcs)
+        update_mass_matrix!(matrix,func,facequad,ndofs,jac[faceid])
+    end
+
+    return matrix
+end
 
 function mass_matrix_on_boundary(basis,facequads,isactiveface,ndofs,cellmap)
 

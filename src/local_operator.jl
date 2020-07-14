@@ -3,6 +3,7 @@ struct LocalOperator{T}
     LU::Matrix{T}
     UU::Matrix{T}
     local_operator::Matrix{T}
+    lulop
     function LocalOperator(LL::Matrix{T},LU::Matrix{T},UU::Matrix{T}) where {T}
         llm,lln = size(LL)
         lum,lun = size(LU)
@@ -15,7 +16,8 @@ struct LocalOperator{T}
         lop = [LL   LU
                LU'  UU]
 
-        new{T}(LL,LU,UU,lop)
+        lulop = lu(lop)
+        new{T}(LL,LU,UU,lop,lulop)
     end
 end
 
@@ -72,12 +74,26 @@ function UUop(basis,facequads,isactiveface,cellmap,stabilization)
         isactiveface,dim,cellmap)
 end
 
+function UUop(basis,facequad,cellmap,stabilization)
+
+    dim = dimension(basis)
+    return stabilization*mass_matrix_on_boundary(basis,facequad,dim,cellmap)
+end
+
 function UUop(basis,facequads,isactiveface,iquad,normals,imap,
     cellmap,stabilization)
 
     dim = dimension(basis)
     return stabilization*mass_matrix_on_boundary(basis,facequads,isactiveface,
         iquad,normals,imap,dim,cellmap)
+end
+
+function LocalOperator(basis,vquad,facequad,Dhalf,cellmap,stabilization)
+
+    LL = LLop(basis,vquad,cellmap)
+    LU = LUop(basis,vquad,Dhalf,cellmap)
+    UU = UUop(basis,facequad,cellmap,stabilization)
+    return LocalOperator(LL,LU,UU)
 end
 
 function LocalOperator(basis,vquad,facequads,isactiveface,

@@ -1,6 +1,8 @@
 struct UniformFunctionSpace{vdim,sdim,T}
     vbasis::TensorProductBasis{vdim}
     sbasis::TensorProductBasis{sdim}
+    vtpq::QuadratureRule{vdim}
+    ftpq::QuadratureRule{sdim}
     vquads::Matrix{QuadratureRule{vdim}}
     fquads::Array{QuadratureRule{sdim},3}
     icoeffs::Matrix{T}
@@ -8,6 +10,7 @@ struct UniformFunctionSpace{vdim,sdim,T}
     imap::InterpolatingPolynomial{vdim}
     function UniformFunctionSpace(vbasis::TensorProductBasis{vdim},
         sbasis::TensorProductBasis{sdim},
+        vtpq::QuadratureRule{vdim},ftpq::QuadratureRule{sdim},
         vquads::Matrix{QuadratureRule{vdim}},
         fquads::Array{QuadratureRule{sdim},3},icoeffs::Matrix{T},
         iquad::QuadratureRule{sdim}) where {vdim,sdim,NQ,T}
@@ -24,8 +27,8 @@ struct UniformFunctionSpace{vdim,sdim,T}
 
             imap = InterpolatingPolynomial(vdim,sbasis)
 
-            return new{vdim,sdim,T}(vbasis,sbasis,vquads,fquads,icoeffs,
-                iquad,imap)
+            return new{vdim,sdim,T}(vbasis,sbasis,vtpq,ftpq,vquads,
+                fquads,icoeffs,iquad,imap)
 
         end
 end
@@ -38,26 +41,26 @@ function UniformFunctionSpace(dgmesh::DGMesh{vdim},polyorder,nquad,
     vbasis = TensorProductBasis(vdim,polyorder)
     sbasis = TensorProductBasis(sdim,polyorder)
     quad1d = ImplicitDomainQuadrature.ReferenceQuadratureRule(nquad)
-    iquad = tensor_product_quadrature(sdim,nquad)
+    ftpq = tensor_product_quadrature(sdim,nquad)
+    vtpq = tensor_product_quadrature(vdim,nquad)
 
     vquads = element_quadratures(dgmesh.isactivecell,coeffs,poly,quad1d)
     fquads = face_quadratures(dgmesh.isactivecell,dgmesh.isactiveface,
         dgmesh.connectivity,coeffs,poly,quad1d)
-    icoeffs = interface_coefficients(dgmesh.isactivecell,coeffs,poly,sbasis,iquad)
+    icoeffs = interface_coefficients(dgmesh.isactivecell,coeffs,poly,sbasis,ftpq)
 
-    return UniformFunctionSpace(vbasis,sbasis,vquads,fquads,icoeffs,iquad)
+    return UniformFunctionSpace(vbasis,sbasis,vtpq,ftpq,vquads,fquads,
+        icoeffs,ftpq)
 
 end
 
-function element_quadratures!(equads,isactivecell,coeffs,poly,quad1d)
+function element_quadratures!(equads,isactivecell,coeffs,poly,tpq,quad1d)
 
     nf,ncells = size(coeffs)
     @assert size(isactivecell) == (2,ncells)
 
     dim = dimension(poly)
     box = reference_cell(dim)
-
-    tpq = tensor_product(quad1d,box)
 
     for idx in 1:ncells
         if isactivecell[1,idx] && !isactivecell[2,idx]
@@ -73,6 +76,19 @@ function element_quadratures!(equads,isactivecell,coeffs,poly,quad1d)
 
         end
     end
+end
+
+function element_quadratures!(equads,isactivecell,coeffs,poly,quad1d)
+
+    nf,ncells = size(coeffs)
+    @assert size(isactivecell) == (2,ncells)
+
+    dim = dimension(poly)
+    box = reference_cell(dim)
+
+    tpq = tensor_product(quad1d,box)
+
+    element_quadratures!(equads,isactivecell,coeffs,poly,tpq,quad1d)
 end
 
 function element_quadratures(isactivecell,coeffs,poly,quad1d)

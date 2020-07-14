@@ -126,3 +126,88 @@ testU[:,4] .= [0.2,0.1]
 
 @test allapprox(L,testL,1e-15)
 @test allapprox(U,testU,1e-15)
+
+
+normals = HDGElasticity.levelset_normal(poly,mapped_points,cellmap)
+lop = HDGElasticity.LocalOperator(ufs.vbasis,ufs.vquads[2,1],
+    view(ufs.fquads,:,2,1),dgmesh.isactiveface[:,2,1],ufs.iquad,normals,
+    ufs.imap,cellmap,Dhalf,stabilization)
+LU = lop.local_operator
+LH = HDGElasticity.LHop_on_active_faces(ufs.vbasis,ufs.sbasis,
+    view(ufs.fquads,:,2,1),dgmesh.isactiveface[:,2,1],Dhalf,cellmap)
+LHI = HDGElasticity.LHop_on_interface(ufs.vbasis,ufs.sbasis,ufs.iquad,normals,
+    Dhalf,ufs.imap,cellmap)
+UH = HDGElasticity.UHop_on_active_faces(ufs.vbasis,ufs.sbasis,
+    view(ufs.fquads,:,2,1),dgmesh.isactiveface[:,2,1],stabilization,cellmap)
+UHI = HDGElasticity.UHop_on_interface(ufs.vbasis,ufs.sbasis,ufs.iquad,normals,
+    stabilization,ufs.imap,cellmap)
+
+rhs = compute_rhs(LH,UH,Hdisp,20)
+rI = [LHI;UHI]*HIdisp
+rhs2 = rhs+rI
+
+sol = LU\rhs2
+L = -Dhalf*reshape(sol[1:12],3,:)
+U = reshape(sol[13:20],2,:)
+
+testL = zeros(3,4)
+testL[1:2,:] .= 0.6
+testU = zeros(2,4)
+testU[:,2] .= [0.,0.1]
+testU[:,3] .= [0.2,0.]
+testU[:,4] .= [0.2,0.1]
+
+@test allapprox(L,testL,1e-12)
+@test allapprox(U,testU,1e-12)
+
+
+Hdisp = vec.(bc_displacement.(Hcoords,beta=0.2))
+HIdisp = vec(bc_displacement(HIcoords,beta=0.2))
+
+rhs = compute_rhs(LH,UH,Hdisp,20)
+rI = [LHI;UHI]*HIdisp
+rhs2 = rhs+rI
+
+sol = LU\rhs2
+L = -Dhalf*reshape(sol[1:12],3,:)
+U = reshape(sol[13:20],2,:)
+
+testL = zeros(3,4)
+testL[1,:] .= 0.7
+testL[2,:] .= 1.1
+testU = zeros(2,4)
+testU[:,2] .= [0.,0.2]
+testU[:,3] .= [0.2,0.]
+testU[:,4] .= [0.2,0.2]
+
+@test allapprox(L,testL,1e-12)
+@test allapprox(U,testU,1e-12)
+
+
+function shear_bc_displacement(coords;alpha=0.1)
+    disp = similar(coords)
+    disp[1,:] = alpha*coords[2,:]
+    disp[2,:] .= 0.0
+    return disp
+end
+
+Hdisp = vec.(shear_bc_displacement.(Hcoords))
+HIdisp = vec(shear_bc_displacement(HIcoords))
+
+rhs = compute_rhs(LH,UH,Hdisp,20)
+rI = [LHI;UHI]*HIdisp
+rhs2 = rhs+rI
+
+sol = LU\rhs2
+L = -Dhalf*reshape(sol[1:12],3,:)
+U = reshape(sol[13:20],2,:)
+
+testL = zeros(3,4)
+testL[3,:] .= 0.2
+testU = zeros(2,4)
+testU[:,2] .= [0.1,0.]
+testU[:,3] .= [0.,0.]
+testU[:,4] .= [0.1,0.]
+
+@test allapprox(L,testL,1e-12)
+@test allapprox(U,testU,1e-12)

@@ -163,6 +163,10 @@ function dimension(mesh::UniformMesh{dim}) where dim
     return dim
 end
 
+function dimension(cellmap::AffineMap{dim}) where dim
+    return dim
+end
+
 function number_of_basis_functions(basis::T) where
     {T<:PolynomialBasis.AbstractBasis{dim,NF}} where {dim,NF}
 

@@ -155,3 +155,12 @@ update!(imap,icoeffs)
 normals = reshape(1/sqrt(2)*ones(6),2,3)
 matrix = HDGElasticity.mass_matrix_on_boundary(basis,facequads,isactiveface,
     iquad,normals,imap,1,cellmap)
+
+
+facequad = tensor_product_quadrature(1,2)
+matrix = HDGElasticity.mass_matrix_on_boundary(basis,facequad,1,cellmap)
+testmatrix = [4/3 1/3 1/3 0.
+              1/3 4/3 0. 1/3
+              1/3 0. 4/3 1/3
+              0.  1/3 1/3 4/3]
+@test allapprox(matrix,testmatrix)

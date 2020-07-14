@@ -2,7 +2,7 @@ using Test
 using PolynomialBasis
 using ImplicitDomainQuadrature
 using CartesianMesh
-# using Revise
+using Revise
 using HDGElasticity
 
 function allequal(u,v)
@@ -143,6 +143,7 @@ sbasis = TensorProductBasis(1,4)
 poly = InterpolatingPolynomial(1,vbasis)
 quad1d = ImplicitDomainQuadrature.ReferenceQuadratureRule(5)
 iquad = tensor_product_quadrature(1,5)
+vtpq = tensor_product_quadrature(2,5)
 coords = HDGElasticity.nodal_coordinates(mesh,vbasis)
 NF = HDGElasticity.number_of_basis_functions(vbasis)
 xc = 0.75
@@ -152,7 +153,8 @@ vquads = HDGElasticity.element_quadratures(isactivecell,coeffs,poly,quad1d)
 fquads = HDGElasticity.face_quadratures(isactivecell,isactiveface,connectivity,coeffs,poly,quad1d)
 icoeffs = HDGElasticity.interface_coefficients(isactivecell,coeffs,poly,sbasis,iquad)
 
-ufs = HDGElasticity.UniformFunctionSpace(vbasis,sbasis,vquads,fquads,icoeffs,iquad)
+ufs = HDGElasticity.UniformFunctionSpace(vbasis,sbasis,vtpq,iquad,vquads,
+    fquads,icoeffs,iquad)
 
 dgmesh = HDGElasticity.DGMesh(mesh,coeffs,poly)
 ufs = HDGElasticity.UniformFunctionSpace(dgmesh,4,5,coeffs,poly)
