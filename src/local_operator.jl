@@ -106,7 +106,7 @@ function LocalOperator(basis,vquad,facequads,isactiveface,
 end
 
 function LocalOperator(basis,vquad,facequads,isactiveface,iquad,normals,imap,
-    cellmap,Dhalf,stabilization)
+    Dhalf,cellmap,stabilization)
 
     LL = LLop(basis,vquad,cellmap)
     LU = LUop(basis,vquad,Dhalf,cellmap)

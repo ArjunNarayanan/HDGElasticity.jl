@@ -87,7 +87,7 @@ UU = HDGElasticity.UUop(ufs.vbasis,view(ufs.fquads,:,2,1),
 Dhalf = HDGElasticity.plane_strain_voigt_hooke_matrix(1.,2.,2)
 lop = HDGElasticity.LocalOperator(ufs.vbasis,ufs.vquads[2,1],
     view(ufs.fquads,:,2,1),dgmesh.isactiveface[:,2,1],ufs.iquad,normals,
-    imap,cellmap,Dhalf,1.0)
+    imap,Dhalf,cellmap,1.0)
 @test size(lop.local_operator) == (20,20)
 @test rank(lop.local_operator) == 20
 

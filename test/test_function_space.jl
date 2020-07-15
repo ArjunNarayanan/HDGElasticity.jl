@@ -2,7 +2,7 @@ using Test
 using PolynomialBasis
 using ImplicitDomainQuadrature
 using CartesianMesh
-using Revise
+# using Revise
 using HDGElasticity
 
 function allequal(u,v)
@@ -11,6 +11,11 @@ end
 
 function allapprox(u,v)
     return all(u .≈ v)
+end
+
+function allapprox(u,v,atol)
+    @assert length(u) == length(v)
+    return all([isapprox(u[i],v[i],atol=atol) for i in 1:length(u)])
 end
 
 function distance_function(coords,xc)
@@ -153,8 +158,30 @@ vquads = HDGElasticity.element_quadratures(isactivecell,coeffs,poly,quad1d)
 fquads = HDGElasticity.face_quadratures(isactivecell,isactiveface,connectivity,coeffs,poly,quad1d)
 icoeffs = HDGElasticity.interface_coefficients(isactivecell,coeffs,poly,sbasis,iquad)
 
-ufs = HDGElasticity.UniformFunctionSpace(vbasis,sbasis,vtpq,iquad,vquads,
-    fquads,icoeffs,iquad)
+dgmesh = HDGElasticity.DGMesh(mesh,coeffs,poly)
+cellmap = HDGElasticity.AffineMap(dgmesh.domain[1])
+imap = InterpolatingPolynomial(2,sbasis)
+inormals = HDGElasticity.interface_normals(dgmesh.isactivecell,icoeffs,imap,
+    coeffs,poly,iquad.points,cellmap)
+testnormals = zeros(size(inormals))
+testnormals[1,:,1] .= 1.0
+@test allapprox(testnormals,inormals,1e-15)
 
+ufs = HDGElasticity.UniformFunctionSpace(vbasis,sbasis,vtpq,iquad,vquads,
+    fquads,icoeffs,iquad,imap,inormals)
+
+ufs = HDGElasticity.UniformFunctionSpace(dgmesh,4,5,coeffs,poly)
+
+
+mesh = UniformMesh([0.,0.],[4.,1.],[2,1])
+coords = HDGElasticity.nodal_coordinates(mesh,vbasis)
+function plane_distance_function(coords,n,x0)
+    return [n'*(coords[:,idx]-x0) for idx in 1:size(coords)[2]]
+end
+testn = [1.,1.]/sqrt(2.)
+coeffs = reshape(plane_distance_function(coords,testn,[0.5,0.]),NF,:)
 dgmesh = HDGElasticity.DGMesh(mesh,coeffs,poly)
 ufs = HDGElasticity.UniformFunctionSpace(dgmesh,4,5,coeffs,poly)
+testnormals = zeros(size(ufs.inormals))
+testnormals[:,:,1] .= 1.0/sqrt(2.)
+@test allapprox(testnormals,ufs.inormals)

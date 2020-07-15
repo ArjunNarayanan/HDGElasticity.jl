@@ -44,6 +44,31 @@ function LHop!(LH,rvbasis,sbasis,squad,normal,Dhalf,Ek,detjac,nldofs,nhdofs,NLF,
     return LH
 end
 
+function LHop(vbasis,sbasis,facequad,Dhalf,cellmap)
+
+    dim = dimension(vbasis)
+    sdim = symmetric_tensor_dimension(dim)
+    Ek = vec_to_symm_mat_converter(dim)
+    NF = number_of_basis_functions(vbasis)
+    NHF = number_of_basis_functions(sbasis)
+
+    cell = reference_cell(dim)
+    funcs = restrict_on_faces(vbasis,cell)
+    jac = jacobian(cellmap,cell)
+
+    normals = reference_normals()
+    nfaces = length(funcs)
+
+    LH = [zeros(sdim*NF,dim*NHF) for i = 1:nfaces]
+
+    for faceid in 1:nfaces
+        LHop!(LH[faceid],funcs[faceid],sbasis,facequad,
+            normals[faceid],Dhalf,Ek,jac[faceid],sdim,dim,NF,NHF)
+    end
+
+    return LH
+end
+
 function LHop_on_active_faces(vbasis,sbasis,facequads,isactiveface,Dhalf,cellmap)
 
     dim = dimension(vbasis)
@@ -126,8 +151,32 @@ function UHop_on_interface!(UH,vbasis,sbasis,squad,stabilization,imap,
     end
 end
 
+function UHop(vbasis,sbasis,facequad,cellmap,stabilization)
+
+    dim = dimension(vbasis)
+    sdim = dimension(sbasis)
+    @assert sdim == dim-1
+
+    NF = number_of_basis_functions(vbasis)
+    NHF = number_of_basis_functions(sbasis)
+
+    cell = reference_cell(dim)
+    funcs = restrict_on_faces(vbasis,cell)
+    jac = jacobian(cellmap,cell)
+
+    nfaces = length(funcs)
+
+    UH = [zeros(dim*NF,dim*NHF) for i = 1:nfaces]
+
+    for faceid in 1:nfaces
+        UHop!(UH[faceid],funcs[faceid],sbasis,facequad,
+            stabilization,jac[faceid],dim,NF,NHF)
+    end
+    return UH
+end
+
 function UHop_on_active_faces(vbasis,sbasis,facequads,isactiveface,
-    stabilization,cellmap)
+    cellmap,stabilization)
 
     dim = dimension(vbasis)
     sdim = dimension(sbasis)
@@ -156,7 +205,7 @@ function UHop_on_active_faces(vbasis,sbasis,facequads,isactiveface,
     return UH
 end
 
-function UHop_on_interface(vbasis,sbasis,squad,normals,stabilization,imap,cellmap)
+function UHop_on_interface(vbasis,sbasis,squad,normals,imap,cellmap,stabilization)
 
     dim = dimension(vbasis)
     sdim = dimension(sbasis)
@@ -171,4 +220,38 @@ function UHop_on_interface(vbasis,sbasis,squad,normals,stabilization,imap,cellma
     UHop_on_interface!(UH,vbasis,sbasis,squad,stabilization,imap,dim,NF,NHF,scale)
 
     return UH
+end
+
+function local_hybrid_operator(vbasis,sbasis,facequad,Dhalf,
+        cellmap,stabilization)
+
+    LH = LHop(vbasis,sbasis,facequad,Dhalf,cellmap)
+    UH = UHop(vbasis,sbasis,facequad,cellmap,stabilization)
+
+    @assert length(LH) == length(UH)
+
+    return [[LH[i];UH[i]] for i in 1:length(LH)]
+
+end
+
+function local_hybrid_operator_on_active_faces(vbasis,sbasis,facequads,
+    isactiveface,Dhalf,cellmap,stabilization)
+
+    LH = LHop_on_active_faces(vbasis,sbasis,facequads,isactiveface,
+        Dhalf,cellmap)
+    UH = UHop_on_active_faces(vbasis,sbasis,facequads,isactiveface,
+        cellmap,stabilization)
+
+    @assert length(LH) == length(UH)
+
+    return [[LH[i];UH[i]] for i in 1:length(LH)]
+end
+
+function local_hybrid_operator_on_interface(vbasis,sbasis,squad,normals,Dhalf,
+    imap,cellmap,stabilization)
+
+    LH = LHop_on_interface(vbasis,sbasis,squad,normals,Dhalf,imap,cellmap)
+    UH = UHop_on_interface(vbasis,sbasis,squad,normals,imap,cellmap,stabilization)
+
+    return [LH;UH]
 end

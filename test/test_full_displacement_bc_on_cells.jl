@@ -32,7 +32,7 @@ LU = lop.local_operator
 LH = HDGElasticity.LHop_on_active_faces(ufs.vbasis,ufs.sbasis,
     view(ufs.fquads,:,1,1),dgmesh.isactiveface[:,1,1],Dhalf,cellmap)
 UH = HDGElasticity.UHop_on_active_faces(ufs.vbasis,ufs.sbasis,
-    view(ufs.fquads,:,1,1),dgmesh.isactiveface[:,1,1],stabilization,cellmap)
+    view(ufs.fquads,:,1,1),dgmesh.isactiveface[:,1,1],cellmap,stabilization)
 
 function bc_displacement(coords;alpha=0.1,beta=0.1)
     disp = copy(coords)
@@ -92,7 +92,7 @@ mapped_points = hcat([ufs.imap(ufs.iquad.points[:,i]) for i in 1:size(ufs.iquad.
 normals = -HDGElasticity.levelset_normal(poly,mapped_points,cellmap)
 lop = HDGElasticity.LocalOperator(ufs.vbasis,ufs.vquads[1,1],
     view(ufs.fquads,:,1,1),dgmesh.isactiveface[:,1,1],ufs.iquad,normals,
-    ufs.imap,cellmap,Dhalf,stabilization)
+    ufs.imap,Dhalf,cellmap,stabilization)
 LU = lop.local_operator
 LH = HDGElasticity.LHop_on_active_faces(ufs.vbasis,ufs.sbasis,
     view(ufs.fquads,:,1,1),dgmesh.isactiveface[:,1,1],Dhalf,cellmap)
@@ -101,9 +101,9 @@ LH = HDGElasticity.LHop_on_active_faces(ufs.vbasis,ufs.sbasis,
 LHI = HDGElasticity.LHop_on_interface(ufs.vbasis,ufs.sbasis,ufs.iquad,normals,
     Dhalf,ufs.imap,cellmap)
 UH = HDGElasticity.UHop_on_active_faces(ufs.vbasis,ufs.sbasis,
-    view(ufs.fquads,:,1,1),dgmesh.isactiveface[:,1,1],stabilization,cellmap)
+    view(ufs.fquads,:,1,1),dgmesh.isactiveface[:,1,1],cellmap,stabilization)
 UHI = HDGElasticity.UHop_on_interface(ufs.vbasis,ufs.sbasis,ufs.iquad,normals,
-    stabilization,ufs.imap,cellmap)
+    ufs.imap,cellmap,stabilization)
 
 HIrefcoords = reshape(ufs.icoeffs,2,:)
 HIcoords = hcat([cellmap(HIrefcoords[:,i]) for i in 1:size(HIrefcoords)[2]]...)
@@ -131,16 +131,16 @@ testU[:,4] .= [0.2,0.1]
 normals = HDGElasticity.levelset_normal(poly,mapped_points,cellmap)
 lop = HDGElasticity.LocalOperator(ufs.vbasis,ufs.vquads[2,1],
     view(ufs.fquads,:,2,1),dgmesh.isactiveface[:,2,1],ufs.iquad,normals,
-    ufs.imap,cellmap,Dhalf,stabilization)
+    ufs.imap,Dhalf,cellmap,stabilization)
 LU = lop.local_operator
 LH = HDGElasticity.LHop_on_active_faces(ufs.vbasis,ufs.sbasis,
     view(ufs.fquads,:,2,1),dgmesh.isactiveface[:,2,1],Dhalf,cellmap)
 LHI = HDGElasticity.LHop_on_interface(ufs.vbasis,ufs.sbasis,ufs.iquad,normals,
     Dhalf,ufs.imap,cellmap)
 UH = HDGElasticity.UHop_on_active_faces(ufs.vbasis,ufs.sbasis,
-    view(ufs.fquads,:,2,1),dgmesh.isactiveface[:,2,1],stabilization,cellmap)
+    view(ufs.fquads,:,2,1),dgmesh.isactiveface[:,2,1],cellmap,stabilization)
 UHI = HDGElasticity.UHop_on_interface(ufs.vbasis,ufs.sbasis,ufs.iquad,normals,
-    stabilization,ufs.imap,cellmap)
+    ufs.imap,cellmap,stabilization)
 
 rhs = compute_rhs(LH,UH,Hdisp,20)
 rI = [LHI;UHI]*HIdisp

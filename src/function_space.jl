@@ -8,12 +8,15 @@ struct UniformFunctionSpace{vdim,sdim,T}
     icoeffs::Matrix{T}
     iquad::QuadratureRule{sdim}
     imap::InterpolatingPolynomial{vdim}
+    inormals::Array{T,3}
     function UniformFunctionSpace(vbasis::TensorProductBasis{vdim},
         sbasis::TensorProductBasis{sdim},
         vtpq::QuadratureRule{vdim},ftpq::QuadratureRule{sdim},
         vquads::Matrix{QuadratureRule{vdim}},
         fquads::Array{QuadratureRule{sdim},3},icoeffs::Matrix{T},
-        iquad::QuadratureRule{sdim}) where {vdim,sdim,NQ,T}
+        iquad::QuadratureRule{sdim},
+        imap::InterpolatingPolynomial{vdim},
+        inormals::Array{T,3}) where {vdim,sdim,NQ,T}
 
             @assert sdim == vdim-1
             ndofs,ncells = size(icoeffs)
@@ -25,12 +28,31 @@ struct UniformFunctionSpace{vdim,sdim,T}
             nf = number_of_basis_functions(vbasis.basis)
             @assert number_of_basis_functions(sbasis.basis) == nf
 
-            imap = InterpolatingPolynomial(vdim,sbasis)
 
             return new{vdim,sdim,T}(vbasis,sbasis,vtpq,ftpq,vquads,
-                fquads,icoeffs,iquad,imap)
+                fquads,icoeffs,iquad,imap,inormals)
 
         end
+end
+
+function interface_normals(isactivecell,icoeffs,imap,lcoeffs,lpoly,
+    refpoints,cellmap)
+
+    sdim,nqp = size(refpoints)
+    dim = sdim+1
+    ncells = size(isactivecell)[2]
+    inormals = zeros(dim,nqp,ncells)
+
+    for cellid in 1:ncells
+        if isactivecell[1,cellid] && isactivecell[2,cellid]
+            update!(lpoly,lcoeffs[:,cellid])
+            update!(imap,icoeffs[:,cellid])
+
+            mappedpoints = hcat([imap(refpoints[:,i]) for i in 1:size(refpoints)[2]]...)
+            inormals[:,:,cellid] = levelset_normal(lpoly,mappedpoints,cellmap)
+        end
+    end
+    return inormals
 end
 
 function UniformFunctionSpace(dgmesh::DGMesh{vdim},polyorder,nquad,
@@ -38,19 +60,23 @@ function UniformFunctionSpace(dgmesh::DGMesh{vdim},polyorder,nquad,
 
     sdim = vdim-1
 
+    cellmap = AffineMap(dgmesh.domain[1])
     vbasis = TensorProductBasis(vdim,polyorder)
     sbasis = TensorProductBasis(sdim,polyorder)
     quad1d = ImplicitDomainQuadrature.ReferenceQuadratureRule(nquad)
     ftpq = tensor_product_quadrature(sdim,nquad)
     vtpq = tensor_product_quadrature(vdim,nquad)
+    imap = InterpolatingPolynomial(vdim,sbasis)
 
     vquads = element_quadratures(dgmesh.isactivecell,coeffs,poly,quad1d)
     fquads = face_quadratures(dgmesh.isactivecell,dgmesh.isactiveface,
         dgmesh.connectivity,coeffs,poly,quad1d)
     icoeffs = interface_coefficients(dgmesh.isactivecell,coeffs,poly,sbasis,ftpq)
+    inormals = interface_normals(dgmesh.isactivecell,icoeffs,imap,coeffs,poly,
+        ftpq.points,cellmap)
 
     return UniformFunctionSpace(vbasis,sbasis,vtpq,ftpq,vquads,fquads,
-        icoeffs,ftpq)
+        icoeffs,ftpq,imap,inormals)
 
 end
 

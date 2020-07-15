@@ -184,13 +184,19 @@ end
 function levelset_normal(poly,p::V,cellmap) where {V<:AbstractVector}
     g = vec(gradient(poly,p))
     invjac = inverse_jacobian(cellmap)
-    return diagm(invjac)*g
+    n = diagm(invjac)*g
+    return n/norm(n)
 end
 
 function levelset_normal(poly,p::M,cellmap) where {M<:AbstractMatrix}
     g = hcat([gradient(poly,p[:,i])' for i in 1:size(p)[2]]...)
     invjac = inverse_jacobian(cellmap)
-    return diagm(invjac)*g
+    normals = diagm(invjac)*g
+    for i in 1:size(normals)[2]
+        n = normals[:,i]
+        normals[:,i] = n/norm(n)
+    end
+    return normals
 end
 
 function tangents(normal::V) where {V<:AbstractVector}

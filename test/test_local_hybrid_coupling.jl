@@ -70,6 +70,10 @@ cellmap = HDGElasticity.AffineMap([-1.,-1.],[1.,1.])
 LH = HDGElasticity.LHop_on_interface(vbasis,sbasis,squad,normals,Dhalf,imap,cellmap)
 @test size(LH) == (12,4)
 
+fq = tensor_product_quadrature(1,2)
+LH = HDGElasticity.LHop(vbasis,sbasis,fq,Dhalf,cellmap)
+@test all([size(i) == (12,4) for i in LH])
+
 quad1d = ImplicitDomainQuadrature.ReferenceQuadratureRule(2)
 facequads = Vector{QuadratureRule{1}}(undef,4)
 fq = QuadratureRule(ImplicitDomainQuadrature.transform(quad1d,-1.,0.)...)
@@ -121,6 +125,9 @@ UHtest = [+2/3  +1/3
             0.0   0.0]
 @test all(UH .≈ UHtest)
 
+UH = HDGElasticity.UHop(vbasis,sbasis,squad,cellmap,1.)
+@test all([size(i) == (8,4) for i in UH])
+
 vf(x) = [x[1] + x[2]]
 sf(x) = [x]
 squad = tensor_product_quadrature(1,4)
@@ -133,7 +140,7 @@ HDGElasticity.UHop_on_interface!(UH,vf,sf,squad,1.,imap,1,1,1,scale)
 
 cellmap = HDGElasticity.AffineMap([-1.,-1.],[1.,1.])
 normals = reshape(1/sqrt(2)*ones(2*length(squad)),2,:)
-UH = HDGElasticity.UHop_on_interface(vbasis,sbasis,squad,normals,1.0,imap,cellmap)
+UH = HDGElasticity.UHop_on_interface(vbasis,sbasis,squad,normals,imap,cellmap,1.)
 @test size(UH) == (8,4)
 
 quad1d = ImplicitDomainQuadrature.ReferenceQuadratureRule(2)
@@ -144,6 +151,18 @@ facequads[4] = fq
 isactiveface = [true,false,false,true]
 cellmap = HDGElasticity.AffineMap([0.,0.],[1.,2.])
 UH = HDGElasticity.UHop_on_active_faces(vbasis,sbasis,facequads,
-    isactiveface,1.0,cellmap)
+    isactiveface,cellmap,1.)
 s = size.(UH)
 @test all([i == (8,4) for i in s])
+
+lhc = HDGElasticity.local_hybrid_operator(vbasis,sbasis,squad,Dhalf,cellmap,1.)
+@test all([size(i) == (20,4) for i in lhc])
+
+lhc = HDGElasticity.local_hybrid_operator_on_active_faces(vbasis,sbasis,facequads,
+    isactiveface,Dhalf,cellmap,1.)
+@test all([size(i) == (20,4) for i in lhc])
+
+
+lhc = HDGElasticity.local_hybrid_operator_on_interface(vbasis,sbasis,squad,
+    normals,Dhalf,imap,cellmap,1.)
+@test size(lhc) == (20,4)
