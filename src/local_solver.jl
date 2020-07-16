@@ -95,3 +95,35 @@ function local_hybrid_operator_on_interfaces(dgmesh,ufs,D1,D2,
     end
     return lhci
 end
+
+function hybrid_operator_on_cells(dgmesh,ufs,cellmap,stabilization)
+
+    nface,nphase,ncells = size(dgmesh.isactiveface)
+    ft = default_float_type()
+
+    hhop = Array{Matrix{ft}}(undef,nface,nphase,ncells)
+
+    uniformhop = HHop(ufs.sbasis,ufs.ftpq,cellmap,stabilization)
+
+    isactivecell = dgmesh.isactivecell
+
+    for cellid in 1:ncells
+
+        if isactivecell[1,cellid] && !isactivecell[2,cellid]
+            hhop[:,1,cellid] = uniformhop
+        elseif !isactivecell[1,cellid] && isactivecell[2,cellid]
+            hhop[:,2,cellid] = uniformhop
+        elseif isactivecell[1,cellid] && isactivecell[2,cellid]
+
+            hhop[:,1,cellid] = HHop_on_active_faces(ufs.sbasis,
+                view(ufs.fquads,:,1,cellid),
+                view(dgmesh.isactiveface,:,1,cellid),cellmap,stabilization)
+
+            hhop[:,2,cellid] = HHop_on_active_faces(ufs.sbasis,
+                view(ufs.fquads,:,2,cellid),
+                view(dgmesh.isactiveface,:,2,cellid),cellmap,stabilization)
+
+        end
+    end
+    return hhop
+end

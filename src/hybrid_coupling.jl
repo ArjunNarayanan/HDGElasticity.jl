@@ -1,31 +1,66 @@
-function get_hybrid_coupling(surface_basis::TensorProductBasis{1},
-    surface_quad::QuadratureRule{1},tau,jac,dim,NHF)
+function HHop(sbasis,squad,cellmap,stabilization)
 
-    HH = zeros(dim*NHF,dim*NHF)
-    for (p,w) in surface_quad
-        svals = surface_basis(p)
+    sdim = dimension(sbasis)
+    dim = sdim + 1
+    NHF = number_of_basis_functions(sbasis)
 
-        N = interpolation_matrix(svals,dim)
-        Ntau = tau*N
+    cell = reference_cell(dim)
+    jac = jacobian(cellmap,cell)
 
-        HH .+= N'*Ntau*jac*w
+    nfaces = length(jac)
+    ndofs = dim*NHF
+    HH = [zeros(ndofs,ndofs) for i in 1:nfaces]
+
+    for faceid in 1:nfaces
+        update_mass_matrix!(HH[faceid],sbasis,squad,dim,stabilization*jac[faceid])
+    end
+
+    return HH
+end
+
+function HHop_on_active_faces(sbasis,facequads,isactiveface,cellmap,stabilization)
+
+    sdim = dimension(sbasis)
+    dim = sdim + 1
+    NHF = number_of_basis_functions(sbasis)
+
+    cell = reference_cell(dim)
+    jac = jacobian(cellmap,cell)
+
+    nfaces = length(jac)
+    @assert length(facequads) == nfaces
+    @assert length(isactiveface) == nfaces
+
+    ndofs = dim*NHF
+    HH = [zeros(ndofs,ndofs) for i in 1:nfaces]
+
+    for faceid in 1:nfaces
+        if isactiveface[faceid]
+            update_mass_matrix!(HH[faceid],sbasis,facequads[faceid],
+                dim,stabilization*jac[faceid])
+        end
     end
     return HH
 end
 
-function get_hybrid_coupling(surface_basis::TensorProductBasis{1,T,NHF},
-    surface_quad::QuadratureRule{1},
-    tau,jac) where {T,NHF}
+function HHop_on_interface(sbasis,iquad,normals,imap,cellmap,stabilization)
 
-    dim = 2
-    HH1 = get_hybrid_coupling(surface_basis,surface_quad,tau,
-        jac.jac[1],dim,NHF)
-    HH2 = get_hybrid_coupling(surface_basis,surface_quad,tau,
-        jac.jac[2],dim,NHF)
-    HH3 = get_hybrid_coupling(surface_basis,surface_quad,tau,
-        jac.jac[1],dim,NHF)
-    HH4 = get_hybrid_coupling(surface_basis,surface_quad,tau,
-        jac.jac[2],dim,NHF)
+    sdim = dimension(sbasis)
+    dim = sdim + 1
+    NHF = number_of_basis_functions(sbasis)
 
-    return [HH1,HH2,HH3,HH4]
+    cell = reference_cell(dim)
+
+    ndofs = dim*NHF
+    HH = zeros(ndofs,ndofs)
+
+    scale = scale_area(cellmap,normals)
+
+    for (idx,(p,w)) in enumerate(iquad)
+        vals = sbasis(p)
+        N = interpolation_matrix(vals,dim)
+        detjac = determinant_jacobian(imap,p)
+        HH .+= N'*N*detjac*scale[idx]*w
+    end
+    return HH
 end

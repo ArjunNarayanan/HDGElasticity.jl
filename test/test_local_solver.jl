@@ -122,3 +122,6 @@ testL = zeros(size(L))
 testL[1:2,:] .= 2*(l1+m1)*0.1
 @test allapprox(L,testL,1e-12)
 @test allapprox(U,testU,1e-12)
+
+
+hhop = HDGElasticity.hybrid_operator_on_cells(dgmesh,ufs,cellmap,1.)
