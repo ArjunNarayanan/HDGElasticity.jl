@@ -27,12 +27,12 @@ Dhalf = sqrt(HDGElasticity.plane_strain_voigt_hooke_matrix_2d(1.,2.))
 stabilization = 1.0
 
 lop = HDGElasticity.LocalOperator(ufs.vbasis,ufs.vquads[1,1],
-    view(ufs.fquads,:,1,1),dgmesh.isactiveface[:,1,1],Dhalf,cellmap,1.)
-LU = lop.local_operator
-LH = HDGElasticity.LHop_on_active_faces(ufs.vbasis,ufs.sbasis,
-    view(ufs.fquads,:,1,1),dgmesh.isactiveface[:,1,1],Dhalf,cellmap)
-UH = HDGElasticity.UHop_on_active_faces(ufs.vbasis,ufs.sbasis,
-    view(ufs.fquads,:,1,1),dgmesh.isactiveface[:,1,1],cellmap,stabilization)
+    ufs.ftpq,Dhalf,cellmap,1.)
+LUop = lop.local_operator
+LH = HDGElasticity.LHop(ufs.vbasis,ufs.sbasis,
+    ufs.ftpq,Dhalf,cellmap)
+UH = HDGElasticity.UHop(ufs.vbasis,ufs.sbasis,
+    ufs.ftpq,cellmap,stabilization)
 
 function bc_displacement(coords;alpha=0.1,beta=0.1)
     disp = copy(coords)
@@ -61,7 +61,7 @@ Hcoords = [H1c,H2c,H3c,H4c]
 Hdisp = vec.(bc_displacement.(Hcoords))
 
 rhs = compute_rhs(LH,UH,Hdisp,20)
-sol = LU\rhs
+sol = LUop\rhs
 
 L = -Dhalf*reshape(sol[1:12],3,:)
 U = reshape(sol[13:20],2,:)
@@ -93,7 +93,7 @@ normals = -HDGElasticity.levelset_normal(poly,mapped_points,cellmap)
 lop = HDGElasticity.LocalOperator(ufs.vbasis,ufs.vquads[1,1],
     view(ufs.fquads,:,1,1),dgmesh.isactiveface[:,1,1],ufs.iquad,normals,
     ufs.imap,Dhalf,cellmap,stabilization)
-LU = lop.local_operator
+LUop = lop.local_operator
 LH = HDGElasticity.LHop_on_active_faces(ufs.vbasis,ufs.sbasis,
     view(ufs.fquads,:,1,1),dgmesh.isactiveface[:,1,1],Dhalf,cellmap)
 
@@ -113,7 +113,7 @@ rhs = compute_rhs(LH,UH,Hdisp,20)
 rI = [LHI;UHI]*HIdisp
 rhs2 = rhs+rI
 
-sol = LU\rhs2
+sol = LUop\rhs2
 L = -Dhalf*reshape(sol[1:12],3,:)
 U = reshape(sol[13:20],2,:)
 
@@ -132,7 +132,7 @@ normals = HDGElasticity.levelset_normal(poly,mapped_points,cellmap)
 lop = HDGElasticity.LocalOperator(ufs.vbasis,ufs.vquads[2,1],
     view(ufs.fquads,:,2,1),dgmesh.isactiveface[:,2,1],ufs.iquad,normals,
     ufs.imap,Dhalf,cellmap,stabilization)
-LU = lop.local_operator
+LUop = lop.local_operator
 LH = HDGElasticity.LHop_on_active_faces(ufs.vbasis,ufs.sbasis,
     view(ufs.fquads,:,2,1),dgmesh.isactiveface[:,2,1],Dhalf,cellmap)
 LHI = HDGElasticity.LHop_on_interface(ufs.vbasis,ufs.sbasis,ufs.iquad,normals,
@@ -146,7 +146,7 @@ rhs = compute_rhs(LH,UH,Hdisp,20)
 rI = [LHI;UHI]*HIdisp
 rhs2 = rhs+rI
 
-sol = LU\rhs2
+sol = LUop\rhs2
 L = -Dhalf*reshape(sol[1:12],3,:)
 U = reshape(sol[13:20],2,:)
 
@@ -168,7 +168,7 @@ rhs = compute_rhs(LH,UH,Hdisp,20)
 rI = [LHI;UHI]*HIdisp
 rhs2 = rhs+rI
 
-sol = LU\rhs2
+sol = LUop\rhs2
 L = -Dhalf*reshape(sol[1:12],3,:)
 U = reshape(sol[13:20],2,:)
 
@@ -198,7 +198,7 @@ rhs = compute_rhs(LH,UH,Hdisp,20)
 rI = [LHI;UHI]*HIdisp
 rhs2 = rhs+rI
 
-sol = LU\rhs2
+sol = LUop\rhs2
 L = -Dhalf*reshape(sol[1:12],3,:)
 U = reshape(sol[13:20],2,:)
 

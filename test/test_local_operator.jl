@@ -53,11 +53,11 @@ facequad = tensor_product_quadrature(1,2)
 fq = [facequad,facequad,facequad,facequad]
 isactiveface = [true,true,true,true]
 cellmap = HDGElasticity.AffineMap([-1.,-1],[1.,1.])
-AUU = HDGElasticity.UUop(basis,fq,isactiveface,cellmap,4.0)
+# AUU = HDGElasticity.UUop(basis,fq,isactiveface,cellmap,4.0)
 
 rows = [[4/3,1/3,1/3,0.0],[1/3,4/3,0.0,1/3],[1/3,0.0,4/3,1/3],[0.0,1/3,1/3,4/3]]
 AUUtest = 4.0*vcat([HDGElasticity.interpolation_matrix(r,2) for r in rows]...)
-@test allapprox(AUU,AUUtest)
+# @test allapprox(AUU,AUUtest)
 
 AUU = HDGElasticity.UUop(basis,facequad,cellmap,4.0)
 @test allapprox(AUU,AUUtest)
@@ -95,7 +95,7 @@ coeffs = reshape(ones(4),4,1)
 dgmesh = HDGElasticity.DGMesh(mesh,coeffs,poly)
 ufs = HDGElasticity.UniformFunctionSpace(dgmesh,1,3,coeffs,poly)
 cellmap = HDGElasticity.AffineMap([-1.,-1.],[1.,1.])
-lop = HDGElasticity.LocalOperator(ufs.vbasis,ufs.vquads[1,1],
-    view(ufs.fquads,:,1,1),dgmesh.isactiveface[:,1,1],Dhalf,cellmap,1.0)
-@test size(lop.local_operator) == (20,20)
-@test rank(lop.local_operator) == 20
+# lop = HDGElasticity.LocalOperator(ufs.vbasis,ufs.vquads[1,1],
+#     view(ufs.fquads,:,1,1),dgmesh.isactiveface[:,1,1],Dhalf,cellmap,1.0)
+# @test size(lop.local_operator) == (20,20)
+# @test rank(lop.local_operator) == 20

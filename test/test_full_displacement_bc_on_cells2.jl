@@ -98,12 +98,12 @@ LH = HDGElasticity.LHop_on_active_faces(ufs.vbasis,ufs.sbasis,
     view(ufs.fquads,:,1,1),dgmesh.isactiveface[:,1,1],Dhalf,cellmap)
 
 
-# LHI = HDGElasticity.LHop_on_interface(ufs.vbasis,ufs.sbasis,ufs.iquad,normals,
-#     Dhalf,ufs.imap,cellmap)
-# UH = HDGElasticity.UHop_on_active_faces(ufs.vbasis,ufs.sbasis,
-#     view(ufs.fquads,:,1,1),dgmesh.isactiveface[:,1,1],cellmap,stabilization)
-# UHI = HDGElasticity.UHop_on_interface(ufs.vbasis,ufs.sbasis,ufs.iquad,normals,
-#     ufs.imap,cellmap,stabilization)
+LHI = HDGElasticity.LHop_on_interface(ufs.vbasis,ufs.sbasis,ufs.iquad,normals,
+    Dhalf,ufs.imap,cellmap)
+UH = HDGElasticity.UHop_on_active_faces(ufs.vbasis,ufs.sbasis,
+    view(ufs.fquads,:,1,1),dgmesh.isactiveface[:,1,1],cellmap,stabilization)
+UHI = HDGElasticity.UHop_on_interface(ufs.vbasis,ufs.sbasis,ufs.iquad,normals,
+    ufs.imap,cellmap,stabilization)
 #
 # HIrefcoords = reshape(ufs.icoeffs[:,1],2,:)
 # HIcoords = hcat([cellmap(HIrefcoords[:,i]) for i in 1:size(HIrefcoords)[2]]...)

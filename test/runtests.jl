@@ -35,6 +35,11 @@ end
 @safetestset "Test Full Displacement BC on single element" begin
     include("test_full_displacement_bc_on_cells.jl")
 end
+
+@safetestset "Test Local Solver Initialization" begin
+    include("test_local_solver.jl")
+end
+
 #
 # @safetestset "Test Displacement Component BC" begin
 #     include("test_displacement_component_bc.jl")

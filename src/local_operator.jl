@@ -68,11 +68,11 @@ function LUop(basis,quad,Dhalf,cellmap)
     return LUop(basis,quad,Dhalf,cellmap,Ek)
 end
 
-function UUop(basis,facequads,isactiveface,cellmap,stabilization)
-    dim = dimension(basis)
-    return stabilization*mass_matrix_on_boundary(basis,facequads,
-        isactiveface,dim,cellmap)
-end
+# function UUop(basis,facequads,isactiveface,cellmap,stabilization)
+#     dim = dimension(basis)
+#     return stabilization*mass_matrix_on_boundary(basis,facequads,
+#         isactiveface,dim,cellmap)
+# end
 
 function UUop(basis,facequad,cellmap,stabilization)
 
@@ -96,14 +96,14 @@ function LocalOperator(basis,vquad,facequad,Dhalf,cellmap,stabilization)
     return LocalOperator(LL,LU,UU)
 end
 
-function LocalOperator(basis,vquad,facequads,isactiveface,
-        Dhalf,cellmap,stabilization)
-
-    LL = LLop(basis,vquad,cellmap)
-    LU = LUop(basis,vquad,Dhalf,cellmap)
-    UU = UUop(basis,facequads,isactiveface,cellmap,stabilization)
-    return LocalOperator(LL,LU,UU)
-end
+# function LocalOperator(basis,vquad,facequads,isactiveface,
+#         Dhalf,cellmap,stabilization)
+#
+#     LL = LLop(basis,vquad,cellmap)
+#     LU = LUop(basis,vquad,Dhalf,cellmap)
+#     UU = UUop(basis,facequads,isactiveface,cellmap,stabilization)
+#     return LocalOperator(LL,LU,UU)
+# end
 
 function LocalOperator(basis,vquad,facequads,isactiveface,iquad,normals,imap,
     Dhalf,cellmap,stabilization)
