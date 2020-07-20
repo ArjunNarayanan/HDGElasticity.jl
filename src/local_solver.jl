@@ -108,13 +108,11 @@ function hybrid_operator_on_cells(dgmesh,ufs,cellmap,stabilization)
     isactivecell = dgmesh.isactivecell
 
     for cellid in 1:ncells
-
         if isactivecell[1,cellid] && !isactivecell[2,cellid]
             hhop[:,1,cellid] = uniformhop
         elseif !isactivecell[1,cellid] && isactivecell[2,cellid]
             hhop[:,2,cellid] = uniformhop
         elseif isactivecell[1,cellid] && isactivecell[2,cellid]
-
             hhop[:,1,cellid] = HHop_on_active_faces(ufs.sbasis,
                 view(ufs.fquads,:,1,cellid),
                 view(dgmesh.isactiveface,:,1,cellid),cellmap,stabilization)
@@ -122,7 +120,6 @@ function hybrid_operator_on_cells(dgmesh,ufs,cellmap,stabilization)
             hhop[:,2,cellid] = HHop_on_active_faces(ufs.sbasis,
                 view(ufs.fquads,:,2,cellid),
                 view(dgmesh.isactiveface,:,2,cellid),cellmap,stabilization)
-
         end
     end
     return hhop

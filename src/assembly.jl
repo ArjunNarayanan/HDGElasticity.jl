@@ -84,9 +84,33 @@ function assemble_local_operator!(system_matrix,opvals,elid,dim,NF)
     update!(system_matrix,rows,cols,opvals)
 end
 
-function assemble_traction_continuity!(system_matrix,llop,lhop,hhop,dgmesh)
+function assemble_traction_continuity!(system_matrix,llop,lhop,hhop,dgmesh,ufs)
 
+    nface,nphase,ncells = size(dgmesh.isactiveface)
     ncells = length(dgmesh.domain)
 
+    dim = dimension(ufs.vbasis)
+    NHF = number_of_basis_functions(ufs.sbasis)
+
+    for cellid in 1:ncells
+        for phaseid in 1:nphase
+            K = llop[phaseid,cellid].lulop
+            for faceid in 1:nface
+                nbrelid,nbrfaceid = dgmesh.connectivity[faceid,phaseid,cellid]
+
+                if nbrelid != 0
+                    LH = lhop[faceid,phaseid,cellid]
+                    opvals = LH'*(K\LH) - hhop[faceid,phaseid,cellid]
+
+                    hid = dgmesh.face2hid[faceid,phaseid,cellid]
+                    hdofs = element_dofs(hid,dim,NHF)
+
+                    rows,cols = operator_dofs(hdofs,hdofs)
+
+                    update!(system_matrix,rows,cols,vec(opvals))
+                end
+            end
+        end
+    end
 
 end
