@@ -67,3 +67,30 @@ cellmap = HDGElasticity.AffineMap([0.,0.],[2.,1.])
 
 HH = HDGElasticity.HHop_on_interface(sbasis,squad,normals,imap,cellmap,1.)
 @test allapprox(HH,0.5/sqrt(2.0)*testmatrix)
+
+
+HH = reshape([0.0],1,1)
+sfunc(x) = [0.5*x[1]*(x[1]+1)]
+squad = tensor_product_quadrature(1,3)
+components = reshape(ones(3),1,3)
+
+HDGElasticity.HHop!(HH,sfunc,squad,components,1.,1.,1,1)
+@test allapprox(HH,[4/15])
+
+fill!(HH,0.0)
+HDGElasticity.HHop!(HH,sfunc,squad,components,2.,1.,1,1)
+@test allapprox(HH,2*[4/15])
+
+fill!(HH,0.0)
+HDGElasticity.HHop!(HH,sfunc,squad,components,1.,3.,1,1)
+@test allapprox(HH,3*[4/15])
+
+fill!(HH,0.0)
+components = [1.0]
+HDGElasticity.HHop!(HH,sfunc,squad,components,1.,3.,1,1)
+@test allapprox(HH,3*[4/15])
+
+cellmap = HDGElasticity.AffineMap([0.,0.],[2.,1.])
+components = [0.,1.]
+HH = HDGElasticity.HHop(sbasis,squad,components,4,cellmap,1.0)
+@test size(HH) == (4,4)
