@@ -40,6 +40,7 @@ end
 function HLop(sbasis,vbasis,squad,components,normals,Dhalf,faceid,cellmap)
 
     dim = dimension(vbasis)
+    @assert dimension(sbasis) == dim-1
     sdim = symmetric_tensor_dimension(dim)
     Ek = vec_to_symm_mat_converter(dim)
     NHF = number_of_basis_functions(sbasis)
@@ -104,4 +105,14 @@ function HUop(sbasis,vbasis,squad,components,faceid,cellmap,stabilization)
         jac[faceid],dim,NHF,NUF)
 
     return HU
+end
+
+function hybrid_local_operator(sbasis,vbasis,squad,components,normals,
+    Dhalf,faceid,cellmap,stabilization)
+
+    HL = HLop(sbasis,vbasis,squad,components,normals,Dhalf,faceid,cellmap)
+    HU = HUop(sbasis,vbasis,squad,components,faceid,cellmap,stabilization)
+
+    return [HL HU]
+
 end

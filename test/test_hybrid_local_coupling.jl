@@ -65,3 +65,9 @@ HU = HDGElasticity.HUop(sbasis,vbasis,squad,comp,4,cellmap,1.)
 comp = [0.0,1.0]
 HU = HDGElasticity.HUop(sbasis,vbasis,squad,comp,4,cellmap,1.)
 @test size(HU) == (4,8)
+
+comp = [0.0,1.0]
+normal = [-1.0,0.0]
+Ahl = HDGElasticity.hybrid_local_operator(sbasis,vbasis,squad,comp,normal,
+    Dhalf,4,cellmap,1.0)
+@test size(Ahl) == (4,20)

@@ -162,7 +162,7 @@ end
 
 function linear_form(rhsvals::M,basis,quad) where {M<:AbstractMatrix}
     ndofs,nq = size(rhsvals)
-    @assert number_of_quadrature_points(quad) == nq
+    @assert length(quad) == nq
 
     nf = number_of_basis_functions(basis)
     rhs = zeros(nf*ndofs)
@@ -173,4 +173,11 @@ function linear_form(rhsvals::M,basis,quad) where {M<:AbstractMatrix}
         rhs += N'*rhsvals[:,idx]*w
     end
     return rhs
+end
+
+function linear_form(rhsvals::V,basis,quad) where {V<:AbstractVector}
+
+    nq = length(quad)
+    extrhs = repeat(rhsvals,inner=(1,nq))
+    return linear_form(extrhs,basis,quad)
 end
