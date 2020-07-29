@@ -5,6 +5,8 @@ using ImplicitDomainQuadrature
 using Revise
 using HDGElasticity
 
+
+
 vbasis = TensorProductBasis(2,1)
 sbasis = TensorProductBasis(1,1)
 vquad = tensor_product_quadrature(2,2)
