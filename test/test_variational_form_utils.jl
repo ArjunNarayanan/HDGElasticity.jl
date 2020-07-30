@@ -107,7 +107,7 @@ isactiveface = [true,false,false,true]
 facequads = Vector{QuadratureRule{1}}(undef,4)
 facequads[1] = facequad
 facequads[4] = facequad
-cellmap = HDGElasticity.AffineMap([-1.,-1.],[1.,1.])
+cellmap = HDGElasticity.CellMap([-1.,-1.],[1.,1.])
 HDGElasticity.update_mass_matrix_on_active_faces!(matrix,basis,facequads,isactiveface,1,cellmap)
 testmatrix = [4/3  1/3  1/3  0.0
               1/3  2/3  0.0  0.0
@@ -121,7 +121,7 @@ facequads = Vector{QuadratureRule{1}}(undef,4)
 facequads[1] = QuadratureRule(ImplicitDomainQuadrature.transform(quad1d,-1.,0.)...)
 facequads[4] = facequads[1]
 matrix = zeros(4,4)
-cellmap = HDGElasticity.AffineMap([-1.,-1.],[1.,1.])
+cellmap = HDGElasticity.CellMap([-1.,-1.],[1.,1.])
 HDGElasticity.update_mass_matrix_on_active_faces!(matrix,basis,
     facequads,isactiveface,1,cellmap)
 testmatrix = [7/6  1/6  1/6  0.
@@ -147,7 +147,7 @@ facequads[1] = QuadratureRule(ImplicitDomainQuadrature.transform(quad1d,-1.,0.).
 facequads[4] = facequads[1]
 iquad = tensor_product_quadrature(1,3)
 isactiveface = [true,false,false,true]
-cellmap = HDGElasticity.AffineMap([-1.,-1.],[1.,1.])
+cellmap = HDGElasticity.CellMap([-1.,-1.],[1.,1.])
 imap = InterpolatingPolynomial(2,1,1)
 icoeffs = [0.0  -1.0
           -1.0   0.0]

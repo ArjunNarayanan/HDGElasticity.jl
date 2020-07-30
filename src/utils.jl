@@ -6,21 +6,24 @@ function default_float_type()
     return typeof(1.0)
 end
 
-function reference_element_length()
-    return 2.0
-end
-
-function in_reference_interval(x)
-    return -1.0 <= x <= +1.0
-end
-
 function reference_interval_1d()
     return (-1.0,+1.0)
 end
 
+function reference_element_length()
+    a,b = reference_interval_1d()
+    return b-a
+end
+
+function in_reference_interval(x)
+    a,b = reference_interval_1d()
+    return a <= x <= b
+end
+
 function reference_interval(dim)
-    xiL = -1.0*ones(dim)
-    xiR = ones(dim)
+    a,b = reference_interval_1d()
+    xiL = a*ones(dim)
+    xiR = b*ones(dim)
     return xiL,xiR
 end
 

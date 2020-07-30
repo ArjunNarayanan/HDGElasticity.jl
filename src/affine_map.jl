@@ -140,6 +140,11 @@ function jacobian(C::CellMap)
     return C.slope
 end
 
+function jacobian(C::CellMap{2},cell::IntervalBox{2})
+    j = jacobian(C)
+    return [j[1],j[2],j[1],j[2]]
+end
+
 function inverse_jacobian(C::CellMap)
     return 1.0 ./ jacobian(C)
 end

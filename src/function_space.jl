@@ -60,7 +60,7 @@ function UniformFunctionSpace(dgmesh::DGMesh{vdim},polyorder,nquad,
 
     sdim = vdim-1
 
-    cellmap = AffineMap(dgmesh.domain[1])
+    cellmap = CellMap(dgmesh.domain[1])
     vbasis = TensorProductBasis(vdim,polyorder)
     sbasis = TensorProductBasis(sdim,polyorder)
     quad1d = ImplicitDomainQuadrature.ReferenceQuadratureRule(nquad)
