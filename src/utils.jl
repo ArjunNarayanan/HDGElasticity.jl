@@ -18,6 +18,12 @@ function reference_interval_1d()
     return (-1.0,+1.0)
 end
 
+function reference_interval(dim)
+    xiL = -1.0*ones(dim)
+    xiR = ones(dim)
+    return xiL,xiR
+end
+
 function reference_cell(dim)
     if dim == 1
         xL = [-1.0]

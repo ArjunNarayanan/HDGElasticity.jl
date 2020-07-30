@@ -4,7 +4,7 @@ using IntervalArithmetic
 using PolynomialBasis
 using ImplicitDomainQuadrature
 using CartesianMesh
-# using Revise
+using Revise
 using HDGElasticity
 
 HDGE = HDGElasticity
@@ -51,12 +51,6 @@ normals = HDGE.reference_normals()
 @test HDGE.reference_cell_volume(2) == 4.0
 @test HDGE.reference_cell_volume(3) == 8.0
 
-xL = @SVector [-1.,-1.,-1.,-1.]
-xR = @SVector [+1.,+1.,+1.,+1.]
-@test_throws AssertionError HDGE.AffineMap(xL,xR)
-xL = @SVector [+1.,+1.]
-xR = @SVector [-1.,-1.]
-@test_throws AssertionError HDGE.AffineMap(xL,xR)
 
 xL = @SVector [-1.,-1.]
 xR = @SVector [+1.,+1.]
