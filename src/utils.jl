@@ -6,10 +6,6 @@ function default_float_type()
     return typeof(1.0)
 end
 
-function reference_interval_1d()
-    return (-1.0,+1.0)
-end
-
 function reference_element_length()
     a,b = reference_interval_1d()
     return b-a
@@ -18,13 +14,6 @@ end
 function in_reference_interval(x)
     a,b = reference_interval_1d()
     return a <= x <= b
-end
-
-function reference_interval(dim)
-    a,b = reference_interval_1d()
-    xiL = a*ones(dim)
-    xiR = b*ones(dim)
-    return xiL,xiR
 end
 
 function reference_cell(dim)
@@ -73,53 +62,10 @@ function neighbor_faceid(faceid)
     end
 end
 
-struct AffineMap{dim,T}
-    xL::SVector{dim,T}
-    xR::SVector{dim,T}
-    function AffineMap(xL::SVector{dim,T},xR::SVector{dim,T}) where {dim,T}
-        @assert 1 <= dim <= 3
-        @assert all(xL .< xR)
-        new{dim,T}(xL,xR)
-    end
-end
 
-function AffineMap(xL,xR)
-    dim = length(xL)
-    @assert length(xR) == dim
-    sxL = SVector{dim}(xL)
-    sxR = SVector{dim}(xR)
-    return AffineMap(sxL,sxR)
-end
-
-function AffineMap(box::IntervalBox)
-    xL = [int.lo for int in box.v]
-    xR = [int.hi for int in box.v]
-    return AffineMap(xL,xR)
-end
-
-function (M::AffineMap)(xi)
-    return M.xL .+ 0.5*(1.0 .+ xi) .* (M.xR - M.xL)
-end
-
-function jacobian(M::AffineMap)
-    return (M.xR - M.xL)/reference_element_length()
-end
-
-function jacobian(M::AffineMap{2},cell::IntervalBox{2})
-    j = jacobian(M)
-    return [j[1],j[2],j[1],j[2]]
-end
 
 function jacobian(map::InterpolatingPolynomial,p)
     return gradient(map,p)
-end
-
-function inverse_jacobian(M::AffineMap)
-    return 1.0 ./ jacobian(M)
-end
-
-function determinant_jacobian(M::AffineMap)
-    return prod(jacobian(M))
 end
 
 function determinant_jacobian(map::InterpolatingPolynomial{2},p)
@@ -138,7 +84,7 @@ function nodal_coordinates(mesh,basis)
     stop = NF
     for idx in 1:ncells
         xL,xR = CartesianMesh.element(mesh,idx)
-        map = AffineMap(xL,xR)
+        map = CellMap(xL,xR)
         coords[:,start:stop] = map(basis.points)
         start = stop+1
         stop += NF
@@ -169,10 +115,6 @@ function dimension(quad::QuadratureRule{dim}) where dim
 end
 
 function dimension(mesh::UniformMesh{dim}) where dim
-    return dim
-end
-
-function dimension(cellmap::AffineMap{dim}) where dim
     return dim
 end
 

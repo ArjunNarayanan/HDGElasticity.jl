@@ -1,7 +1,7 @@
 using Test
 using PolynomialBasis
 using ImplicitDomainQuadrature
-# using Revise
+using Revise
 using HDGElasticity
 
 HDGE = HDGElasticity
@@ -78,7 +78,7 @@ E3 = E3'
 
 basis = TensorProductBasis(1,1)
 quad = tensor_product_quadrature(1,2)
-matrix = HDGE.mass_matrix(basis,quad,1,1.0)
+matrix = HDGE.mass_matrix(basis,quad,1.0,1)
 testmatrix = [2/3 1/3
               1/3 2/3]
 @test allapprox(matrix,testmatrix)
@@ -94,42 +94,41 @@ map = InterpolatingPolynomial(2,1,1)
 coeffs = [1.  1.
           -1. 1.]
 update!(map,coeffs)
-matrix = zeros(4,4)
-HDGElasticity.update_mass_matrix!(matrix,basis,facequad,map,1,[1.,1.])
-testmatrix = [0.0  0.0  0.0  0.0
-           0.0  0.0  0.0  0.0
-           0.0  0.0  2/3  1/3
-           0.0  0.0  1/3  2/3]
-@test allapprox(matrix,testmatrix)
+N(x) = [(x[1]+1.)*(x[2]+1.)/4.]
+matrix = zeros(1,1)
+HDGElasticity.update_mass_matrix!(matrix,N,facequad,map,[1.,1.],1)
+@test allapprox(matrix,[2/3])
 
-matrix = zeros(4,4)
-isactiveface = [true,false,false,true]
-facequads = Vector{QuadratureRule{1}}(undef,4)
-facequads[1] = facequad
-facequads[4] = facequad
-cellmap = HDGElasticity.CellMap([-1.,-1.],[1.,1.])
-HDGElasticity.update_mass_matrix_on_active_faces!(matrix,basis,facequads,isactiveface,1,cellmap)
-testmatrix = [4/3  1/3  1/3  0.0
-              1/3  2/3  0.0  0.0
-              1/3  0.0  2/3  0.0
-              0.0  0.0  0.0  0.0]
-@test allapprox(matrix,testmatrix)
+N(x) = [(x[1]+1.)*(x[2]+1.)/4.]
+matrix = zeros(1,1)
+linemap = HDGElasticity.LineMap([+1.,-1.],[1.,1.])
+HDGElasticity.update_mass_matrix!(matrix,N,facequad,linemap,1.,1)
+@test allapprox(matrix,[2/3])
 
+fill!(matrix,0.0)
+HDGElasticity.update_mass_matrix!(matrix,N,facequad,linemap,2.,1)
+@test allapprox(matrix,[4/3])
 
-quad1d = ImplicitDomainQuadrature.ReferenceQuadratureRule(2)
-facequads = Vector{QuadratureRule{1}}(undef,4)
-facequads[1] = QuadratureRule(ImplicitDomainQuadrature.transform(quad1d,-1.,0.)...)
-facequads[4] = facequads[1]
-matrix = zeros(4,4)
-cellmap = HDGElasticity.CellMap([-1.,-1.],[1.,1.])
-HDGElasticity.update_mass_matrix_on_active_faces!(matrix,basis,
-    facequads,isactiveface,1,cellmap)
-testmatrix = [7/6  1/6  1/6  0.
-              1/6  1/12 0.0  0.
-              1/6  0.0  1/12 0.
-              0.   0.   0.   0.]
-@test allapprox(matrix,testmatrix)
+matrix = zeros(1,1)
+N(x) = [(1.0 - x[1])*(1.0 - x[2])/4.0]
+map1 = HDGElasticity.LineMap([-1.,-1.],[1.,-1.])
+map2 = HDGElasticity.LineMap([-1.,-1.],[-1.,1.])
+facequads = [facequad,facequad]
+facemaps = [map1,map2]
+HDGElasticity.update_mass_matrix_on_faces!(matrix,N,facequads,facemaps,[1.,1.],1)
+@test allapprox(matrix,[4/3])
 
+fill!(matrix,0.0)
+HDGElasticity.update_mass_matrix_on_faces!(matrix,N,facequads,facemaps,[1.,2.],1)
+@test allapprox(matrix,[2.])
+
+fill!(matrix,0.0)
+map1 = HDGElasticity.LineMap([1.,-1.],[1.,1.])
+map2 = HDGElasticity.LineMap([-1.,1.],[1.,1.])
+facequads = [facequad,facequad]
+facemaps = [map1,map2]
+HDGElasticity.update_mass_matrix_on_faces!(matrix,N,facequads,facemaps,[1.,1.],1)
+@test allapprox(matrix,[0.0])
 
 N(x) = [(1.0-x[1])*(1.0-x[2])/4.0]
 quad = tensor_product_quadrature(1,3)
@@ -137,30 +136,53 @@ imap = InterpolatingPolynomial(2,1,1)
 icoeffs = [0.0  -1.0
           -1.0   0.0]
 update!(imap,icoeffs)
-matrix = reshape([0.0],1,1)
-HDGElasticity.update_mass_matrix!(matrix,N,quad,imap,1,[1.,1.,1.])
+matrix = zeros(1,1)
+HDGElasticity.update_mass_matrix!(matrix,N,quad,imap,[1.,1.,1.],1)
 @test matrix[1] ≈ 4.7/16*sqrt(2.)
-
-basis = TensorProductBasis(2,1)
-facequads = Vector{QuadratureRule{1}}(undef,4)
-facequads[1] = QuadratureRule(ImplicitDomainQuadrature.transform(quad1d,-1.,0.)...)
-facequads[4] = facequads[1]
-iquad = tensor_product_quadrature(1,3)
-isactiveface = [true,false,false,true]
-cellmap = HDGElasticity.CellMap([-1.,-1.],[1.,1.])
-imap = InterpolatingPolynomial(2,1,1)
-icoeffs = [0.0  -1.0
-          -1.0   0.0]
-update!(imap,icoeffs)
-normals = reshape(1/sqrt(2)*ones(6),2,3)
-matrix = HDGElasticity.mass_matrix_on_boundary(basis,facequads,isactiveface,
-    iquad,normals,imap,1,cellmap)
 
 
 facequad = tensor_product_quadrature(1,2)
-matrix = HDGElasticity.mass_matrix_on_boundary(basis,facequad,1,cellmap)
+map1 = HDGElasticity.LineMap([-1.,-1.],[1.,-1.])
+map2 = HDGElasticity.LineMap([1.,-1.],[1.,1.])
+map3 = HDGElasticity.LineMap([-1.,1.],[1.,1.])
+map4 = HDGElasticity.LineMap([-1.,-1.],[-1.,1.])
+fq = repeat([facequad],4)
+fm = [map1,map2,map3,map4]
+scale = ones(4)
+matrix = HDGElasticity.mass_matrix_on_boundary(basis,fq,fm,scale,1)
 testmatrix = [4/3 1/3 1/3 0.
               1/3 4/3 0. 1/3
               1/3 0. 4/3 1/3
               0.  1/3 1/3 4/3]
 @test allapprox(matrix,testmatrix)
+
+N(x) = [(1-x[1])*(1-x[2])/4.0]
+fq = QuadratureRule(ImplicitDomainQuadrature.transform(quad1d,-1.,0.)...)
+facequads = [fq,fq]
+map1 = HDGElasticity.LineMap([-1.,-1.],[1.,-1.])
+map2 = HDGElasticity.LineMap([-1.,-1.],[-1.,1.])
+facemaps = [map1,map2]
+
+matrix = zeros(1,1)
+HDGElasticity.update_mass_matrix!(matrix,N,fq,map1,1.0,1)
+@test allapprox(matrix,[7/12])
+
+basis = TensorProductBasis(2,1)
+fq = QuadratureRule(ImplicitDomainQuadrature.transform(quad1d,-1.,0.)...)
+facequads = [fq,fq]
+iquad = tensor_product_quadrature(1,3)
+map1 = HDGElasticity.LineMap([-1.,-1.],[1.,-1.])
+map2 = HDGElasticity.LineMap([-1.,-1.],[-1.,1.])
+facemaps = [map1,map2]
+imap = InterpolatingPolynomial(2,1,1)
+icoeffs = [0.0  -1.0
+          -1.0   0.0]
+update!(imap,icoeffs)
+normals = reshape(1/sqrt(2)*ones(6),2,3)
+cellmap = HDGElasticity.CellMap([-1.,-1.],[1.,1.])
+iscale = HDGElasticity.scale_area(cellmap,normals)
+
+matrix = zeros(4,4)
+matrix = HDGElasticity.mass_matrix_on_boundary(basis,facequads,facemaps,[1.,1.],
+    iquad,imap,iscale,1)
+@test matrix[1] ≈ 14/12 + 4.7/16*sqrt(2)

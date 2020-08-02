@@ -50,7 +50,7 @@ function symmetric_tensor_dimension(dim)
     end
 end
 
-function update_mass_matrix!(matrix,basis,quad,ndofs,scale)
+function update_mass_matrix!(matrix,basis,quad,scale,ndofs)
     for (p,w) in quad
         vals = basis(p)
         N = interpolation_matrix(vals,ndofs)
@@ -58,8 +58,17 @@ function update_mass_matrix!(matrix,basis,quad,ndofs,scale)
     end
 end
 
+function update_mass_matrix!(matrix,basis,quad,linemap::LineMap,scale,ndofs)
+    detjac = determinant_jacobian(linemap)
+    for (p,w) in quad
+        vals = basis(linemap(p...))
+        N = interpolation_matrix(vals,ndofs)
+        matrix .+= N'*N*detjac*scale*w
+    end
+end
+
 function update_mass_matrix!(matrix,basis,quad,map::InterpolatingPolynomial,
-    ndofs,scale)
+    scale,ndofs)
 
     @assert length(scale) == length(quad)
     for (idx,(p,w)) in enumerate(quad)
@@ -70,91 +79,46 @@ function update_mass_matrix!(matrix,basis,quad,map::InterpolatingPolynomial,
     end
 end
 
-function update_mass_matrix_on_active_faces!(matrix,basis,facequads,
-    isactiveface,ndofs,cellmap)
+function update_mass_matrix_on_faces!(matrix,basis,facequads,facemaps,
+    scale,ndofs)
 
-    dim = dimension(basis)
-    cell = reference_cell(dim)
-
-    funcs = restrict_on_faces(basis,cell)
-    jac = jacobian(cellmap,cell)
-
-    for (faceid,func) in enumerate(funcs)
-        if isactiveface[faceid]
-            update_mass_matrix!(matrix,func,facequads[faceid],ndofs,jac[faceid])
-        end
+    @assert length(facequads) == length(facemaps)
+    @assert length(facequads) == length(scale)
+    for (quad,map,s) in zip(facequads,facemaps,scale)
+        update_mass_matrix!(matrix,basis,quad,
+            map,s,ndofs)
     end
-
 end
 
-function mass_matrix(basis,quad,ndofs,scale)
+function mass_matrix(basis,quad,scale,ndofs)
     nf = number_of_basis_functions(basis)
     nfndofs = nf*ndofs
     matrix = zeros(nfndofs,nfndofs)
-    update_mass_matrix!(matrix,basis,quad,ndofs,scale)
+    update_mass_matrix!(matrix,basis,quad,scale,ndofs)
     return matrix
 end
 
-function mass_matrix_on_boundary(basis,facequad,ndofs,cellmap)
+function mass_matrix_on_boundary(basis,facequads,facemaps,scale,ndofs)
 
-    dim = dimension(basis)
     NF = number_of_basis_functions(basis)
-    cell = reference_cell(dim)
-
     totaldofs = ndofs*NF
     matrix = zeros(totaldofs,totaldofs)
 
-    funcs = restrict_on_faces(basis,cell)
-    jac = jacobian(cellmap,cell)
-
-    for (faceid,func) in enumerate(funcs)
-        update_mass_matrix!(matrix,func,facequad,ndofs,jac[faceid])
-    end
+    update_mass_matrix_on_faces!(matrix,basis,facequads,facemaps,scale,ndofs)
 
     return matrix
 end
 
-function mass_matrix_on_boundary(basis,facequads,isactiveface,ndofs,cellmap)
+function mass_matrix_on_boundary(basis,facequads,facemaps,facescale,
+    iquad,imap,iscale,ndofs)
 
-    dim = dimension(basis)
-    NF = number_of_basis_functions(basis)
-    cell = reference_cell(dim)
-
-    totaldofs = ndofs*NF
+    nf = number_of_basis_functions(basis)
+    totaldofs = ndofs*nf
     matrix = zeros(totaldofs,totaldofs)
 
-    funcs = restrict_on_faces(basis,cell)
-    jac = jacobian(cellmap,cell)
-
-    nfaces = length(funcs)
-    @assert length(facequads) == nfaces
-    @assert length(isactiveface) == nfaces
-
-    for faceid in 1:nfaces
-        if isactiveface[faceid]
-            update_mass_matrix!(matrix,funcs[faceid],
-                facequads[faceid],ndofs,jac[faceid])
-        end
-    end
-
-    return matrix
-
-end
-
-function mass_matrix_on_boundary(basis,facequads,isactiveface,iquad,
-    normals,imap,ndofs,cellmap)
-
-    dim = dimension(basis)
-    NF = number_of_basis_functions(basis)
-    cell = reference_cell(dim)
-
-    totaldofs = ndofs*NF
-    matrix = zeros(totaldofs,totaldofs)
-
-    update_mass_matrix_on_active_faces!(matrix,basis,facequads,
-        isactiveface,ndofs,cellmap)
-    scale = scale_area(cellmap,normals)
-    update_mass_matrix!(matrix,basis,iquad,imap,ndofs,scale)
+    update_mass_matrix_on_faces!(matrix,basis,facequads,
+        facemaps,facescale,ndofs)
+    update_mass_matrix!(matrix,basis,iquad,imap,iscale,ndofs)
 
     return matrix
 

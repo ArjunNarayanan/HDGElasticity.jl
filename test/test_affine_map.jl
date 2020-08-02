@@ -56,6 +56,7 @@ map = HDGElasticity.CellMap(xiL,xiR,xL,xR)
 @test allapprox(HDGElasticity.jacobian(map),[2.,1.])
 @test allapprox(HDGElasticity.inverse_jacobian(map),[0.5,1.])
 @test HDGElasticity.determinant_jacobian(map) ≈ 2.0
+@test allapprox(HDGElasticity.face_determinant_jacobian(map),[2.,1.,2.,1.])
 
 HDGElasticity.update!(map,[1.,1.],[2.,2.])
 @test allapprox(map([0.5,0.5]),[1.5,1.5])

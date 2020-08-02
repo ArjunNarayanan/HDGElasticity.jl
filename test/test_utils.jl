@@ -52,14 +52,7 @@ normals = HDGE.reference_normals()
 @test HDGE.reference_cell_volume(3) == 8.0
 
 
-xL = @SVector [-1.,-1.]
-xR = @SVector [+1.,+1.]
-map = HDGE.AffineMap(xL,xR)
-@test allequal(map.xL,xL)
-@test allequal(map.xR,xR)
-@test allapprox(HDGE.jacobian(map),[1.0,1.0])
-@test allapprox(HDGE.inverse_jacobian(map),[1.0,1.0])
-@test HDGE.determinant_jacobian(map) ≈ 1.0
+
 
 map = InterpolatingPolynomial(2,1,1)
 coeffs = [0.0  0.0
@@ -72,43 +65,6 @@ coeffs = [-1. 0. 1.
            0. -1 0]
 update!(map,coeffs)
 @test HDGE.determinant_jacobian(map,-0.5) ≈ sqrt(2)
-
-xL = [-1.,-1.]
-xR = [1.,1.,1.]
-@test_throws AssertionError HDGE.AffineMap(xL,xR)
-xR = [1.,1.]
-map = HDGE.AffineMap(xL,xR)
-@test allequal(map.xL,xL)
-@test allequal(map.xR,xR)
-@test_throws DimensionMismatch map([0.0,0.0,0.0])
-@test allequal(map([0.0,0.0]),[0.0,0.0])
-@test allequal(map([-1.0,0.0]),[-1.0,0.0])
-
-xL = [0.,0.]
-xR = [1.,1.]
-map = HDGE.AffineMap(xL,xR)
-cell = HDGE.reference_cell(2)
-@test allapprox(HDGE.jacobian(map),[0.5,0.5])
-@test allapprox(HDGE.jacobian(map,cell),repeat([0.5],4))
-@test allapprox(HDGE.inverse_jacobian(map),[2.,2.])
-@test HDGE.determinant_jacobian(map) ≈ 0.25
-@test allequal(map([0.,0.]),[0.5,0.5])
-@test allequal(map([-1.,0.]),[0.,0.5])
-xi = [-0.5  -0.5  0.0  1.0
-      -0.5  +0.0  0.5 -0.5]
-x = map(xi)
-testx = [0.25  0.25  0.50  1.0
-         0.25  0.50  0.75  0.25]
-@test allequal(x,testx)
-
-xL = [0.,0.]
-xR = [2.,1.]
-map = HDGE.AffineMap(xL,xR)
-cell = HDGE.reference_cell(2)
-@test allapprox(HDGE.jacobian(map),[1.0,0.5])
-@test allapprox(HDGE.jacobian(map,cell),[1.0,0.5,1.0,0.5])
-@test allapprox(HDGE.inverse_jacobian(map),[1.0,2.])
-@test HDGE.determinant_jacobian(map) ≈ 0.5
 
 mesh = UniformMesh([0.0,0.0],[1.,1.],[1,1])
 basis = TensorProductBasis(2,2)
@@ -160,7 +116,7 @@ coords = [0. 0. 2.  2.
 testn = [1.,1.]/sqrt(2.)
 coeffs = plane_distance_function(coords,testn,[0.5,0.])
 update!(poly,coeffs)
-cellmap = HDGElasticity.AffineMap([0.,0.],[2.,1.])
+cellmap = HDGElasticity.CellMap([0.,0.],[2.,1.])
 p = [-0.25,-0.5]
 n = HDGElasticity.levelset_normal(poly,p,cellmap)
 @test allapprox(testn,n)
@@ -180,7 +136,7 @@ testt = [5 6 7 8
          -1 -2 -3 -4]
 @test allapprox(HDGElasticity.tangents(normals),testt)
 
-cellmap = HDGElasticity.AffineMap([0.,0.],[2.,1.])
+cellmap = HDGElasticity.CellMap([0.,0.],[2.,1.])
 @test HDGElasticity.scale_area(cellmap,[1.,0.]) ≈ 0.5
 @test HDGElasticity.scale_area(cellmap,[0.,1.]) ≈ 1.0
 n = [1. 0.

@@ -2,6 +2,17 @@ function linear_map_slope(xiL,xiR,xL,xR)
     return (xR-xL)./(xiR-xiL)
 end
 
+function reference_interval_1d()
+    return (-1.0,+1.0)
+end
+
+function reference_interval(dim)
+    a,b = reference_interval_1d()
+    xiL = a*ones(dim)
+    xiR = b*ones(dim)
+    return xiL,xiR
+end
+
 struct LineMap{dim,T}
     xiL::T
     xiR::T
@@ -133,14 +144,14 @@ function update!(C::CellMap,xL,xR)
 end
 
 function (C::CellMap)(xi)
-    return C.xL .+ C.slope .* (xi-C.xiL)
+    return C.xL .+ C.slope .* (xi .- C.xiL)
 end
 
 function jacobian(C::CellMap)
     return C.slope
 end
 
-function jacobian(C::CellMap{2},cell::IntervalBox{2})
+function face_determinant_jacobian(C::CellMap{2})
     j = jacobian(C)
     return [j[1],j[2],j[1],j[2]]
 end
