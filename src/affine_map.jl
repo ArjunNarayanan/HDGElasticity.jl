@@ -43,15 +43,15 @@ function dimension(M::LineMap{dim}) where {dim}
     return dim
 end
 
-function update!(M::LineMap,xL,xR)
-    dim = dimension(M)
-    @assert length(xL) == dim
-    @assert length(xR) == dim
-
-    M.xL .= xL
-    M.xR .= xR
-    M.slope .= linear_map_slope(M.xiL,M.xiR,M.xL,M.xR)
-end
+# function update!(M::LineMap,xL,xR)
+#     dim = dimension(M)
+#     @assert length(xL) == dim
+#     @assert length(xR) == dim
+#
+#     M.xL .= xL
+#     M.xR .= xR
+#     M.slope .= linear_map_slope(M.xiL,M.xiR,M.xL,M.xR)
+# end
 
 function LineMap(xL,xR)
     xiL,xiR = reference_interval_1d()
@@ -133,15 +133,15 @@ function dimension(C::CellMap{dim}) where {dim}
     return dim
 end
 
-function update!(C::CellMap,xL,xR)
-    dim = dimension(C)
-    @assert length(xL) == dim
-    @assert length(xR) == dim
-
-    C.xL .= xL
-    C.xR .= xR
-    C.slope .= linear_map_slope(C.xiL,C.xiR,C.xL,C.xR)
-end
+# function update!(C::CellMap,xL,xR)
+#     dim = dimension(C)
+#     @assert length(xL) == dim
+#     @assert length(xR) == dim
+#
+#     C.xL .= xL
+#     C.xR .= xR
+#     C.slope .= linear_map_slope(C.xiL,C.xiR,C.xL,C.xR)
+# end
 
 function (C::CellMap)(xi)
     return C.xL .+ C.slope .* (xi .- C.xiL)

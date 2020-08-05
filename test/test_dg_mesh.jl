@@ -39,70 +39,68 @@ NF = HDGElasticity.number_of_basis_functions(basis)
 coords = HDGElasticity.nodal_coordinates(mesh,basis)
 xc = 0.75
 coeffs = reshape(distance_function(coords,xc),NF,:)
-isactivecell = HDGElasticity.active_cells(coeffs,poly)
-testactivecells = [true true
-                   true false]
-@test allequal(isactivecell,testactivecells)
+cellsign = HDGElasticity.cell_signatures(coeffs,poly)
+testcellsign = [0,1]
+@test allequal(cellsign,testcellsign)
 
-isactiveface = HDGElasticity.active_faces(isactivecell,coeffs,poly)
-testactiveface = zeros(Bool,4,2,2)
-testactiveface[:,1,1] = [true,true,true,false]
-testactiveface[:,1,2] = [true,true,true,true]
-testactiveface[:,2,1] = [true,false,true,true]
-testactiveface[:,2,2] = [false,false,false,false]
-@test allequal(isactiveface,testactiveface)
-@test_throws ArgumentError HDGElasticity.update_active_faces!(isactiveface,2,2,2)
-
-cell2elid = HDGElasticity.number_elements(isactivecell)
-testcell2elid = [1 3
-                 2 0]
-@test allequal(cell2elid,testcell2elid)
-
-
-
-face2hid = HDGElasticity.number_face_hybrid_elements(isactiveface,connectivity)
-testface2hid = zeros(Int,4,2,2)
-testface2hid[1,1,1] = 1
-testface2hid[2,1,1] = 2
-testface2hid[3,1,1] = 3
-
-testface2hid[1,2,1] = 4
-testface2hid[3,2,1] = 5
-testface2hid[4,2,1] = 6
-
-testface2hid[1,1,2] = 7
-testface2hid[2,1,2] = 8
-testface2hid[3,1,2] = 9
-testface2hid[4,1,2] = 2
-@test allequal(face2hid,testface2hid)
-
-hid = maximum(face2hid)+1
-interface2hid = HDGElasticity.number_interface_hybrid_elements(isactivecell,hid)
-testinterface2hid = [10 0
-                     11 0]
-@test allequal(interface2hid,testinterface2hid)
-
-dgmesh = HDGElasticity.DGMesh(domain,connectivity,isactivecell,
-    isactiveface,cell2elid,face2hid,interface2hid)
+dgmesh = HDGElasticity.DGMesh(domain,connectivity,cellsign)
 @test allequal(dgmesh.domain,domain)
 @test allequal(dgmesh.connectivity,connectivity)
-@test allequal(dgmesh.isactivecell,isactivecell)
-@test allequal(dgmesh.isactiveface,isactiveface)
-@test allequal(dgmesh.cell2elid,cell2elid)
-@test allequal(dgmesh.face2hid,face2hid)
-@test allequal(dgmesh.interface2hid,interface2hid)
-@test allequal(dgmesh.elids,1:3)
-@test allequal(dgmesh.facehids,1:9)
-@test allequal(dgmesh.interfacehids,10:11)
+@test allequal(dgmesh.cellsign,cellsign)
 
 dgmesh = HDGElasticity.DGMesh(mesh,coeffs,poly)
 @test allequal(dgmesh.domain,domain)
 @test allequal(dgmesh.connectivity,connectivity)
-@test allequal(dgmesh.isactivecell,isactivecell)
-@test allequal(dgmesh.isactiveface,isactiveface)
-@test allequal(dgmesh.cell2elid,cell2elid)
-@test allequal(dgmesh.face2hid,face2hid)
-@test allequal(dgmesh.interface2hid,interface2hid)
-@test allequal(dgmesh.elids,1:3)
-@test allequal(dgmesh.facehids,1:9)
-@test allequal(dgmesh.interfacehids,10:11)
+@test allequal(dgmesh.cellsign,cellsign)
+
+# isactiveface = HDGElasticity.active_faces(isactivecell,coeffs,poly)
+# testactiveface = zeros(Bool,4,2,2)
+# testactiveface[:,1,1] = [true,true,true,false]
+# testactiveface[:,1,2] = [true,true,true,true]
+# testactiveface[:,2,1] = [true,false,true,true]
+# testactiveface[:,2,2] = [false,false,false,false]
+# @test allequal(isactiveface,testactiveface)
+# @test_throws ArgumentError HDGElasticity.update_active_faces!(isactiveface,2,2,2)
+#
+# cell2elid = HDGElasticity.number_elements(isactivecell)
+# testcell2elid = [1 3
+#                  2 0]
+# @test allequal(cell2elid,testcell2elid)
+#
+#
+#
+# face2hid = HDGElasticity.number_face_hybrid_elements(isactiveface,connectivity)
+# testface2hid = zeros(Int,4,2,2)
+# testface2hid[1,1,1] = 1
+# testface2hid[2,1,1] = 2
+# testface2hid[3,1,1] = 3
+#
+# testface2hid[1,2,1] = 4
+# testface2hid[3,2,1] = 5
+# testface2hid[4,2,1] = 6
+#
+# testface2hid[1,1,2] = 7
+# testface2hid[2,1,2] = 8
+# testface2hid[3,1,2] = 9
+# testface2hid[4,1,2] = 2
+# @test allequal(face2hid,testface2hid)
+#
+# hid = maximum(face2hid)+1
+# interface2hid = HDGElasticity.number_interface_hybrid_elements(isactivecell,hid)
+# testinterface2hid = [10 0
+#                      11 0]
+# @test allequal(interface2hid,testinterface2hid)
+#
+
+#
+# dgmesh = HDGElasticity.DGMesh(mesh,coeffs,poly)
+# @test allequal(dgmesh.domain,domain)
+# @test allequal(dgmesh.connectivity,connectivity)
+# @test allequal(dgmesh.isactivecell,isactivecell)
+# @test allequal(dgmesh.isactiveface,isactiveface)
+# @test allequal(dgmesh.cell2elid,cell2elid)
+# @test allequal(dgmesh.face2hid,face2hid)
+# @test allequal(dgmesh.interface2hid,interface2hid)
+# @test allequal(dgmesh.elids,1:3)
+# @test allequal(dgmesh.facehids,1:9)
+# @test allequal(dgmesh.interfacehids,10:11)

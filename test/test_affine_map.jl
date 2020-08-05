@@ -22,10 +22,10 @@ map = HDGElasticity.LineMap(0.,1.,[0.,0.],[1.,1.])
 
 xL = [-1.,-1.]
 xR = [1.,1.]
-HDGElasticity.update!(map,xL,xR)
-@test allapprox(map.xL,xL)
-@test allapprox(map.xR,xR)
-@test allapprox(map.slope,[2.,2.])
+# HDGElasticity.update!(map,xL,xR)
+# @test allapprox(map.xL,xL)
+# @test allapprox(map.xR,xR)
+# @test allapprox(map.slope,[2.,2.])
 
 map = HDGElasticity.LineMap([0.5,0.5],[1.,0.5])
 @test map.xiL ≈ -1.0
@@ -58,11 +58,11 @@ map = HDGElasticity.CellMap(xiL,xiR,xL,xR)
 @test HDGElasticity.determinant_jacobian(map) ≈ 2.0
 @test allapprox(HDGElasticity.face_determinant_jacobian(map),[2.,1.,2.,1.])
 
-HDGElasticity.update!(map,[1.,1.],[2.,2.])
-@test allapprox(map([0.5,0.5]),[1.5,1.5])
-@test allapprox(map([0.75,0.25]),[1.75,1.25])
-@test allapprox(HDGElasticity.jacobian(map),[1.,1.])
-@test HDGElasticity.determinant_jacobian(map) ≈ 1.0
+# HDGElasticity.update!(map,[1.,1.],[2.,2.])
+# @test allapprox(map([0.5,0.5]),[1.5,1.5])
+# @test allapprox(map([0.75,0.25]),[1.75,1.25])
+# @test allapprox(HDGElasticity.jacobian(map),[1.,1.])
+# @test HDGElasticity.determinant_jacobian(map) ≈ 1.0
 
 map = HDGElasticity.CellMap([1.,2.],[2.,4.])
 @test allapprox(map.xiL,[-1.,-1.])

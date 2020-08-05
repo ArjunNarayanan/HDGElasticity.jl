@@ -14,7 +14,7 @@ IDQ = ImplicitDomainQuadrature
 include("affine_map.jl")
 include("utils.jl")
 include("variational_form_utils.jl")
-# include("dg_mesh.jl")
+include("dg_mesh.jl")
 # include("function_space.jl")
 # include("fit_interface_hybrid_element.jl")
 # include("local_operator.jl")
