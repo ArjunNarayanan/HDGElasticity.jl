@@ -156,6 +156,7 @@ testmatrix = [4/3 1/3 1/3 0.
               0.  1/3 1/3 4/3]
 @test allapprox(matrix,testmatrix)
 
+quad1d = ImplicitDomainQuadrature.ReferenceQuadratureRule(2)
 N(x) = [(1-x[1])*(1-x[2])/4.0]
 fq = QuadratureRule(ImplicitDomainQuadrature.transform(quad1d,-1.,0.)...)
 facequads = [fq,fq]

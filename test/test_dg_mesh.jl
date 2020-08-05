@@ -2,7 +2,7 @@ using Test
 using IntervalArithmetic
 using PolynomialBasis
 using CartesianMesh
-# using Revise
+using Revise
 using HDGElasticity
 
 function allequal(v1,v2)
