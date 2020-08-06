@@ -2,7 +2,7 @@ using Test
 using PolynomialBasis
 using ImplicitDomainQuadrature
 using CartesianMesh
-# using Revise
+using Revise
 using HDGElasticity
 
 function allequal(u,v)
@@ -33,8 +33,8 @@ NF = HDGElasticity.number_of_basis_functions(basis)
 coords = HDGElasticity.nodal_coordinates(mesh,basis)
 xc = 0.75
 coeffs = reshape(distance_function(coords,xc),NF,:)
-isactivecell = HDGElasticity.active_cells(coeffs,poly)
-quads = HDGElasticity.element_quadratures(isactivecell,coeffs,poly,quad1d)
+cellsign = HDGElasticity.cell_signatures(coeffs,poly)
+quads = HDGElasticity.element_quadratures(cellsign,coeffs,poly,quad1d)
 
 py = quad1d.points
 
@@ -57,8 +57,8 @@ qp3 = tensor_product_quadrature(2,2)
 @test allequal(qp3.weights,quads[1,2].weights)
 @test !isassigned(quads,2,2)
 
-isactivecell[2,1] = false
-HDGElasticity.element_quadratures!(quads,isactivecell,coeffs,poly,quad1d)
+cellsign[1] = +1
+HDGElasticity.element_quadratures!(quads,cellsign,coeffs,poly,quad1d)
 @test allequal(qp3.points,quads[1,1].points)
 
 

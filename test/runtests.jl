@@ -15,10 +15,10 @@ end
 @safetestset "Test DGMesh" begin
     include("test_dg_mesh.jl")
 end
-#
-# @safetestset "Test Interface Fitting" begin
-#     include("test_fit_interface_hybrid_element.jl")
-# end
+
+@safetestset "Test Interface Fitting" begin
+    include("test_fit_interface_hybrid_element.jl")
+end
 #
 # @safetestset "Test Function Space Construction" begin
 #     include("test_function_space.jl")

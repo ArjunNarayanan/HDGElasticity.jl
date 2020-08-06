@@ -80,47 +80,48 @@ function UniformFunctionSpace(dgmesh::DGMesh{vdim},polyorder,nquad,
 
 end
 
-function element_quadratures!(equads,isactivecell,coeffs,poly,tpq,quad1d)
+function element_quadratures!(equads,cellsign,coeffs,poly,tpq,box,quad1d)
 
     nf,ncells = size(coeffs)
-    @assert size(isactivecell) == (2,ncells)
-
-    dim = dimension(poly)
-    box = reference_cell(dim)
+    @assert length(cellsign) == ncells
+    @assert size(equads) == (2,ncells)
 
     for idx in 1:ncells
-        if isactivecell[1,idx] && !isactivecell[2,idx]
+        s = cellsign[idx]
+        if s == +1
             equads[1,idx] = tpq
-        elseif !isactivecell[1,idx] && isactivecell[2,idx]
+        elseif s == -1
             equads[2,idx] = tpq
-        elseif isactivecell[1,idx] && isactivecell[2,idx]
-
+        elseif s == 0
             update!(poly,coeffs[:,idx])
-
             equads[1,idx] = quadrature(poly,+1,false,box,quad1d)
             equads[2,idx] = quadrature(poly,-1,false,box,quad1d)
-
+        else
+            throw(ArgumentError("Expected `cellsign[idx] ∈ {-1,0,+1}`,
+                got `cellsign[$idx] == $s`"))
         end
     end
 end
 
-function element_quadratures!(equads,isactivecell,coeffs,poly,quad1d)
+function element_quadratures!(equads,cellsign,coeffs,poly,quad1d)
 
     nf,ncells = size(coeffs)
-    @assert size(isactivecell) == (2,ncells)
+    @assert length(cellsign) == ncells
+    @assert size(equads) == (2,ncells)
 
     dim = dimension(poly)
     box = reference_cell(dim)
 
     tpq = tensor_product(quad1d,box)
 
-    element_quadratures!(equads,isactivecell,coeffs,poly,tpq,quad1d)
+    element_quadratures!(equads,cellsign,coeffs,poly,tpq,box,quad1d)
 end
 
-function element_quadratures(isactivecell,coeffs,poly,quad1d)
+function element_quadratures(cellsign,coeffs,poly,quad1d)
     dim = dimension(poly)
-    equads = similar(isactivecell,QuadratureRule{dim})
-    element_quadratures!(equads,isactivecell,coeffs,poly,quad1d)
+    ncells = length(cellsign)
+    equads = Array{QuadratureRule{dim}}(undef,2,ncells)
+    element_quadratures!(equads,cellsign,coeffs,poly,quad1d)
     return equads
 end
 
