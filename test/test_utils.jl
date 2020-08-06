@@ -4,7 +4,7 @@ using IntervalArithmetic
 using PolynomialBasis
 using ImplicitDomainQuadrature
 using CartesianMesh
-using Revise
+# using Revise
 using HDGElasticity
 
 HDGE = HDGElasticity

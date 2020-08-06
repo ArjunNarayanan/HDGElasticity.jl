@@ -69,7 +69,7 @@ function element_face_intersections(poly,cell::IntervalBox{2})
 end
 
 
-function gradient_descent_to_zero!(P,∇P,x,atol,maxiter)
+function gradient_descent_to_zero!(x,P,∇P,atol,maxiter)
     @assert atol > 0.0
     @assert maxiter > 0
 
@@ -87,8 +87,8 @@ function gradient_descent_to_zero!(P,∇P,x,atol,maxiter)
     end
 end
 
-function gradient_descent_to_zero!(P::InterpolatingPolynomial,x,atol,maxiter)
-    gradient_descent_to_zero!(P,x->gradient(P,x),x,atol,maxiter)
+function gradient_descent_to_zero!(x,P::InterpolatingPolynomial,atol,maxiter)
+    gradient_descent_to_zero!(x,P,x->gradient(P,x),atol,maxiter)
 end
 
 function resolve_zero_levelset(poly,refpoints,xL,xR;atol=1e-12,maxiter=50)
@@ -101,7 +101,7 @@ function resolve_zero_levelset(poly,refpoints,xL,xR;atol=1e-12,maxiter=50)
 
     for (idx,p) in enumerate(refpoints)
         x = xL + 0.5*(1.0+p)*dx
-        gradient_descent_to_zero!(poly,x,atol,maxiter)
+        gradient_descent_to_zero!(x,poly,atol,maxiter)
         points[:,idx] = x
     end
     return points

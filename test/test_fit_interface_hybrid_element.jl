@@ -87,7 +87,7 @@ testx2 = [-1.0,1.0]
 @test allapprox(x2,testx2)
 
 x = [1.0,1.0]
-HDGElasticity.gradient_descent_to_zero!(poly,x,1e-3,50)
+HDGElasticity.gradient_descent_to_zero!(x,poly,1e-3,50)
 @test allapprox(x,[0.0,0.0])
 
 
@@ -115,7 +115,7 @@ coeffs = reshape(circle_distance_function(coords,xc,radius),NF,:)
 update!(poly,coeffs[:,1])
 
 x = [1.0,0.0]
-HDGElasticity.gradient_descent_to_zero!(poly,x,1e-15,50)
+HDGElasticity.gradient_descent_to_zero!(x,poly,1e-15,50)
 testx = [-0.4,0.0]
 @test allapprox(testx,x)
 
@@ -128,7 +128,7 @@ coeffs = reshape(distance_function(coords,xc),NF,:)
 update!(poly,coeffs[:,1])
 quad1d = tensor_product_quadrature(1,2)
 basis1d = TensorProductBasis(1,1)
-mass = HDGElasticity.mass_matrix(basis1d,quad1d,2,1.)
+mass = HDGElasticity.mass_matrix(basis1d,quad1d,1.,2)
 coeffs1d = HDGElasticity.fit_zero_levelset(poly,basis1d,quad1d,mass,cell)
 poly1d = InterpolatingPolynomial(2,basis1d)
 update!(poly1d,coeffs1d)
