@@ -1,16 +1,16 @@
 struct DGMesh{dim,T}
     domain::Vector{IntervalBox{dim,T}}
-    connectivity::Matrix{Tuple{Int,Int}}
+    connectivity::Vector{Vector{Tuple{Int,Int}}}
     cellsign::Vector{Int}
     function DGMesh(domain::Vector{IntervalBox{dim,T}},
-        connectivity::Matrix{Tuple{Int,Int}},
+        connectivity::Vector{Vector{Tuple{Int,Int}}},
         cellsign::Vector{Int}) where
         {dim,T}
 
         @assert dim == 2
 
         ncells = length(domain)
-        @assert size(connectivity) == (4,ncells)
+        @assert length(connectivity) == ncells
         @assert length(cellsign) == ncells
 
         new{dim,T}(domain,connectivity,cellsign)
@@ -39,13 +39,13 @@ end
 function cell_connectivity(mesh)
     nfaces = faces_per_cell(mesh)
     ncells = number_of_elements(mesh)
-    connectivity = Matrix{Tuple{Int,Int}}(undef,nfaces,ncells)
+    connectivity = [Vector{Tuple{Int,Int}}(undef,nfaces) for i = 1:ncells]
 
     for cellid in 1:ncells
         nbrcellids = neighbors(mesh,cellid)
         nbrfaceids = [nc == 0 ? 0 : neighbor_faceid(faceid) for (faceid,nc) in enumerate(nbrcellids)]
         nbrcellandface = collect(zip(nbrcellids,nbrfaceids))
-        connectivity[:,cellid] .= nbrcellandface
+        connectivity[cellid][:] .= nbrcellandface
     end
     return connectivity
 end

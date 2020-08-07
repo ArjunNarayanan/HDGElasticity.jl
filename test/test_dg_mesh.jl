@@ -27,11 +27,9 @@ testdomain = [IntervalBox(0..1,0..1),IntervalBox(1..2,0..1)]
 @test allequal(domain,testdomain)
 
 connectivity = HDGElasticity.cell_connectivity(mesh)
-testconn = [(0,0)  (0,0)
-            (2,4)  (0,0)
-            (0,0)  (0,0)
-            (0,0)  (1,2)]
-@test allequal(connectivity,testconn)
+testconn = [[(0,0),(2,4),(0,0),(0,0)],
+            [(0,0),(0,0),(0,0),(1,2)]]
+@test all([allequal(connectivity[i],testconn[i]) for i = 1:2])
 
 basis = TensorProductBasis(2,1)
 poly = InterpolatingPolynomial(1,basis)
@@ -45,12 +43,12 @@ testcellsign = [0,1]
 
 dgmesh = HDGElasticity.DGMesh(domain,connectivity,cellsign)
 @test allequal(dgmesh.domain,domain)
-@test allequal(dgmesh.connectivity,connectivity)
+@test all([allequal(dgmesh.connectivity[i],connectivity[i]) for i = 1:2])
 @test allequal(dgmesh.cellsign,cellsign)
 
 dgmesh = HDGElasticity.DGMesh(mesh,coeffs,poly)
 @test allequal(dgmesh.domain,domain)
-@test allequal(dgmesh.connectivity,connectivity)
+@test all([allequal(dgmesh.connectivity[i],connectivity[i]) for i = 1:2])
 @test allequal(dgmesh.cellsign,cellsign)
 
 # isactiveface = HDGElasticity.active_faces(isactivecell,coeffs,poly)

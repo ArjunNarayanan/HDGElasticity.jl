@@ -85,3 +85,17 @@ map = HDGElasticity.CellMap(IntervalBox(0..2,1..2))
 @test allapprox(map.xiR,[1.,1.])
 @test allapprox(map.xL,[0.,1.])
 @test allapprox(map.xR,[2.,2.])
+
+
+fmaps = HDGElasticity.reference_cell_facemaps(2)
+@test allapprox(fmaps[1](-1.0),[-1.,-1.])
+@test allapprox(fmaps[1](+1.0),[+1.,-1.])
+
+@test allapprox(fmaps[2](-1.0),[+1.,-1.])
+@test allapprox(fmaps[2](+1.0),[+1.,+1.])
+
+@test allapprox(fmaps[3](-1.0),[-1.,+1.])
+@test allapprox(fmaps[3](+1.0),[+1.,+1.])
+
+@test allapprox(fmaps[4](-1.0),[-1.,-1.])
+@test allapprox(fmaps[4](+1.0),[-1.,+1.])

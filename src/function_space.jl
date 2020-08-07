@@ -125,43 +125,62 @@ function element_quadratures(cellsign,coeffs,poly,quad1d)
     return equads
 end
 
-function update_face_quadrature!(facequads,isactiveface,visited,
-    funcs,sign_condition,phase,cellidx,face::IntervalBox{1},quad1d)
+# function update_face_quadrature!(facequads,isactiveface,visited,
+#     funcs,sign_condition,phase,cellidx,face::IntervalBox{1},quad1d)
+#
+#     for (faceid,func) in enumerate(funcs)
+#         if isactiveface[faceid,phase,cellidx] && !visited[faceid,phase,cellidx]
+#             tempquad = quadrature([funcs[faceid]],[sign_condition],
+#                 face[1].lo,face[1].hi,quad1d)
+#             quad = QuadratureRule(tempquad.points,tempquad.weights)
+#             facequads[faceid,phase,cellidx] = quad
+#             visited[faceid,phase,cellidx] = true
+#         end
+#     end
+# end
 
-    for (faceid,func) in enumerate(funcs)
-        if isactiveface[faceid,phase,cellidx] && !visited[faceid,phase,cellidx]
-            tempquad = quadrature([funcs[faceid]],[sign_condition],
-                face[1].lo,face[1].hi,quad1d)
-            quad = QuadratureRule(tempquad.points,tempquad.weights)
-            facequads[faceid,phase,cellidx] = quad
-            visited[faceid,phase,cellidx] = true
+function update_face_quadratures!(facequads,levelset,facemaps,visited,
+    sign_condition,quad1d)
+
+    nfaces = length(facequads)
+    @assert length(facemaps) == nfaces
+    for faceid in 1:nfaces
+        if !visited[faceid]
+            fmap = facemaps[faceid]
+            xiL,xiR = reference_interval(fmap)
+            quad = QuadratureRule(quadrature([x->levelset(fmap(x))],
+                [sign_condition],xiL,xiR,quad1d))
+            facequads[faceid] = quad
+            visited[faceid] = true
         end
     end
-
 end
 
-function update_neighbor_face_quadrature!(facequads,isactiveface,visited,
+function update_neighbor_face_quadratures!(facequads,visited,
     phase,cellid,connectivity,nfaces)
 
     for faceid in 1:nfaces
-        nbrcellid,nbrfaceid = connectivity[faceid,cellid]
+        nbrcellid,nbrfaceid = connectivity[cellid][faceid]
         if nbrcellid != 0
-            if isactiveface[nbrfaceid,phase,nbrcellid] && !visited[nbrfaceid,phase,nbrcellid]
-                facequads[nbrfaceid,phase,nbrcellid] = facequads[faceid,phase,cellid]
-                visited[nbrfaceid,phase,nbrcellid] = true
+            if !visited[phase,nbrcellid][nbrfaceid]
+                facequads[phase,nbrcellid][nbrfaceid] = facequads[phase,cellid][faceid]
+                visited[phase,nbrcellid][nbrfaceid] = true
             end
         end
     end
 
 end
 
-function face_quadratures!(facequads,isactivecell,isactiveface,connectivity,
-    coeffs,poly,quad1d)
+function face_quadratures!(facequads,levelset,coeffs,facemaps,connectivity,
+    quad1d)
 
-    nphase,ncells = size(isactivecell)
-    nfaces,_nphase,_ncells = size(isactiveface)
-    @assert nphase == _nphase
-    @assert ncells == _ncells
+    nf,ncells = size(coeffs)
+    @assert length(facemaps) == ncells
+    @assert size(connectivity)[2] == ncells
+    @assert size(facequads) == (2,ncells)
+
+    @assert all([length(facequads[1,i]) == length(facemaps[i]) for i = 1:ncells])
+    @assert all([length(facequads[2,i]) == length(facemaps[i]) for i = 1:ncells])
 
     dim = dimension(poly)
     cell = reference_cell(dim)

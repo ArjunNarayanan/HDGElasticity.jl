@@ -43,6 +43,10 @@ function dimension(M::LineMap{dim}) where {dim}
     return dim
 end
 
+function reference_interval(M::LineMap)
+    return (M.xiL,M.xiR)
+end
+
 # function update!(M::LineMap,xL,xR)
 #     dim = dimension(M)
 #     @assert length(xL) == dim
@@ -162,4 +166,14 @@ end
 
 function determinant_jacobian(C::CellMap)
     return prod(jacobian(C))
+end
+
+function reference_cell_facemaps(dim)
+    @assert dim == 2
+    xL,xR = reference_interval(dim)
+    m1 = LineMap([xL[1],xL[2]],[xR[1],xL[2]])
+    m2 = LineMap([xR[1],xL[2]],[xR[1],xR[2]])
+    m3 = LineMap([xL[1],xR[2]],[xR[1],xR[2]])
+    m4 = LineMap([xL[1],xL[2]],[xL[1],xR[2]])
+    return [m1,m2,m3,m4]
 end
