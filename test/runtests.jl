@@ -19,14 +19,14 @@ end
 @safetestset "Test Interface Fitting" begin
     include("test_fit_interface_hybrid_element.jl")
 end
-#
-# @safetestset "Test Function Space Construction" begin
-#     include("test_function_space.jl")
-# end
-#
-# @safetestset "Test Isotropic Hooke Matrix" begin
-#     include("test_isotropic_elasticity.jl")
-# end
+
+@safetestset "Test Function Space Construction" begin
+    include("test_function_space.jl")
+end
+
+@safetestset "Test Isotropic Hooke Matrix" begin
+    include("test_isotropic_elasticity.jl")
+end
 #
 # @safetestset "Test Local Operator" begin
 #     include("test_local_operator.jl")
