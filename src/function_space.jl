@@ -1,83 +1,85 @@
-struct UniformFunctionSpace{vdim,sdim,T}
+struct UniformFunctionSpace{vdim,sdim}
     vbasis::TensorProductBasis{vdim}
     sbasis::TensorProductBasis{sdim}
     vtpq::QuadratureRule{vdim}
     ftpq::QuadratureRule{sdim}
-    vquads::Matrix{QuadratureRule{vdim}}
-    fquads::Array{QuadratureRule{sdim},3}
-    icoeffs::Matrix{T}
-    iquad::QuadratureRule{sdim}
-    imap::InterpolatingPolynomial{vdim}
-    inormals::Array{T,3}
+    vquads
+    fquads
+    facemaps
+    icoeffs
+    iquad
+    imap
+    inormals
     function UniformFunctionSpace(vbasis::TensorProductBasis{vdim},
-        sbasis::TensorProductBasis{sdim},
-        vtpq::QuadratureRule{vdim},ftpq::QuadratureRule{sdim},
-        vquads::Matrix{QuadratureRule{vdim}},
-        fquads::Array{QuadratureRule{sdim},3},icoeffs::Matrix{T},
-        iquad::QuadratureRule{sdim},
-        imap::InterpolatingPolynomial{vdim},
-        inormals::Array{T,3}) where {vdim,sdim,NQ,T}
+        sbasis::TensorProductBasis{sdim},vtpq,ftpq,vquads,fquads,facemaps,
+        icoeffs,iquad,imap,inormals) where {vdim,sdim}
 
             @assert sdim == vdim-1
-            ndofs,ncells = size(icoeffs)
+            nphase,ncells = size(vquads)
 
-            @assert size(vquads) == (2,ncells)
+            @assert length(icoeffs) == ncells
+            @assert size(fquads) == (nphase,ncells)
             nfaces = number_of_faces(vdim)
-            @assert size(fquads) == (nfaces,2,ncells)
+            @assert all(length.(fquads) .== nfaces)
+            @assert all(length.(facemaps) .== nfaces)
 
-            nf = number_of_basis_functions(vbasis.basis)
-            @assert number_of_basis_functions(sbasis.basis) == nf
-
-
-            return new{vdim,sdim,T}(vbasis,sbasis,vtpq,ftpq,vquads,
-                fquads,icoeffs,iquad,imap,inormals)
+            return new{vdim,sdim}(vbasis,sbasis,vtpq,ftpq,vquads,
+                fquads,facemaps,icoeffs,iquad,imap,inormals)
 
         end
 end
 
-function interface_normals(isactivecell,icoeffs,imap,lcoeffs,lpoly,
-    refpoints,cellmap)
+function UniformFunctionSpace(dgmesh,polyorder,quadorder,coeffs,levelset,
+    facemaps)
+
+    vdim = dimension(dgmesh)
+    sdim = vdim-1
+
+    vbasis = TensorProductBasis(vdim,polyorder)
+    sbasis = TensorProductBasis(sdim,polyorder)
+
+    quad1d = ImplicitDomainQuadrature.ReferenceQuadratureRule(quadorder)
+    vtpq = tensor_product(quad1d,reference_cell(vdim))
+    ftpq = tensor_product(quad1d,reference_cell(sdim))
+
+    iquad = ftpq
+    imap = InterpolatingPolynomial(vdim,sbasis)
+
+    vquads = element_quadratures(dgmesh.cellsign,coeffs,levelset,quad1d)
+    fquads = face_quadratures(dgmesh.cellsign,coeffs,levelset,facemaps,quad1d)
+
+    icoeffs = interface_coefficients(dgmesh.cellsign,coeffs,levelset,
+        sbasis,iquad)
+    inormals = interface_normals(dgmesh,icoeffs,imap,coeffs,levelset,
+        iquad.points)
+
+    return UniformFunctionSpace(vbasis,sbasis,vtpq,ftpq,vquads,fquads,facemaps,
+        icoeffs,iquad,imap,inormals)
+end
+
+function interface_normals(dgmesh,icoeffs,imap,lcoeffs,levelset,
+    refpoints)
 
     sdim,nqp = size(refpoints)
     dim = sdim+1
-    ncells = size(isactivecell)[2]
-    inormals = zeros(dim,nqp,ncells)
+
+    cellsign = dgmesh.cellsign
+
+    ncells = length(cellsign)
+    ft = default_float_type()
+    inormals = Vector{Matrix{ft}}(undef,ncells)
 
     for cellid in 1:ncells
-        if isactivecell[1,cellid] && isactivecell[2,cellid]
-            update!(lpoly,lcoeffs[:,cellid])
-            update!(imap,icoeffs[:,cellid])
+        if cellsign[cellid] == 0
+            update!(levelset,lcoeffs[:,cellid])
+            update!(imap,icoeffs[cellid])
+            cellmap = CellMap(dgmesh.domain[cellid])
 
             mappedpoints = hcat([imap(refpoints[:,i]) for i in 1:size(refpoints)[2]]...)
-            inormals[:,:,cellid] = levelset_normal(lpoly,mappedpoints,cellmap)
+            inormals[cellid] = levelset_normal(levelset,mappedpoints,cellmap)
         end
     end
     return inormals
-end
-
-function UniformFunctionSpace(dgmesh::DGMesh{vdim},polyorder,nquad,
-    coeffs,poly) where {vdim}
-
-    sdim = vdim-1
-
-    cellmap = CellMap(dgmesh.domain[1])
-    vbasis = TensorProductBasis(vdim,polyorder)
-    sbasis = TensorProductBasis(sdim,polyorder)
-    quad1d = ImplicitDomainQuadrature.ReferenceQuadratureRule(nquad)
-    ftpq = tensor_product_quadrature(sdim,nquad)
-    vtpq = tensor_product_quadrature(vdim,nquad)
-    imap = InterpolatingPolynomial(vdim,sbasis)
-
-    vquads = element_quadratures(dgmesh.isactivecell,coeffs,poly,quad1d)
-    fquads = face_quadratures(dgmesh.isactivecell,dgmesh.isactiveface,
-        dgmesh.connectivity,coeffs,poly,quad1d)
-    icoeffs = interface_coefficients(dgmesh.isactivecell,coeffs,poly,sbasis,ftpq)
-    inormals = interface_normals(dgmesh.isactivecell,icoeffs,imap,coeffs,poly,
-        ftpq.points,cellmap)
-
-    return UniformFunctionSpace(vbasis,sbasis,vtpq,ftpq,vquads,fquads,
-        icoeffs,ftpq,imap,inormals)
-
 end
 
 function element_quadratures!(equads,cellsign,coeffs,poly,tpq,box,quad1d)
@@ -125,143 +127,107 @@ function element_quadratures(cellsign,coeffs,poly,quad1d)
     return equads
 end
 
-# function update_face_quadrature!(facequads,isactiveface,visited,
-#     funcs,sign_condition,phase,cellidx,face::IntervalBox{1},quad1d)
-#
-#     for (faceid,func) in enumerate(funcs)
-#         if isactiveface[faceid,phase,cellidx] && !visited[faceid,phase,cellidx]
-#             tempquad = quadrature([funcs[faceid]],[sign_condition],
-#                 face[1].lo,face[1].hi,quad1d)
-#             quad = QuadratureRule(tempquad.points,tempquad.weights)
-#             facequads[faceid,phase,cellidx] = quad
-#             visited[faceid,phase,cellidx] = true
-#         end
-#     end
-# end
-
-function update_face_quadratures!(facequads,levelset,facemaps,visited,
+function update_face_quadratures!(facequads,levelset,facemaps,
     sign_condition,quad1d)
 
     nfaces = length(facequads)
     @assert length(facemaps) == nfaces
     for faceid in 1:nfaces
-        if !visited[faceid]
-            fmap = facemaps[faceid]
-            xiL,xiR = reference_interval(fmap)
-            quad = QuadratureRule(quadrature([x->levelset(fmap(x))],
-                [sign_condition],xiL,xiR,quad1d))
-            facequads[faceid] = quad
-            visited[faceid] = true
-        end
+        fmap = facemaps[faceid]
+        xiL,xiR = reference_interval(fmap)
+        quad = QuadratureRule(quadrature([x->levelset(fmap(x))],
+            [sign_condition],xiL,xiR,quad1d))
+        facequads[faceid] = quad
     end
 end
 
-function update_neighbor_face_quadratures!(facequads,visited,
-    phase,cellid,connectivity,nfaces)
-
-    for faceid in 1:nfaces
-        nbrcellid,nbrfaceid = connectivity[cellid][faceid]
-        if nbrcellid != 0
-            if !visited[phase,nbrcellid][nbrfaceid]
-                facequads[phase,nbrcellid][nbrfaceid] = facequads[phase,cellid][faceid]
-                visited[phase,nbrcellid][nbrfaceid] = true
-            end
-        end
+function assign_all(array,value,ncells)
+    for i = 1:ncells
+        array[i] = value
     end
-
 end
 
-function face_quadratures!(facequads,levelset,coeffs,facemaps,connectivity,
+function face_quadratures!(facequads,cellsign,coeffs,levelset,facemaps,
     quad1d)
 
     nf,ncells = size(coeffs)
     @assert length(facemaps) == ncells
-    @assert size(connectivity)[2] == ncells
     @assert size(facequads) == (2,ncells)
 
-    @assert all([length(facequads[1,i]) == length(facemaps[i]) for i = 1:ncells])
-    @assert all([length(facequads[2,i]) == length(facemaps[i]) for i = 1:ncells])
+    nfaces = [length(fm) for fm in facemaps]
 
-    dim = dimension(poly)
-    cell = reference_cell(dim)
-    face = reference_cell(dim-1)
+    @assert all([length(facequads[1,i]) == nfaces[i] for i = 1:ncells])
+    @assert all([length(facequads[2,i]) == nfaces[i] for i = 1:ncells])
 
-    tpq = tensor_product(quad1d,face)
+    dim = dimension(levelset)
+    reference_face = reference_cell(dim-1)
 
-    visited = similar(isactiveface)
-    fill!(visited,false)
+    tpq = tensor_product(quad1d,reference_face)
 
     for cellid in 1:ncells
-        if isactivecell[1,cellid] && !isactivecell[2,cellid]
-            for faceid = 1:nfaces
-                facequads[faceid,1,cellid] = tpq
-            end
-        elseif !isactivecell[2,cellid] && isactivecell[2,cellid]
-            for faceid = 1:nfaces
-                facequads[faceid,2,cellid] = tpq
-            end
-        elseif isactivecell[1,cellid] && isactivecell[2,cellid]
+        if cellsign[cellid] == +1
+            assign_all(facequads[1,cellid],tpq,nfaces[cellid])
+        elseif cellsign[cellid] == -1
+            assign_all(facequads[2,cellid],tpq,nfaces[cellid])
+        elseif cellsign[cellid] == 0
 
-            update!(poly,coeffs[:,cellid])
-            funcs = restrict_on_faces(poly,cell)
+            update!(levelset,coeffs[:,cellid])
 
-            update_face_quadrature!(facequads,isactiveface,visited,
-                funcs,+1,1,cellid,face,quad1d)
-            update_face_quadrature!(facequads,isactiveface,visited,
-                funcs,-1,2,cellid,face,quad1d)
-
-            update_neighbor_face_quadrature!(facequads,isactiveface,visited,1,
-                cellid,connectivity,nfaces)
-            update_neighbor_face_quadrature!(facequads,isactiveface,visited,2,
-                cellid,connectivity,nfaces)
+            update_face_quadratures!(facequads[1,cellid],levelset,
+                facemaps[cellid],+1,quad1d)
+            update_face_quadratures!(facequads[2,cellid],levelset,
+                facemaps[cellid],-1,quad1d)
 
         end
     end
 
 end
 
-function face_quadratures(isactivecell,isactiveface,connectivity,coeffs,
-    poly,quad1d)
+function face_quadratures(cellsign,coeffs,levelset,facemaps,quad1d)
 
-    dim = dimension(poly)
+    nfuncs,ncells = size(coeffs)
+    @assert length(cellsign) == ncells
+    @assert length(facemaps) == ncells
+
+    nfaces = repeat([length(fm) for fm in facemaps],inner=(2,))
+
+    dim = dimension(levelset)
     facedim = dim-1
-    facequads = similar(isactiveface,QuadratureRule{facedim})
-    face_quadratures!(facequads,isactivecell,isactiveface,connectivity,
-        coeffs,poly,quad1d)
+    facequads = reshape([Vector{QuadratureRule{facedim}}(undef,nf) for nf in nfaces],2,:)
+    face_quadratures!(facequads,cellsign,coeffs,levelset,facemaps,quad1d)
     return facequads
 
 end
 
-function interface_coefficients!(icoeffs,isactivecell,coeffs,poly,basis,quad)
+function interface_coefficients!(icoeffs,cellsign,coeffs,levelset,basis,quad)
 
-    dim = dimension(poly)
+    dim = dimension(levelset)
 
     sdim = dimension(basis)
     @assert sdim == dim-1
     @assert dimension(quad) == sdim
 
-    nphase,ncells = size(isactivecell)
-    @assert nphase == 2
+    ncells = length(cellsign)
     nf = number_of_basis_functions(basis)
-    @assert size(icoeffs) == (dim*nf,ncells)
 
     cell = reference_cell(dim)
-    mass = lu(mass_matrix(basis,quad,dim,1.0))
+    mass = lu(mass_matrix(basis,quad,1.0,dim))
 
     for cellid in 1:ncells
-        if isactivecell[1,cellid] && isactivecell[2,cellid]
-            update!(poly,coeffs[:,cellid])
-            icoeffs[:,cellid] = fit_zero_levelset(poly,basis,quad,mass,cell)
+        if cellsign[cellid] == 0
+            update!(levelset,coeffs[:,cellid])
+            icoeffs[cellid] = fit_zero_levelset(levelset,basis,quad,mass,cell)
         end
     end
 
 end
 
-function interface_coefficients(isactivecell,coeffs,poly,basis,quad)
+function interface_coefficients(cellsign,coeffs,levelset,basis,quad)
     nf = number_of_basis_functions(basis)
-    dim = dimension(poly)
-    ncells = size(isactivecell)[2]
-    icoeffs = zeros(dim*nf,ncells)
-    interface_coefficients!(icoeffs,isactivecell,coeffs,poly,basis,quad)
+    dim = dimension(levelset)
+    ncells = length(cellsign)
+    ft = default_float_type()
+    icoeffs = Vector{Vector{ft}}(undef,ncells)
+    interface_coefficients!(icoeffs,cellsign,coeffs,levelset,basis,quad)
     return icoeffs
 end
