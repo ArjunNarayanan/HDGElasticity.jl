@@ -18,6 +18,7 @@ struct UniformFunctionSpace{vdim,sdim}
             nphase,ncells = size(vquads)
 
             @assert length(icoeffs) == ncells
+            @assert length(facemaps) == ncells
             @assert size(fquads) == (nphase,ncells)
             nfaces = number_of_faces(vdim)
             @assert all(length.(fquads) .== nfaces)
@@ -68,12 +69,13 @@ function interface_normals(dgmesh,icoeffs,imap,lcoeffs,levelset,
     ncells = length(cellsign)
     ft = default_float_type()
     inormals = Vector{Matrix{ft}}(undef,ncells)
+    cellmap = CellMap(dim)
 
     for cellid in 1:ncells
         if cellsign[cellid] == 0
             update!(levelset,lcoeffs[:,cellid])
             update!(imap,icoeffs[cellid])
-            cellmap = CellMap(dgmesh.domain[cellid])
+            update_range!(cellmap,dgmesh.domain[cellid])
 
             mappedpoints = hcat([imap(refpoints[:,i]) for i in 1:size(refpoints)[2]]...)
             inormals[cellid] = levelset_normal(levelset,mappedpoints,cellmap)

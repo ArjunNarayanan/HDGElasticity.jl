@@ -26,91 +26,89 @@ function LLop(basis,quad)
     dim = dimension(basis)
     sdim = symmetric_tensor_dimension(dim)
 
-    return mass_matrix(basis,quad,sdim,-1.0)
+    return mass_matrix(basis,quad,-1.0,sdim)
 end
 
 function LLop(basis,quad,cellmap)
     return determinant_jacobian(cellmap)*LLop(basis,quad)
 end
 
-function LUop(basis,quad,Dhalf,cellmap,Ek)
+function LUop(basis,grad_basis,quad,ED,cellmap,NF)
 
-    NF = number_of_basis_functions(basis)
-    sdim,n = size(Dhalf)
-    @assert sdim == n
-    @assert length(Ek) > 0
+    @assert length(ED) > 0
 
-    dim = size(Ek[1])[2]
-    @assert all([size(E) == (sdim,dim) for E in Ek])
+    dim,sdim = size(ED[1])
+    @assert all([size(E) == (dim,sdim) for E in ED])
 
     ALU = zeros(sdim*NF,dim*NF)
     invjac = inverse_jacobian(cellmap)
     detjac = determinant_jacobian(cellmap)
 
-    for k = 1:length(Ek)
-        E = Ek[k]
-        ED = E'*Dhalf
-        for (p,w) in quad
-            dvals = invjac[k]*gradient(basis,k,p)
-            vals = basis(p)
-            Mk = make_row_matrix(dvals,ED)
+    for (p,w) in quad
+        vals = basis(p)
+        grads = grad_basis(p)
+        for k = 1:length(ED)
+            gradsk = invjac[k]*grads[:,k]
+            Mk = make_row_matrix(gradsk,ED[k])
             N = interpolation_matrix(vals,dim)
 
-            ALU += Mk'*N*detjac*w
+            ALU .+= Mk'*N*detjac*w
         end
     end
+
     return ALU
 end
 
 function LUop(basis,quad,Dhalf,cellmap)
     dim = dimension(basis)
+    NF = number_of_basis_functions(basis)
     Ek = vec_to_symm_mat_converter(dim)
-    return LUop(basis,quad,Dhalf,cellmap,Ek)
+    ED = [E'*Dhalf for E in Ek]
+    return LUop(basis,x->gradient(basis,x),quad,ED,cellmap,NF)
 end
 
-# function UUop(basis,facequads,isactiveface,cellmap,stabilization)
-#     dim = dimension(basis)
-#     return stabilization*mass_matrix_on_boundary(basis,facequads,
-#         isactiveface,dim,cellmap)
-# end
-
-function UUop(basis,facequad,cellmap,stabilization)
-
+function UUop(basis,facequads,facemaps,cellmap,stabilization)
     dim = dimension(basis)
-    return stabilization*mass_matrix_on_boundary(basis,facequad,dim,cellmap)
+    scale = face_determinant_jacobian(cellmap)
+    return stabilization*mass_matrix_on_boundary(basis,facequads,facemaps,
+        scale,dim)
 end
 
-function UUop(basis,facequads,isactiveface,iquad,normals,imap,
+function UUop(basis,facequads,facemaps,iquad,normals,imap,cellmap,
+    stabilization,ndofs,NF)
+
+    facescale = face_determinant_jacobian(cellmap)
+    iscale = scale_area(cellmap,normals)
+    return stabilization*mass_matrix_on_boundary(basis,facequads,facemaps,
+        facescale,iquad,imap,iscale,ndofs,NF)
+
+end
+
+function UUop(basis,facequads,facemaps,iquad,normals,imap,
     cellmap,stabilization)
 
     dim = dimension(basis)
-    return stabilization*mass_matrix_on_boundary(basis,facequads,isactiveface,
-        iquad,normals,imap,dim,cellmap)
+    nf = number_of_basis_functions(basis)
+
+    return UUop(basis,facequads,facemaps,iquad,normals,imap,cellmap,
+        stabilization,dim,nf)
 end
 
-function LocalOperator(basis,vquad,facequad,Dhalf,cellmap,stabilization)
+function LocalOperator(basis,vquad,facequad,facemaps,Dhalf,
+    cellmap,stabilization)
 
     LL = LLop(basis,vquad,cellmap)
     LU = LUop(basis,vquad,Dhalf,cellmap)
-    UU = UUop(basis,facequad,cellmap,stabilization)
+    UU = UUop(basis,facequad,facemaps,cellmap,stabilization)
     return LocalOperator(LL,LU,UU)
 end
 
-# function LocalOperator(basis,vquad,facequads,isactiveface,
-#         Dhalf,cellmap,stabilization)
-#
-#     LL = LLop(basis,vquad,cellmap)
-#     LU = LUop(basis,vquad,Dhalf,cellmap)
-#     UU = UUop(basis,facequads,isactiveface,cellmap,stabilization)
-#     return LocalOperator(LL,LU,UU)
-# end
-
-function LocalOperator(basis,vquad,facequads,isactiveface,iquad,normals,imap,
+function LocalOperator(basis,vquad,facequads,facemaps,iquad,normals,imap,
     Dhalf,cellmap,stabilization)
 
     LL = LLop(basis,vquad,cellmap)
     LU = LUop(basis,vquad,Dhalf,cellmap)
-    UU = UUop(basis,facequads,isactiveface,iquad,normals,imap,
+    UU = UUop(basis,facequads,facemaps,iquad,normals,imap,
         cellmap,stabilization)
     return LocalOperator(LL,LU,UU)
 end

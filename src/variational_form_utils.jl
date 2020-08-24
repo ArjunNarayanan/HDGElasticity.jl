@@ -98,21 +98,25 @@ function mass_matrix(basis,quad,scale,ndofs)
     return matrix
 end
 
-function mass_matrix_on_boundary(basis,facequads,facemaps,scale,ndofs)
+function mass_matrix_on_boundary(basis,facequads,facemaps,scale,ndofs,NF)
 
-    NF = number_of_basis_functions(basis)
     totaldofs = ndofs*NF
     matrix = zeros(totaldofs,totaldofs)
-
     update_mass_matrix_on_faces!(matrix,basis,facequads,facemaps,scale,ndofs)
 
     return matrix
 end
 
-function mass_matrix_on_boundary(basis,facequads,facemaps,facescale,
-    iquad,imap,iscale,ndofs)
 
-    nf = number_of_basis_functions(basis)
+function mass_matrix_on_boundary(basis,facequads,facemaps,scale,ndofs)
+
+    NF = number_of_basis_functions(basis)
+    return mass_matrix_on_boundary(basis,facequads,facemaps,scale,ndofs,NF)
+end
+
+function mass_matrix_on_boundary(basis,facequads,facemaps,facescale,
+    iquad,imap,iscale,ndofs,nf)
+
     totaldofs = ndofs*nf
     matrix = zeros(totaldofs,totaldofs)
 
@@ -123,6 +127,18 @@ function mass_matrix_on_boundary(basis,facequads,facemaps,facescale,
     return matrix
 
 end
+
+# 
+# function mass_matrix_on_boundary(basis,facequads,facemaps,facescale,
+#     iquad,imap,iscale,ndofs)
+#
+#     nf = number_of_basis_functions(basis)
+#     matrix = mass_matrix_on_boundary(basis,facequads,facemaps,facescale,
+#         iquad,imap,iscale,ndofs,nf)
+#
+#     return matrix
+#
+# end
 
 function linear_form(rhsvals::M,basis,quad) where {M<:AbstractMatrix}
     ndofs,nq = size(rhsvals)

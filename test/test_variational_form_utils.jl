@@ -90,13 +90,13 @@ rhs = HDGE.linear_form(vals,basis,quad)
 basis = TensorProductBasis(2,1)
 facequad = tensor_product_quadrature(1,2)
 
-map = InterpolatingPolynomial(2,1,1)
+imap = InterpolatingPolynomial(2,1,1)
 coeffs = [1.  1.
           -1. 1.]
-update!(map,coeffs)
+update!(imap,coeffs)
 N(x) = [(x[1]+1.)*(x[2]+1.)/4.]
 matrix = zeros(1,1)
-HDGElasticity.update_mass_matrix!(matrix,N,facequad,map,[1.,1.],1)
+HDGElasticity.update_mass_matrix!(matrix,N,facequad,imap,[1.,1.],1)
 @test allapprox(matrix,[2/3])
 
 N(x) = [(x[1]+1.)*(x[2]+1.)/4.]
@@ -185,5 +185,5 @@ iscale = HDGElasticity.scale_area(cellmap,normals)
 
 matrix = zeros(4,4)
 matrix = HDGElasticity.mass_matrix_on_boundary(basis,facequads,facemaps,[1.,1.],
-    iquad,imap,iscale,1)
+    iquad,imap,iscale,1,4)
 @test matrix[1] ≈ 14/12 + 4.7/16*sqrt(2)

@@ -133,19 +133,33 @@ function CellMap(xL,xR)
     return CellMap(xiL,xiR,xL,xR)
 end
 
+function CellMap(dim::Z) where {Z<:Integer}
+    xiL,xiR = reference_interval(dim)
+    return CellMap(xiL,xiR,xiL,xiR)
+end
+
 function dimension(C::CellMap{dim}) where {dim}
     return dim
 end
 
-# function update!(C::CellMap,xL,xR)
-#     dim = dimension(C)
-#     @assert length(xL) == dim
-#     @assert length(xR) == dim
-#
-#     C.xL .= xL
-#     C.xR .= xR
-#     C.slope .= linear_map_slope(C.xiL,C.xiR,C.xL,C.xR)
-# end
+function update_range!(C::CellMap,xL,xR)
+    dim = dimension(C)
+    @assert length(xL) == dim
+    @assert length(xR) == dim
+
+    C.xL .= xL
+    C.xR .= xR
+    C.slope .= linear_map_slope(C.xiL,C.xiR,C.xL,C.xR)
+end
+
+function update_range!(C::CellMap{2},box::IntervalBox{2})
+    C.xL[1] = box[1].lo
+    C.xL[2] = box[2].lo
+    C.xR[1] = box[1].hi
+    C.xR[2] = box[2].hi
+
+    C.slope .= linear_map_slope(C.xiL,C.xiR,C.xL,C.xR)
+end
 
 function (C::CellMap)(xi)
     return C.xL .+ C.slope .* (xi .- C.xiL)
