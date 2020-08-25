@@ -128,18 +128,6 @@ function mass_matrix_on_boundary(basis,facequads,facemaps,facescale,
 
 end
 
-# 
-# function mass_matrix_on_boundary(basis,facequads,facemaps,facescale,
-#     iquad,imap,iscale,ndofs)
-#
-#     nf = number_of_basis_functions(basis)
-#     matrix = mass_matrix_on_boundary(basis,facequads,facemaps,facescale,
-#         iquad,imap,iscale,ndofs,nf)
-#
-#     return matrix
-#
-# end
-
 function linear_form(rhsvals::M,basis,quad) where {M<:AbstractMatrix}
     ndofs,nq = size(rhsvals)
     @assert length(quad) == nq

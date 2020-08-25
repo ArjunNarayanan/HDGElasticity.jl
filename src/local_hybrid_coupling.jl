@@ -1,145 +1,113 @@
-function update_LHop!(LH,rvbasis,sbasis,squad,NkEkD,detjac,nhdofs)
+function LHop!(LH,vbasis,sbasis,quad,linemap::LineMap,NED,scale,nhdofs)
 
-    for (p,w) in squad
-        vals = rvbasis(p)
-        svals = sbasis(p)
+    detjac = determinant_jacobian(linemap)
+    for nk in NED
+        for (p,w) in quad
+            vals = vbasis(linemap(p...))
+            svals = sbasis(p)
 
-        Mk = make_row_matrix(vals,NkEkD)
-        N = interpolation_matrix(svals,nhdofs)
+            M = make_row_matrix(vals,nk)
+            N = interpolation_matrix(svals,nhdofs)
 
-        LH .+= Mk'*N*detjac*w
+            LH .+= M'*N*detjac*scale*w
+        end
     end
 end
 
-function update_LHop!(LH,vbasis,sbasis,squad,nk,EkD,imap,nhdofs,scale)
+function LHop!(LH,vbasis,sbasis,quad,imap::InterpolatingPolynomial,normals,
+    ED,scale,nhdofs)
 
-    @assert length(scale) == length(squad)
-    @assert length(nk) == length(squad)
-    for (idx,(p,w)) in enumerate(squad)
+    @assert length(scale) == length(quad)
+    @assert size(normals)[2] == length(quad)
+
+    for (idx,(p,w)) in enumerate(quad)
+        n = view(normals,:,idx)
         vals = vbasis(imap(p))
         svals = sbasis(p)
         detjac = determinant_jacobian(imap,p)
 
-        Mk = make_row_matrix(vals,EkD)
-        N = interpolation_matrix(svals,nhdofs)
+        for k in 1:length(ED)
+            NED = n[k]*ED[k]
 
-        LH .+= nk[idx]*Mk'*N*scale[idx]*detjac*w
-    end
+            M = make_row_matrix(vals,NED)
+            N = interpolation_matrix(svals,nhdofs)
 
-end
+            LH .+= M'*N*detjac*scale[idx]*w
 
-function LHop!(LH,rvbasis,sbasis,squad,normal,Dhalf,Ek,detjac,nldofs,nhdofs,NLF,NHF)
-
-    @assert size(Dhalf) == (nldofs,nldofs)
-    sdim = dimension(squad)
-    dim = sdim + 1
-    @assert length(normal) == dim
-    @assert length(Ek) == dim
-    @assert size(LH) == (nldofs*NLF,nhdofs*NHF)
-
-    for k = 1:dim
-        NkEkD = normal[k]*Ek[k]'*Dhalf
-        update_LHop!(LH,rvbasis,sbasis,squad,NkEkD,detjac,nhdofs)
-    end
-    return LH
-end
-
-function LHop(vbasis,sbasis,facequad,Dhalf,cellmap)
-
-    dim = dimension(vbasis)
-    sdim = symmetric_tensor_dimension(dim)
-    Ek = vec_to_symm_mat_converter(dim)
-    NF = number_of_basis_functions(vbasis)
-    NHF = number_of_basis_functions(sbasis)
-
-    cell = reference_cell(dim)
-    funcs = restrict_on_faces(vbasis,cell)
-    jac = jacobian(cellmap,cell)
-
-    normals = reference_normals()
-    nfaces = length(funcs)
-
-    LH = [zeros(sdim*NF,dim*NHF) for i = 1:nfaces]
-
-    for faceid in 1:nfaces
-        LHop!(LH[faceid],funcs[faceid],sbasis,facequad,
-            normals[faceid],Dhalf,Ek,jac[faceid],sdim,dim,NF,NHF)
-    end
-
-    return LH
-end
-
-function LHop_on_active_faces(vbasis,sbasis,facequads,isactiveface,Dhalf,cellmap)
-
-    dim = dimension(vbasis)
-    sdim = symmetric_tensor_dimension(dim)
-    Ek = vec_to_symm_mat_converter(dim)
-    NF = number_of_basis_functions(vbasis)
-    NHF = number_of_basis_functions(sbasis)
-
-    cell = reference_cell(dim)
-    funcs = restrict_on_faces(vbasis,cell)
-    jac = jacobian(cellmap,cell)
-
-    normals = reference_normals()
-    nfaces = length(funcs)
-
-    @assert length(facequads) == nfaces
-    @assert length(isactiveface) == nfaces
-
-    LH = [zeros(sdim*NF,dim*NHF) for i = 1:nfaces]
-
-    for faceid in 1:nfaces
-        if isactiveface[faceid]
-            LHop!(LH[faceid],funcs[faceid],sbasis,facequads[faceid],
-                normals[faceid],Dhalf,Ek,jac[faceid],sdim,dim,NF,NHF)
         end
     end
-
-    return LH
 end
 
-function LHop_on_interface(vbasis,sbasis,squad,normals,Dhalf,imap,cellmap)
+function LHop(vbasis,sbasis,facequads,facemaps,normals,Dhalf,cellmap)
+
+    nfaces = length(facemaps)
+    @assert length(normals) == nfaces
+    @assert length(facequads) == nfaces
 
     dim = dimension(vbasis)
     sdim = symmetric_tensor_dimension(dim)
-    nq = length(squad)
+    Ek = vec_to_symm_mat_converter(dim)
+
+    NLF = number_of_basis_functions(vbasis)
+    NHF = number_of_basis_functions(sbasis)
+
+    LH = [zeros(sdim*NLF,dim*NHF) for i = 1:nfaces]
+    facescale = face_determinant_jacobian(cellmap)
+
+    for faceid in 1:nfaces
+        if length(facequads[faceid]) > 0
+            n = normals[faceid]
+            NED = [n[k]*Ek[k]'*Dhalf for k in 1:length(Ek)]
+            LHop!(LH[faceid],vbasis,sbasis,facequads[faceid],facemaps[faceid],
+                NED,facescale[faceid],dim)
+        end
+    end
+    return LH
+end
+
+function LHop_on_interface(vbasis,sbasis,iquad,imap,normals,Dhalf,cellmap)
+
+    dim = dimension(vbasis)
+    sdim = symmetric_tensor_dimension(dim)
+    nq = length(iquad)
 
     @assert size(Dhalf) == (sdim,sdim)
     @assert size(normals) == (dim,nq)
 
     Ek = vec_to_symm_mat_converter(dim)
-    NF = number_of_basis_functions(vbasis)
+    NLF = number_of_basis_functions(vbasis)
     NHF = number_of_basis_functions(sbasis)
 
-    LH = zeros(sdim*NF,dim*NHF)
+    LH = zeros(sdim*NLF,dim*NHF)
     scale = scale_area(cellmap,normals)
 
-    for k = 1:dim
-        EkD = Ek[k]'*Dhalf
-        nk = normals[k,:]
-        update_LHop!(LH,vbasis,sbasis,squad,nk,EkD,imap,dim,scale)
-    end
+    ED = [E'*Dhalf for E in Ek]
+    LHop!(LH,vbasis,sbasis,iquad,imap,normals,ED,scale,dim)
 
     return LH
 end
 
-function UHop!(UH,rvbasis,sbasis,squad,stabilization,detjac,nudofs,NF,NHF)
-    for (p,w) in squad
-        vals = rvbasis(p)
+function UHop!(UH,vbasis,sbasis,quad,linemap::LineMap,
+    scale,nudofs)
+
+    detjac = determinant_jacobian(linemap)
+    for (p,w) in quad
+        vals = vbasis(linemap(p...))
         svals = sbasis(p)
 
         Nv = interpolation_matrix(vals,nudofs)
         Ns = interpolation_matrix(svals,nudofs)
 
-        UH .+= stabilization*Nv'*Ns*detjac*w
+        UH .+= Nv'*Ns*detjac*scale*w
     end
 end
 
-function UHop_on_interface!(UH,vbasis,sbasis,squad,stabilization,imap,
-        nudofs,NF,NHF,scale)
+function UHop!(UH,vbasis,sbasis,quad,imap::InterpolatingPolynomial,
+    scale,nudofs)
 
-    for (idx,(p,w)) in enumerate(squad)
+    @assert length(scale) == length(quad)
+
+    for (idx,(p,w)) in enumerate(quad)
         vals = vbasis(imap(p))
         svals = sbasis(p)
         detjac = determinant_jacobian(imap,p)
@@ -147,86 +115,57 @@ function UHop_on_interface!(UH,vbasis,sbasis,squad,stabilization,imap,
         Nv = interpolation_matrix(vals,nudofs)
         Ns = interpolation_matrix(svals,nudofs)
 
-        UH .+= stabilization*Nv'*Ns*detjac*scale[idx]*w
+        UH .+= Nv'*Ns*detjac*scale[idx]*w
     end
 end
 
-function UHop(vbasis,sbasis,facequad,cellmap,stabilization)
+function UHop(vbasis,sbasis,facequads,facemaps,stabilization,cellmap)
 
-    dim = dimension(vbasis)
-    sdim = dimension(sbasis)
-    @assert sdim == dim-1
-
-    NF = number_of_basis_functions(vbasis)
-    NHF = number_of_basis_functions(sbasis)
-
-    cell = reference_cell(dim)
-    funcs = restrict_on_faces(vbasis,cell)
-    jac = jacobian(cellmap,cell)
-
-    nfaces = length(funcs)
-
-    UH = [zeros(dim*NF,dim*NHF) for i = 1:nfaces]
-
-    for faceid in 1:nfaces
-        UHop!(UH[faceid],funcs[faceid],sbasis,facequad,
-            stabilization,jac[faceid],dim,NF,NHF)
-    end
-    return UH
-end
-
-function UHop_on_active_faces(vbasis,sbasis,facequads,isactiveface,
-    cellmap,stabilization)
-
-    dim = dimension(vbasis)
-    sdim = dimension(sbasis)
-    @assert sdim == dim-1
-
-    NF = number_of_basis_functions(vbasis)
-    NHF = number_of_basis_functions(sbasis)
-
-    cell = reference_cell(dim)
-    funcs = restrict_on_faces(vbasis,cell)
-    jac = jacobian(cellmap,cell)
-
-    nfaces = length(funcs)
-
+    nfaces = length(facemaps)
     @assert length(facequads) == nfaces
-    @assert length(isactiveface) == nfaces
 
-    UH = [zeros(dim*NF,dim*NHF) for i = 1:nfaces]
+    dim = dimension(vbasis)
+    sdim = dimension(sbasis)
+    @assert sdim == dim-1
+
+    NUF = number_of_basis_functions(vbasis)
+    NHF = number_of_basis_functions(sbasis)
+
+    facejac = face_determinant_jacobian(cellmap)
+    UH = [zeros(dim*NUF,dim*NHF) for i = 1:nfaces]
 
     for faceid in 1:nfaces
-        if isactiveface[faceid]
-            UHop!(UH[faceid],funcs[faceid],sbasis,facequads[faceid],
-                stabilization,jac[faceid],dim,NF,NHF)
+        if length(facequads[faceid]) > 0
+            UHop!(UH[faceid],vbasis,sbasis,facequads[faceid],facemaps[faceid],
+                stabilization*facejac[faceid],dim)
         end
     end
     return UH
 end
 
-function UHop_on_interface(vbasis,sbasis,squad,normals,imap,cellmap,stabilization)
+function UHop_on_interface(vbasis,sbasis,squad,imap,normals,
+    stabilization,cellmap)
 
     dim = dimension(vbasis)
     sdim = dimension(sbasis)
     @assert sdim == dim-1
 
-    NF = number_of_basis_functions(vbasis)
+    NUF = number_of_basis_functions(vbasis)
     NHF = number_of_basis_functions(sbasis)
 
-    UH = zeros(dim*NF,dim*NHF)
-    scale = scale_area(cellmap,normals)
+    UH = zeros(dim*NUF,dim*NHF)
+    scale = stabilization*scale_area(cellmap,normals)
 
-    UHop_on_interface!(UH,vbasis,sbasis,squad,stabilization,imap,dim,NF,NHF,scale)
+    UHop!(UH,vbasis,sbasis,squad,imap,scale,dim)
 
     return UH
 end
 
-function local_hybrid_operator(vbasis,sbasis,facequad,Dhalf,
-        cellmap,stabilization)
+function local_hybrid_operator(vbasis,sbasis,facequads,facemaps,normals,
+    Dhalf,stabilization,cellmap)
 
-    LH = LHop(vbasis,sbasis,facequad,Dhalf,cellmap)
-    UH = UHop(vbasis,sbasis,facequad,cellmap,stabilization)
+    LH = LHop(vbasis,sbasis,facequads,facemaps,normals,Dhalf,cellmap)
+    UH = UHop(vbasis,sbasis,facequads,facemaps,stabilization,cellmap)
 
     @assert length(LH) == length(UH)
 
@@ -234,24 +173,12 @@ function local_hybrid_operator(vbasis,sbasis,facequad,Dhalf,
 
 end
 
-function local_hybrid_operator_on_active_faces(vbasis,sbasis,facequads,
-    isactiveface,Dhalf,cellmap,stabilization)
+function local_hybrid_operator_on_interface(vbasis,sbasis,iquad,imap,normals,
+    Dhalf,stabilization,cellmap)
 
-    LH = LHop_on_active_faces(vbasis,sbasis,facequads,isactiveface,
-        Dhalf,cellmap)
-    UH = UHop_on_active_faces(vbasis,sbasis,facequads,isactiveface,
-        cellmap,stabilization)
-
-    @assert length(LH) == length(UH)
-
-    return [[LH[i];UH[i]] for i in 1:length(LH)]
-end
-
-function local_hybrid_operator_on_interface(vbasis,sbasis,squad,normals,Dhalf,
-    imap,cellmap,stabilization)
-
-    LH = LHop_on_interface(vbasis,sbasis,squad,normals,Dhalf,imap,cellmap)
-    UH = UHop_on_interface(vbasis,sbasis,squad,normals,imap,cellmap,stabilization)
+    LH = LHop_on_interface(vbasis,sbasis,iquad,imap,normals,Dhalf,cellmap)
+    UH = UHop_on_interface(vbasis,sbasis,iquad,imap,normals,
+        stabilization,cellmap)
 
     return [LH;UH]
 end
