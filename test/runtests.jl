@@ -31,11 +31,11 @@ end
 @safetestset "Test Local Operator" begin
     include("test_local_operator.jl")
 end
-#
-# @safetestset "Test Local Hybrid Operator" begin
-#     include("test_local_hybrid_coupling.jl")
-# end
-#
+
+@safetestset "Test Local Hybrid Operator" begin
+    include("test_local_hybrid_coupling.jl")
+end
+
 # @safetestset "Test Full Displacement BC on single element" begin
 #     include("test_full_displacement_bc_on_cells.jl")
 # end
@@ -43,7 +43,6 @@ end
 # @safetestset "Test Local Solver Initialization" begin
 #     include("test_local_solver.jl")
 # end
-
 #
 # @safetestset "Test Displacement Component BC" begin
 #     include("test_displacement_component_bc.jl")

@@ -3,7 +3,7 @@ using LinearAlgebra
 using PolynomialBasis
 using ImplicitDomainQuadrature
 using CartesianMesh
-using Revise
+# using Revise
 using HDGElasticity
 
 function allapprox(v1,v2)
@@ -90,13 +90,13 @@ UU = HDGElasticity.UUop(func,ufs.fquads[2,1],
 @test UU[1] ≈ 7/6+4.7/16*sqrt(2.)
 
 Dhalf = HDGElasticity.plane_strain_voigt_hooke_matrix(1.,2.,2)
-lop = HDGElasticity.LocalOperator(ufs.vbasis,ufs.vquads[1,1],
+lop = HDGElasticity.local_operator(ufs.vbasis,ufs.vquads[1,1],
     ufs.fquads[1,1],ufs.facemaps[1],Dhalf,cellmap,1.0)
-@test size(lop.local_operator) == (20,20)
-@test rank(lop.local_operator) == 20
+@test size(lop) == (20,20)
+@test rank(lop) == 20
 
 update!(ufs.imap,ufs.icoeffs[1])
-lop = HDGElasticity.LocalOperator(ufs.vbasis,ufs.vquads[1,1],ufs.fquads[1,1],
+lop = HDGElasticity.local_operator(ufs.vbasis,ufs.vquads[1,1],ufs.fquads[1,1],
     ufs.facemaps[1],ufs.iquad,ufs.inormals[1],ufs.imap,Dhalf,cellmap,1.0)
-@test size(lop.local_operator) == (20,20)
-@test rank(lop.local_operator) == 20
+@test size(lop) == (20,20)
+@test rank(lop) == 20
