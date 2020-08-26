@@ -187,3 +187,11 @@ matrix = zeros(4,4)
 matrix = HDGElasticity.mass_matrix_on_boundary(basis,facequads,facemaps,[1.,1.],
     iquad,imap,iscale,1,4)
 @test matrix[1] ≈ 14/12 + 4.7/16*sqrt(2)
+
+v = [0.0]
+quad = tensor_product_quadrature(2,2)
+rhsvals = ones(length(quad))'
+N(x) = [0.25*(1-x[1])*(1-x[2])]
+cellmap = HDGElasticity.CellMap([0.0,-1.0],[1.0,1.0])
+HDGElasticity.linear_form!(v,rhsvals,N,cellmap,quad)
+@test allapprox(v,[0.25])

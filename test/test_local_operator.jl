@@ -58,7 +58,7 @@ squad = tensor_product_quadrature(1,2)
 facequads = repeat([squad],4)
 facemaps = HDGElasticity.reference_cell_facemaps(2)
 cellmap = HDGElasticity.CellMap([-1.,-1.],[1.,1.])
-AUU = HDGElasticity.UUop(basis,facequads,facemaps,cellmap,4.0)
+AUU = HDGElasticity.UUop(basis,facequads,facemaps,4.0,cellmap)
 
 rows = [[4/3,1/3,1/3,0.0],[1/3,4/3,0.0,1/3],[1/3,0.0,4/3,1/3],[0.0,1/3,1/3,4/3]]
 AUUtest = 4.0*vcat([HDGElasticity.interpolation_matrix(r,2) for r in rows]...)
@@ -86,17 +86,17 @@ normals = reshape(1/sqrt(2)*ones(6),2,3)
 
 func(x) = [(1.0-x[1])*(1.0-x[2])/4.0]
 UU = HDGElasticity.UUop(func,ufs.fquads[2,1],
-    ufs.facemaps[1],ufs.iquad,normals,imap,cellmap,1.0,1,1)
+    ufs.facemaps[1],ufs.iquad,normals,imap,1.0,cellmap,1,1)
 @test UU[1] ≈ 7/6+4.7/16*sqrt(2.)
 
 Dhalf = HDGElasticity.plane_strain_voigt_hooke_matrix(1.,2.,2)
 lop = HDGElasticity.local_operator(ufs.vbasis,ufs.vquads[1,1],
-    ufs.fquads[1,1],ufs.facemaps[1],Dhalf,cellmap,1.0)
+    ufs.fquads[1,1],ufs.facemaps[1],Dhalf,1.0,cellmap)
 @test size(lop) == (20,20)
 @test rank(lop) == 20
 
 update!(ufs.imap,ufs.icoeffs[1])
 lop = HDGElasticity.local_operator(ufs.vbasis,ufs.vquads[1,1],ufs.fquads[1,1],
-    ufs.facemaps[1],ufs.iquad,ufs.inormals[1],ufs.imap,Dhalf,cellmap,1.0)
+    ufs.facemaps[1],ufs.iquad,ufs.inormals[1],ufs.imap,Dhalf,1.0,cellmap)
 @test size(lop) == (20,20)
 @test rank(lop) == 20

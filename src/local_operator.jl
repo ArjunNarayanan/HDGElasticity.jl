@@ -1,26 +1,3 @@
-# struct LocalOperator{T}
-#     LL::Matrix{T}
-#     LU::Matrix{T}
-#     UU::Matrix{T}
-#     local_operator::Matrix{T}
-#     lulop
-#     function LocalOperator(LL::Matrix{T},LU::Matrix{T},UU::Matrix{T}) where {T}
-#         llm,lln = size(LL)
-#         lum,lun = size(LU)
-#         uum,uun = size(UU)
-#         @assert llm == lln
-#         @assert uum == uun
-#         @assert llm == lum
-#         @assert lun == uum
-#
-#         lop = [LL   LU
-#                LU'  UU]
-#
-#         lulop = lu(lop)
-#         new{T}(LL,LU,UU,lop,lulop)
-#     end
-# end
-
 function LLop(basis,quad)
 
     dim = dimension(basis)
@@ -67,15 +44,15 @@ function LUop(basis,quad,Dhalf,cellmap)
     return LUop(basis,x->gradient(basis,x),quad,ED,cellmap,NF)
 end
 
-function UUop(basis,facequads,facemaps,cellmap,stabilization)
+function UUop(basis,facequads,facemaps,stabilization,cellmap)
     dim = dimension(basis)
     scale = face_determinant_jacobian(cellmap)
     return stabilization*mass_matrix_on_boundary(basis,facequads,facemaps,
         scale,dim)
 end
 
-function UUop(basis,facequads,facemaps,iquad,normals,imap,cellmap,
-    stabilization,ndofs,NF)
+function UUop(basis,facequads,facemaps,iquad,normals,imap,stabilization,
+    cellmap,ndofs,NF)
 
     facescale = face_determinant_jacobian(cellmap)
     iscale = scale_area(cellmap,normals)
@@ -85,13 +62,13 @@ function UUop(basis,facequads,facemaps,iquad,normals,imap,cellmap,
 end
 
 function UUop(basis,facequads,facemaps,iquad,normals,imap,
-    cellmap,stabilization)
+    stabilization,cellmap)
 
     dim = dimension(basis)
     nf = number_of_basis_functions(basis)
 
-    return UUop(basis,facequads,facemaps,iquad,normals,imap,cellmap,
-        stabilization,dim,nf)
+    return UUop(basis,facequads,facemaps,iquad,normals,imap,stabilization,
+        cellmap,dim,nf)
 end
 
 function local_operator(LL,LU,UU)
@@ -101,20 +78,20 @@ function local_operator(LL,LU,UU)
 end
 
 function local_operator(basis,vquad,facequad,facemaps,Dhalf,
-    cellmap,stabilization)
+    stabilization,cellmap)
 
     LL = LLop(basis,vquad,cellmap)
     LU = LUop(basis,vquad,Dhalf,cellmap)
-    UU = UUop(basis,facequad,facemaps,cellmap,stabilization)
+    UU = UUop(basis,facequad,facemaps,stabilization,cellmap)
     return local_operator(LL,LU,UU)
 end
 
 function local_operator(basis,vquad,facequads,facemaps,iquad,normals,imap,
-    Dhalf,cellmap,stabilization)
+    Dhalf,stabilization,cellmap)
 
     LL = LLop(basis,vquad,cellmap)
     LU = LUop(basis,vquad,Dhalf,cellmap)
     UU = UUop(basis,facequads,facemaps,iquad,normals,imap,
-        cellmap,stabilization)
+        stabilization,cellmap)
     return local_operator(LL,LU,UU)
 end

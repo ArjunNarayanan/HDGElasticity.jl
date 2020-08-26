@@ -36,9 +36,9 @@ end
     include("test_local_hybrid_coupling.jl")
 end
 
-# @safetestset "Test Full Displacement BC on single element" begin
-#     include("test_full_displacement_bc_on_cells.jl")
-# end
+@safetestset "Test Full Displacement BC on single element" begin
+    include("test_full_displacement_bc_on_cells.jl")
+end
 #
 # @safetestset "Test Local Solver Initialization" begin
 #     include("test_local_solver.jl")

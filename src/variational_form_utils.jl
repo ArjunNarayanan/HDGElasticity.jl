@@ -107,7 +107,6 @@ function mass_matrix_on_boundary(basis,facequads,facemaps,scale,ndofs,NF)
     return matrix
 end
 
-
 function mass_matrix_on_boundary(basis,facequads,facemaps,scale,ndofs)
 
     NF = number_of_basis_functions(basis)
@@ -126,6 +125,18 @@ function mass_matrix_on_boundary(basis,facequads,facemaps,facescale,
 
     return matrix
 
+end
+
+function linear_form!(vector,rhsvals,basis,cellmap,quad)
+    ndofs,nq = size(rhsvals)
+    @assert length(quad) == nq
+
+    detjac = determinant_jacobian(cellmap)
+    for (idx,(p,w)) in enumerate(quad)
+        vals = basis(cellmap(p))
+        N = interpolation_matrix(vals,ndofs)
+        vector .+= N'*rhsvals[:,idx]*detjac*w
+    end
 end
 
 function linear_form(rhsvals::M,basis,quad) where {M<:AbstractMatrix}
