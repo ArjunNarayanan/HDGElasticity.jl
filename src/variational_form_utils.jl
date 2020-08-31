@@ -90,12 +90,16 @@ function update_mass_matrix_on_faces!(matrix,basis,facequads,facemaps,
     end
 end
 
-function mass_matrix(basis,quad,scale,ndofs)
-    nf = number_of_basis_functions(basis)
+function mass_matrix(basis,quad,scale,ndofs,nf)
     nfndofs = nf*ndofs
     matrix = zeros(nfndofs,nfndofs)
     update_mass_matrix!(matrix,basis,quad,scale,ndofs)
     return matrix
+end
+
+function mass_matrix(basis,quad,scale,ndofs)
+    nf = number_of_basis_functions(basis)
+    mass_matrix(basis,quad,scale,ndofs,nf)
 end
 
 function mass_matrix_on_boundary(basis,facequads,facemaps,scale,ndofs,NF)

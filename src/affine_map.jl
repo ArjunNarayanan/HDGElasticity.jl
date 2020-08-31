@@ -182,6 +182,35 @@ function determinant_jacobian(C::CellMap)
     return prod(jacobian(C))
 end
 
+function ismergeable(b1,b2)
+    d1 = diam.(b1)
+    d2 = diam.(b2)
+
+    bi = intersect(b1,b2)
+    di = diam.(bi)
+
+    flag = findfirst(isnan.(di))
+    if !isnothing(flag)
+        return false
+    else
+        f1 = di .≈ d1
+        f2 = di .≈ d2
+        flag = all(f1 .== f2)
+        return flag
+    end
+end
+
+function merge_cells(c1::CellMap,c2::CellMap)
+    b1 = IntervalBox(c1.xL,c1.xR)
+    b2 = IntervalBox(c2.xL,c2.xR)
+
+    d = diam.(intersect(b1,b2))
+    @assert all([!isnan(i) for i in d])
+
+    b = union(b1,b2)
+    return CellMap(b)
+end
+
 function reference_cell_facemaps(dim)
     @assert dim == 2
     xL,xR = reference_interval(dim)

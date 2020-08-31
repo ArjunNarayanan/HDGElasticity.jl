@@ -1,7 +1,7 @@
 using Test
 using StaticArrays
 using IntervalArithmetic
-# using Revise
+using Revise
 using HDGElasticity
 
 function allapprox(v1,v2)
@@ -96,6 +96,22 @@ map = HDGElasticity.CellMap(IntervalBox(0..2,1..2))
 @test allapprox(map.xL,[0.,1.])
 @test allapprox(map.xR,[2.,2.])
 
+b1 = IntervalBox([0.0,0.0],[1.0,1.0])
+b2 = IntervalBox([1.0,0.0],[2.0,1.0])
+@test HDGElasticity.ismergeable(b1,b2)
+
+b2 = IntervalBox([1.1,0.0],[2.0,1.0])
+@test !HDGElasticity.ismergeable(b1,b2)
+
+b1 = IntervalBox([0.0,0.0],[1.0,1.0])
+b2 = IntervalBox([0.0,1.0],[1.0,2.0])
+@test HDGElasticity.ismergeable(b1,b2)
+
+b2 = IntervalBox([0,1.01],[1,2.01])
+@test !HDGElasticity.ismergeable(b1,b2)
+
+b2 = IntervalBox([1,0],[2,0.5])
+@test !HDGElasticity.ismergeable(b1,b2)
 
 fmaps = HDGElasticity.reference_cell_facemaps(2)
 @test allapprox(fmaps[1](-1.0),[-1.,-1.])
