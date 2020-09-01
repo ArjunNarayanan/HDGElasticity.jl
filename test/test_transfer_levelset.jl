@@ -50,17 +50,20 @@ testnewcoeffs = [0.0,0.0,2.0,2.0]
 
 quadratic(x,y) = x^2 + 2x*y
 
-cellmaps = [HDGElasticity.CellMap([0.0,0.0],[0.5,1.0]),
-            HDGElasticity.CellMap([0.5,0.0],[1.0,1.0])]
-merged_cell = 
+cellmaps = [HDGElasticity.CellMap([-1.0,-1.0],[0.0,1.0]),
+            HDGElasticity.CellMap([0.0,-1.0],[1.0,1.0])]
 
 levelset = InterpolatingPolynomial(1,2,2)
 basis = levelset.basis
 quad = tensor_product_quadrature(2,3)
+mass_matrix = HDGElasticity.mass_matrix(basis,quad,1.0,1)
 coords1 = cellmaps[1](basis.points)
 coords2 = cellmaps[2](basis.points)
 cf1 = [quadratic(coords1[:,i]...) for i = 1:9]
 cf2 = [quadratic(coords2[:,i]...) for i = 1:9]
-mass_matrix = HDGElasticity.mass_matrix(basis,quad,1.0,1)
 coeffs = [cf1 cf2]
-newcoeffs = transfer_levelset()
+newcoeffs = HDGElasticity.transfer_levelset(levelset,coeffs,cellmaps,basis,quad,mass_matrix)
+
+coords = basis.points
+testnewcoeffs = [quadratic(coords[:,i]...) for i = 1:9]
+@test allapprox(newcoeffs,testnewcoeffs,1e-14)

@@ -204,8 +204,7 @@ function merge_cells(c1::CellMap,c2::CellMap)
     b1 = IntervalBox(c1.xL,c1.xR)
     b2 = IntervalBox(c2.xL,c2.xR)
 
-    d = diam.(intersect(b1,b2))
-    @assert all([!isnan(i) for i in d])
+    @assert ismergeable(b1,b2)
 
     b = union(b1,b2)
     return CellMap(b)
