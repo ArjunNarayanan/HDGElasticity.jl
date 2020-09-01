@@ -25,31 +25,6 @@ function DGMesh(mesh::UniformMesh,coeffs,poly)
     return DGMesh(domain,connectivity,cellsign)
 end
 
-function cell_domain(mesh)
-    dim = dimension(mesh)
-    T = default_float_type()
-    domain = Vector{IntervalBox{dim,T}}(undef,mesh.total_number_of_elements)
-    for idx in 1:mesh.total_number_of_elements
-        xL,xR = CartesianMesh.element(mesh,idx)
-        domain[idx] = IntervalBox(xL,xR)
-    end
-    return domain
-end
-
-function cell_connectivity(mesh)
-    nfaces = faces_per_cell(mesh)
-    ncells = number_of_elements(mesh)
-    connectivity = [Vector{Tuple{Int,Int}}(undef,nfaces) for i = 1:ncells]
-
-    for cellid in 1:ncells
-        nbrcellids = neighbors(mesh,cellid)
-        nbrfaceids = [nc == 0 ? 0 : neighbor_faceid(faceid) for (faceid,nc) in enumerate(nbrcellids)]
-        nbrcellandface = collect(zip(nbrcellids,nbrfaceids))
-        connectivity[cellid][:] .= nbrcellandface
-    end
-    return connectivity
-end
-
 function cell_signatures!(cellsign,coeffs,poly)
 
     nf,ncells = size(coeffs)

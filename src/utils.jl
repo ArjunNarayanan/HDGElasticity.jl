@@ -62,8 +62,6 @@ function neighbor_faceid(faceid)
     end
 end
 
-
-
 function jacobian(map::InterpolatingPolynomial,p)
     return gradient(map,p)
 end
