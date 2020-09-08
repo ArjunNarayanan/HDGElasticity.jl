@@ -1,45 +1,45 @@
-function local_operator_on_cells!(locops,dgmesh,ufs,D1,D2,
+function local_operator_on_cells(dgmesh,ufs,D1,D2,
     stabilization)
 
     ncells = number_of_cells(dgmesh)
     @assert ncells > 0
     cellmap = CellMap(dgmesh.domain[1])
 
-    @assert size(locops) == (2,ncells)
-
     uniformop1 = local_operator(ufs.vbasis,ufs.vtpq,ufs.ftpq,dgmesh.facemaps,
         D1,stabilization,cellmap)
     uniformop2 = local_operator(ufs.vbasis,ufs.vtpq,ufs.ftpq,dgmesh.facemaps,
         D2,stabilization,cellmap)
 
+    locops = [uniformop1,uniformop2]
+
     cellsign = dgmesh.cellsign
 
     for cellid in 1:ncells
         s = cellsign[cellid]
-        if s == +1
-            locops[1,cellid] = uniformop1
-        elseif s == -1
-            locops[2,cellid] = uniformop2
-        elseif s == 0
-
+        if s == 0
             update!(ufs.imap,ufs.icoeffs[cellid])
             negativenormals = ufs.inormals[cellid]
             positivenormals = -negativenormals
 
-            locops[1,cellid] = local_operator(ufs.vbasis,
+            cutop1 = local_operator(ufs.vbasis,
                 ufs.vquads[1,cellid],ufs.fquads[1,cellid],
                 dgmesh.facemaps,ufs.iquad,positivenormals,
                 ufs.imap,D1,stabilization,cellmap)
 
-            locops[2,cellid] = local_operator(ufs.vbasis,
+            push!(locops,cutop1)
+
+            cutop2 = local_operator(ufs.vbasis,
                 ufs.vquads[2,cellid],ufs.fquads[2,cellid],
                 dgmesh.facemaps,ufs.iquad,negativenormals,
                 ufs.imap,D2,stabilization,cellmap)
+
+            push!(locops,cutop2)
         end
     end
+    return locops
 end
 
-function local_hybrid_operator_on_cells!(lochybops,dgmesh,ufs,D1,D2,
+function local_hybrid_operator_on_cells(dgmesh,ufs,D1,D2,
     stabilization)
 
     ncells = number_of_cells(dgmesh)
@@ -48,25 +48,22 @@ function local_hybrid_operator_on_cells!(lochybops,dgmesh,ufs,D1,D2,
     dim = dimension(dgmesh)
     nfaces = number_of_faces(dim)
 
-    @assert size(lochybops) == (nfaces,2,ncells)
-
-    l1 = local_hybrid_operator(ufs.vbasis,ufs.sbasis,ufs.ftpq,dgmesh.facemaps,
+    uniformop1 = local_hybrid_operator(ufs.vbasis,ufs.sbasis,ufs.ftpq,dgmesh.facemaps,
         ufs.fnormals,D1,stabilization,cellmap)
-    l2 = local_hybrid_operator(ufs.vbasis,ufs.sbasis,ufs.ftpq,dgmesh.facemaps,
+    uniformop2 = local_hybrid_operator(ufs.vbasis,ufs.sbasis,ufs.ftpq,dgmesh.facemaps,
         ufs.fnormals,D2,cellmap,stabilization)
 
-    isactivecell = dgmesh.isactivecell
+    lochybops = [uniformop1,uniformop2]
+
     for cellid in 1:ncells
-        if isactivecell[1,cellid] && !isactivecell[2,cellid]
-            lhc[:,1,cellid] = l1
-        elseif !isactivecell[1,cellid] && isactivecell[2,cellid]
-            lhc[:,2,cellid] = l2
-        elseif isactivecell[1,cellid] && isactivecell[2,cellid]
-            lhc[:,1,cellid] = local_hybrid_operator_on_active_faces(ufs.vbasis,
+        s = dgmesh.cellsign[cellid]
+        if s == 0
+
+            cutop1 = local_hybrid_operator_on_cells(ufs.vbasis,
                 ufs.sbasis,view(ufs.fquads,:,1,cellid),
                 view(dgmesh.isactiveface,:,1,cellid),D1,cellmap,stabilization)
 
-            lhc[:,2,cellid] = local_hybrid_operator_on_active_faces(ufs.vbasis,
+            cutop2 = local_hybrid_operator_on_active_faces(ufs.vbasis,
                 ufs.sbasis,view(ufs.fquads,:,2,cellid),
                 view(dgmesh.isactiveface,:,2,cellid),D2,cellmap,stabilization)
         end

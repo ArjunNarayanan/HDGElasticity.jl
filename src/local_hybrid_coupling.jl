@@ -51,15 +51,19 @@ function LHop(vbasis,sbasis,facequads,facemaps,normals,Dhalf,cellmap)
     NLF = number_of_basis_functions(vbasis)
     NHF = number_of_basis_functions(sbasis)
 
-    LH = [zeros(sdim*NLF,dim*NHF) for i = 1:nfaces]
+    isactiveface = [length(fq) > 0 ? true : false for fq in facequads]
+
+    LH = [zeros(sdim*NLF,dim*NHF) for i in 1:count(isactiveface)]
     facescale = face_determinant_jacobian(cellmap)
 
+    counter = 1
     for faceid in 1:nfaces
-        if length(facequads[faceid]) > 0
+        if isactiveface[faceid]
             n = normals[faceid]
             NED = [n[k]*Ek[k]'*Dhalf for k in 1:length(Ek)]
-            LHop!(LH[faceid],vbasis,sbasis,facequads[faceid],facemaps[faceid],
+            LHop!(LH[counter],vbasis,sbasis,facequads[faceid],facemaps[faceid],
                 NED,facescale[faceid],dim)
+            counter += 1
         end
     end
     return LH
@@ -131,13 +135,17 @@ function UHop(vbasis,sbasis,facequads,facemaps,stabilization,cellmap)
     NUF = number_of_basis_functions(vbasis)
     NHF = number_of_basis_functions(sbasis)
 
-    facejac = face_determinant_jacobian(cellmap)
-    UH = [zeros(dim*NUF,dim*NHF) for i = 1:nfaces]
+    isactiveface = [length(fq) > 0 ? true : false for fq in facequads]
 
+    facejac = face_determinant_jacobian(cellmap)
+    UH = [zeros(dim*NUF,dim*NHF) for i = 1:count(isactiveface)]
+
+    counter = 1
     for faceid in 1:nfaces
-        if length(facequads[faceid]) > 0
-            UHop!(UH[faceid],vbasis,sbasis,facequads[faceid],facemaps[faceid],
+        if isactiveface[faceid]
+            UHop!(UH[counter],vbasis,sbasis,facequads[faceid],facemaps[faceid],
                 stabilization*facejac[faceid],dim)
+            counter += 1
         end
     end
     return UH
@@ -169,15 +177,15 @@ function local_hybrid_operator(vbasis,sbasis,facequads,facemaps,normals,
 
     @assert length(LH) == length(UH)
 
-    return [[LH[i];UH[i]] for i in 1:length(LH)]
+    return hcat([[LH[i];UH[i]] for i in 1:length(LH)]...)
 
 end
 
-function local_hybrid_operator_on_interface(vbasis,sbasis,iquad,imap,normals,
+function local_hybrid_operator_on_interface(vbasis,sbasis,iquad,imap,inormals,
     Dhalf,stabilization,cellmap)
 
-    LH = LHop_on_interface(vbasis,sbasis,iquad,imap,normals,Dhalf,cellmap)
-    UH = UHop_on_interface(vbasis,sbasis,iquad,imap,normals,
+    LH = LHop_on_interface(vbasis,sbasis,iquad,imap,inormals,Dhalf,cellmap)
+    UH = UHop_on_interface(vbasis,sbasis,iquad,imap,inormals,
         stabilization,cellmap)
 
     return [LH;UH]

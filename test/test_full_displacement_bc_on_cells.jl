@@ -3,7 +3,7 @@ using LinearAlgebra
 using CartesianMesh
 using PolynomialBasis
 using ImplicitDomainQuadrature
-# using Revise
+using Revise
 using HDGElasticity
 
 function allapprox(v1,v2)
@@ -40,11 +40,8 @@ function bc_displacement(coords;alpha=0.1,beta=0.1)
 end
 
 function compute_rhs(lhop,disp,ndofs)
-    rhs = zeros(ndofs)
-    for i in 1:4
-        rhs .+= lhop[i]*disp[i]
-    end
-    return rhs
+    H = vcat(disp...)
+    return lhop*H
 end
 
 H1c = [0. 2.
@@ -128,11 +125,16 @@ lhop = HDGElasticity.local_hybrid_operator(ufs.vbasis,ufs.sbasis,
 ilhop = HDGElasticity.local_hybrid_operator_on_interface(ufs.vbasis,ufs.sbasis,
     ufs.iquad,ufs.imap,ufs.inormals[1],Dhalf,stabilization,cellmap)
 
-rhs = compute_rhs(lhop,Hdisp,20)
-rI = ilhop*HIdisp
-rhs2 = rhs+rI
+lochyb = hcat(lhop,ilhop)
 
-sol = lop\rhs2
+isactiveface = [length(fq) > 0 ? true : false for fq in ufs.fquads[2,1]]
+faceids = findall(isactiveface)
+Hfacedisp = vcat(vec.(bc_displacement.(Hcoords[faceids]))...)
+Hdisp = vcat(Hfacedisp,HIdisp)
+
+rhs = lochyb*Hdisp
+
+sol = lop\rhs
 L = -Dhalf*reshape(sol[1:12],3,:)
 U = reshape(sol[13:20],2,:)
 

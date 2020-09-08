@@ -32,10 +32,11 @@ l1,m1 = (1.,2.)
 l2,m2 = (2.,3.)
 D1 = sqrt(HDGElasticity.plane_strain_voigt_hooke_matrix_2d(l1,m1))
 D2 = sqrt(HDGElasticity.plane_strain_voigt_hooke_matrix_2d(l2,m2))
+stabilization = 1.0
+cellmap = HDGElasticity.CellMap(dgmesh.domain[1])
 
-locops = Matrix{Any}(undef,2,dgmesh.ncells)
-HDGElasticity.local_operator_on_cells!(locops,dgmesh,ufs,
-    D1,D2,1.)
+locops = HDGElasticity.local_operator_on_cells(dgmesh,ufs,
+            D1,D2,1.)
 
 # lhc = HDGElasticity.local_hybrid_operator_on_cells(dgmesh,ufs,D1,D2,
     # cellmap,1.)

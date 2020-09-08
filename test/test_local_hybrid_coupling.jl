@@ -1,5 +1,6 @@
 using Test
 using LinearAlgebra
+using CartesianMesh
 using PolynomialBasis
 using ImplicitDomainQuadrature
 # using Revise
@@ -135,10 +136,26 @@ UH = HDGElasticity.UHop_on_interface(vbasis,sbasis,squad,imap,normals,1.,cellmap
 normals = HDGElasticity.reference_normals()
 lhc = HDGElasticity.local_hybrid_operator(vbasis,sbasis,facequads,
     facemaps,normals,Dhalf,1.,cellmap)
-@test all([size(i) == (20,4) for i in lhc])
+@test size(lhc) == (20,16)
 
 update!(imap,[0.,-1.,-1.,0.])
 normals = 1/sqrt(2)*ones(2,length(squad))
 lhc = HDGElasticity.local_hybrid_operator_on_interface(vbasis,sbasis,squad,
     imap,normals,Dhalf,1.0,cellmap)
 @test size(lhc) == (20,4)
+
+
+function plane_distance_function(coords,n,x0)
+    return [n'*(coords[:,idx]-x0) for idx in 1:size(coords)[2]]
+end
+
+mesh = UniformMesh([0.,0.],[2.,1.],[1,1])
+poly = InterpolatingPolynomial(1,2,1)
+coords = HDGElasticity.nodal_coordinates(mesh,poly.basis)
+coeffs = reshape(plane_distance_function(coords,[1.,1.]/sqrt(2.),[0.5,0.]),4,1)
+dgmesh = HDGElasticity.DGMesh(mesh,coeffs,poly)
+ufs = HDGElasticity.UniformFunctionSpace(dgmesh,1,4,coeffs,poly)
+Dhalf = sqrt(HDGElasticity.plane_strain_voigt_hooke_matrix_2d(1.,2.))
+lhc = HDGElasticity.local_hybrid_operator(ufs.vbasis,ufs.sbasis,
+    ufs.fquads[2,1],dgmesh.facemaps,ufs.fnormals,Dhalf,1.0,cellmap)
+@test size(lhc) == (20,8)
