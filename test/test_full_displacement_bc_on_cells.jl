@@ -142,14 +142,13 @@ U = reshape(sol[13:20],2,:)
 @test allapprox(U,testU,1e-12)
 
 
-Hdisp = vec.(bc_displacement.(Hcoords,beta=0.2))
+Hdisp = vcat(vec.(bc_displacement.(Hcoords[faceids],beta=0.2))...)
 HIdisp = vec(bc_displacement(HIcoords,beta=0.2))
+H = vcat(Hdisp,HIdisp)
 
-rhs = compute_rhs(lhop,Hdisp,20)
-rI = ilhop*HIdisp
-rhs2 = rhs+rI
+rhs = lochyb*H
 
-sol = lop\rhs2
+sol = lop\rhs
 L = -Dhalf*reshape(sol[1:12],3,:)
 U = reshape(sol[13:20],2,:)
 
@@ -172,14 +171,14 @@ function shear_bc_displacement(coords;alpha=0.1)
     return disp
 end
 
-Hdisp = vec.(shear_bc_displacement.(Hcoords))
+Hdisp = vcat(vec.(shear_bc_displacement.(Hcoords[faceids]))...)
 HIdisp = vec(shear_bc_displacement(HIcoords))
 
-rhs = compute_rhs(lhop,Hdisp,20)
-rI = ilhop*HIdisp
-rhs2 = rhs+rI
+H = vcat(Hdisp,HIdisp)
 
-sol = lop\rhs2
+rhs = lochyb*H
+
+sol = lop\rhs
 L = -Dhalf*reshape(sol[1:12],3,:)
 U = reshape(sol[13:20],2,:)
 
