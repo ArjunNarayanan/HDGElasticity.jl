@@ -19,9 +19,7 @@ mesh = UniformMesh([0.,0.],[2.,1.],[1,1])
 poly = InterpolatingPolynomial(1,2,1)
 coeffs = reshape(ones(4),4,1)
 dgmesh = HDGElasticity.DGMesh(mesh,coeffs,poly)
-fm = HDGElasticity.reference_cell_facemaps(2)
-facemaps = repeat([fm],mesh.total_number_of_elements)
-ufs = HDGElasticity.UniformFunctionSpace(dgmesh,1,2,coeffs,poly,facemaps)
+ufs = HDGElasticity.UniformFunctionSpace(dgmesh,1,2,coeffs,poly)
 
 cellmap = HDGElasticity.CellMap(dgmesh.domain[1])
 Dhalf = sqrt(HDGElasticity.plane_strain_voigt_hooke_matrix_2d(1.,2.))
@@ -29,9 +27,9 @@ stabilization = 1.0
 normals = HDGElasticity.reference_normals()
 
 lop = HDGElasticity.local_operator(ufs.vbasis,ufs.vquads[1,1],
-    ufs.fquads[1,1],ufs.facemaps[1],Dhalf,1.0,cellmap)
+    ufs.fquads[1,1],dgmesh.facemaps,Dhalf,1.0,cellmap)
 lhop = HDGElasticity.local_hybrid_operator(ufs.vbasis,ufs.sbasis,
-    ufs.fquads[1,1],ufs.facemaps[1],normals,Dhalf,stabilization,cellmap)
+    ufs.fquads[1,1],dgmesh.facemaps,normals,Dhalf,stabilization,cellmap)
 
 
 function bc_displacement(coords;alpha=0.1,beta=0.1)
@@ -84,16 +82,16 @@ end
 coords = HDGElasticity.nodal_coordinates(mesh,poly.basis)
 coeffs = reshape(plane_distance_function(coords,[1.,1.]/sqrt(2.),[0.5,0.]),4,1)
 dgmesh = HDGElasticity.DGMesh(mesh,coeffs,poly)
-ufs = HDGElasticity.UniformFunctionSpace(dgmesh,1,4,coeffs,poly,facemaps)
+ufs = HDGElasticity.UniformFunctionSpace(dgmesh,1,4,coeffs,poly)
 
 update!(poly,coeffs[:,1])
 update!(ufs.imap,ufs.icoeffs[1])
 mapped_points = hcat([ufs.imap(ufs.iquad.points[:,i]) for i in 1:size(ufs.iquad.points)[2]]...)
 lop = HDGElasticity.local_operator(ufs.vbasis,ufs.vquads[1,1],
-    ufs.fquads[1,1],ufs.facemaps[1],ufs.iquad,-ufs.inormals[1],
+    ufs.fquads[1,1],dgmesh.facemaps,ufs.iquad,-ufs.inormals[1],
     ufs.imap,Dhalf,stabilization,cellmap)
 lhop = HDGElasticity.local_hybrid_operator(ufs.vbasis,ufs.sbasis,
-    ufs.fquads[1,1],ufs.facemaps[1],normals,Dhalf,
+    ufs.fquads[1,1],dgmesh.facemaps,normals,Dhalf,
     stabilization,cellmap)
 ilhop = HDGElasticity.local_hybrid_operator_on_interface(ufs.vbasis,ufs.sbasis,
     ufs.iquad,ufs.imap,-ufs.inormals[1],Dhalf,stabilization,cellmap)
@@ -122,10 +120,10 @@ testU[:,4] .= [0.2,0.1]
 
 
 lop = HDGElasticity.local_operator(ufs.vbasis,ufs.vquads[2,1],
-    ufs.fquads[2,1],ufs.facemaps[1],ufs.iquad,ufs.inormals[1],
+    ufs.fquads[2,1],dgmesh.facemaps,ufs.iquad,ufs.inormals[1],
     ufs.imap,Dhalf,stabilization,cellmap)
 lhop = HDGElasticity.local_hybrid_operator(ufs.vbasis,ufs.sbasis,
-    ufs.fquads[2,1],ufs.facemaps[1],normals,Dhalf,
+    ufs.fquads[2,1],dgmesh.facemaps,normals,Dhalf,
     stabilization,cellmap)
 ilhop = HDGElasticity.local_hybrid_operator_on_interface(ufs.vbasis,ufs.sbasis,
     ufs.iquad,ufs.imap,ufs.inormals[1],Dhalf,stabilization,cellmap)

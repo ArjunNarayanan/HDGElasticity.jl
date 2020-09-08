@@ -77,8 +77,7 @@ coords = HDGElasticity.nodal_coordinates(mesh,basis)
 normal = [1.,1.]/sqrt(2.)
 coeffs = reshape(plane_distance_function(coords,normal,[0.,-1.]),4,1)
 dgmesh = HDGElasticity.DGMesh(mesh,coeffs,poly)
-fm = [facemaps]
-ufs = HDGElasticity.UniformFunctionSpace(dgmesh,1,3,coeffs,poly,fm)
+ufs = HDGElasticity.UniformFunctionSpace(dgmesh,1,3,coeffs,poly)
 cellmap = HDGElasticity.CellMap([-1.,-1.],[1.,1.])
 imap = InterpolatingPolynomial(2,ufs.sbasis)
 update!(imap,ufs.icoeffs[1])
@@ -86,17 +85,17 @@ normals = reshape(1/sqrt(2)*ones(6),2,3)
 
 func(x) = [(1.0-x[1])*(1.0-x[2])/4.0]
 UU = HDGElasticity.UUop(func,ufs.fquads[2,1],
-    ufs.facemaps[1],ufs.iquad,normals,imap,1.0,cellmap,1,1)
+    dgmesh.facemaps,ufs.iquad,normals,imap,1.0,cellmap,1,1)
 @test UU[1] ≈ 7/6+4.7/16*sqrt(2.)
 
 Dhalf = HDGElasticity.plane_strain_voigt_hooke_matrix(1.,2.,2)
 lop = HDGElasticity.local_operator(ufs.vbasis,ufs.vquads[1,1],
-    ufs.fquads[1,1],ufs.facemaps[1],Dhalf,1.0,cellmap)
+    ufs.fquads[1,1],dgmesh.facemaps,Dhalf,1.0,cellmap)
 @test size(lop) == (20,20)
 @test rank(lop) == 20
 
 update!(ufs.imap,ufs.icoeffs[1])
 lop = HDGElasticity.local_operator(ufs.vbasis,ufs.vquads[1,1],ufs.fquads[1,1],
-    ufs.facemaps[1],ufs.iquad,ufs.inormals[1],ufs.imap,Dhalf,1.0,cellmap)
+    dgmesh.facemaps,ufs.iquad,ufs.inormals[1],ufs.imap,Dhalf,1.0,cellmap)
 @test size(lop) == (20,20)
 @test rank(lop) == 20

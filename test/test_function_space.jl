@@ -2,7 +2,7 @@ using Test
 using PolynomialBasis
 using ImplicitDomainQuadrature
 using CartesianMesh
-# using Revise
+using Revise
 using HDGElasticity
 
 function allequal(u,v)
@@ -62,9 +62,9 @@ HDGElasticity.element_quadratures!(quads,cellsign,coeffs,poly,quad1d)
 @test allequal(qp3.points,quads[1,1].points)
 
 update!(poly,coeffs[:,1])
-facemaps = repeat([HDGElasticity.reference_cell_facemaps(2)],2)
+facemaps = HDGElasticity.reference_cell_facemaps(2)
 facequads = reshape([Vector{QuadratureRule{1}}(undef,4) for i = 1:4],2,2)
-HDGElasticity.update_face_quadratures!(facequads[1,1],poly,facemaps[1],+1,quad1d)
+HDGElasticity.update_face_quadratures!(facequads[1,1],poly,facemaps,+1,quad1d)
 
 testp,testw = ImplicitDomainQuadrature.transform(quad1d,0.5,1.0)
 @test allapprox(facequads[1,1][1].points,testp)
@@ -75,7 +75,7 @@ testp,testw = ImplicitDomainQuadrature.transform(quad1d,0.5,1.0)
 @test allapprox(facequads[1,1][2].weights,quad1d.weights)
 @test length(facequads[1,1][4]) == 0
 
-HDGElasticity.update_face_quadratures!(facequads[2,1],poly,facemaps[1],-1,quad1d)
+HDGElasticity.update_face_quadratures!(facequads[2,1],poly,facemaps,-1,quad1d)
 
 p2,w2 = ImplicitDomainQuadrature.transform(quad1d,-1.,0.5)
 @test allequal(facequads[2,1][1].points,p2)
@@ -145,7 +145,7 @@ NF = HDGElasticity.number_of_basis_functions(vbasis)
 xc = 0.75
 coeffs = reshape(distance_function(coords,xc),NF,:)
 
-facemaps = repeat([HDGElasticity.reference_cell_facemaps(2)],2)
+facemaps = HDGElasticity.reference_cell_facemaps(2)
 cellsign = HDGElasticity.cell_signatures(coeffs,poly)
 
 vquads = HDGElasticity.element_quadratures(cellsign,coeffs,poly,quad1d)
@@ -161,11 +161,13 @@ testnormals = zeros(2,5)
 testnormals[1,:] .= 1.0
 @test allapprox(testnormals,inormals[1],1e-15)
 @test !isassigned(inormals,2)
+ftpq = repeat([iquad],4)
+fnormals = HDGElasticity.reference_normals()
 
-ufs = HDGElasticity.UniformFunctionSpace(vbasis,sbasis,vtpq,iquad,vquads,
-    fquads,facemaps,icoeffs,iquad,imap,inormals)
+ufs = HDGElasticity.UniformFunctionSpace(vbasis,sbasis,vtpq,ftpq,vquads,
+    fquads,fnormals,icoeffs,iquad,imap,inormals)
 
-ufs = HDGElasticity.UniformFunctionSpace(dgmesh,4,5,coeffs,poly,facemaps)
+ufs = HDGElasticity.UniformFunctionSpace(dgmesh,4,5,coeffs,poly)
 
 mesh = UniformMesh([0.,0.],[4.,1.],[2,1])
 coords = HDGElasticity.nodal_coordinates(mesh,vbasis)
@@ -177,7 +179,7 @@ end
 testn = [1.,1.]/sqrt(2.)
 coeffs = reshape(plane_distance_function(coords,testn,[0.5,0.]),NF,:)
 dgmesh = HDGElasticity.DGMesh(mesh,coeffs,poly)
-ufs = HDGElasticity.UniformFunctionSpace(dgmesh,4,5,coeffs,poly,facemaps)
+ufs = HDGElasticity.UniformFunctionSpace(dgmesh,4,5,coeffs,poly)
 @test sum(ufs.vquads[2,1].weights) ≈ 0.25
 @test sum(ufs.vquads[1,1].weights) ≈ 3.75
 @test sum(ufs.vquads[1,2].weights) ≈ 4.0

@@ -1,55 +1,59 @@
-function local_operator_on_cells(dgmesh,ufs,D1,D2,cellmap,stabilization)
+function local_operator_on_cells!(locops,dgmesh,ufs,D1,D2,
+    stabilization)
 
     ncells = number_of_cells(dgmesh)
-    ft = default_float_type()
+    @assert ncells > 0
+    cellmap = CellMap(dgmesh.domain[1])
 
-    localsolver = Matrix{Matrix{T}}(undef,2,ncells)
+    @assert size(locops) == (2,ncells)
 
-    uniformop1 = LocalOperator(ufs.vbasis,ufs.vtpq,ufs.ftpq,D1,
-        cellmap,stabilization)
-    uniformop2 = LocalOperator(ufs.vbasis,ufs.vtpq,ufs.ftpq,D2,
-        cellmap,stabilization)
+    uniformop1 = local_operator(ufs.vbasis,ufs.vtpq,ufs.ftpq,dgmesh.facemaps,
+        D1,stabilization,cellmap)
+    uniformop2 = local_operator(ufs.vbasis,ufs.vtpq,ufs.ftpq,dgmesh.facemaps,
+        D2,stabilization,cellmap)
 
-    isactivecell = dgmesh.isactivecell
+    cellsign = dgmesh.cellsign
 
     for cellid in 1:ncells
-        if isactivecell[1,cellid] && !isactivecell[2,cellid]
-            localsolver[1,cellid] = uniformop1
-        elseif !isactivecell[1,cellid] && isactivecell[2,cellid]
-            localsolver[2,cellid] = uniformop2
-        elseif isactivecell[1,cellid] && isactivecell[2,cellid]
+        s = cellsign[cellid]
+        if s == +1
+            locops[1,cellid] = uniformop1
+        elseif s == -1
+            locops[2,cellid] = uniformop2
+        elseif s == 0
 
-            update!(ufs.imap,ufs.icoeffs[:,cellid])
-            negativenormals = ufs.inormals[:,:,cellid]
+            update!(ufs.imap,ufs.icoeffs[cellid])
+            negativenormals = ufs.inormals[cellid]
             positivenormals = -negativenormals
 
-            localsolver[1,cellid] = LocalOperator(ufs.vbasis,
-                ufs.vquads[1,cellid],view(ufs.fquads,:,1,cellid),
-                view(dgmesh.isactiveface,:,1,cellid),ufs.iquad,positivenormals,
-                ufs.imap,D1,cellmap,stabilization)
+            locops[1,cellid] = local_operator(ufs.vbasis,
+                ufs.vquads[1,cellid],ufs.fquads[1,cellid],
+                dgmesh.facemaps,ufs.iquad,positivenormals,
+                ufs.imap,D1,stabilization,cellmap)
 
-            localsolver[2,cellid] = LocalOperator(ufs.vbasis,
-                ufs.vquads[2,cellid],view(ufs.fquads,:,2,cellid),
-                view(dgmesh.isactiveface,:,2,cellid),ufs.iquad,negativenormals,
-                ufs.imap,D2,cellmap,stabilization)
+            locops[2,cellid] = local_operator(ufs.vbasis,
+                ufs.vquads[2,cellid],ufs.fquads[2,cellid],
+                dgmesh.facemaps,ufs.iquad,negativenormals,
+                ufs.imap,D2,stabilization,cellmap)
         end
     end
-
-    return localsolver
 end
 
-function local_hybrid_operator_on_cells(dgmesh,ufs,D1,D2,
-    cellmap,stabilization)
+function local_hybrid_operator_on_cells!(lochybops,dgmesh,ufs,D1,D2,
+    stabilization)
 
-    nface,nphase,ncells = size(dgmesh.isactiveface)
-    ft = default_float_type()
+    ncells = number_of_cells(dgmesh)
+    @assert ncells > 0
+    cellmap = CellMap(dgmesh.domain[1])
+    dim = dimension(dgmesh)
+    nfaces = number_of_faces(dim)
 
-    lhc = Array{Matrix{ft}}(undef,nface,nphase,ncells)
+    @assert size(lochybops) == (nfaces,2,ncells)
 
-    l1 = local_hybrid_operator(ufs.vbasis,ufs.sbasis,ufs.ftpq,
-        D1,cellmap,stabilization)
-    l2 = local_hybrid_operator(ufs.vbasis,ufs.sbasis,ufs.ftpq,
-        D2,cellmap,stabilization)
+    l1 = local_hybrid_operator(ufs.vbasis,ufs.sbasis,ufs.ftpq,dgmesh.facemaps,
+        ufs.fnormals,D1,stabilization,cellmap)
+    l2 = local_hybrid_operator(ufs.vbasis,ufs.sbasis,ufs.ftpq,dgmesh.facemaps,
+        ufs.fnormals,D2,cellmap,stabilization)
 
     isactivecell = dgmesh.isactivecell
     for cellid in 1:ncells

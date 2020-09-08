@@ -17,16 +17,18 @@ struct DGMesh{dim,T}
         @assert length(cellsign) == ncells
         @assert length(facemaps) == nfaces
 
-        new{dim,T}(ncells,domain,connectivity,cellsign)
+        new{dim,T}(ncells,domain,connectivity,cellsign,facemaps)
 
     end
 end
 
 function DGMesh(mesh::UniformMesh,coeffs,poly)
+    dim = dimension(mesh)
     domain = cell_domain(mesh)
     connectivity = cell_connectivity(mesh)
     cellsign = cell_signatures(coeffs,poly)
-    return DGMesh(domain,connectivity,cellsign)
+    facemaps = reference_cell_facemaps(dim)
+    return DGMesh(domain,connectivity,cellsign,facemaps)
 end
 
 function cell_domain(mesh)

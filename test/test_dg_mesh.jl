@@ -41,7 +41,8 @@ cellsign = HDGElasticity.cell_signatures(coeffs,poly)
 testcellsign = [0,1]
 @test allequal(cellsign,testcellsign)
 
-dgmesh = HDGElasticity.DGMesh(domain,connectivity,cellsign)
+facemaps = HDGElasticity.reference_cell_facemaps(2)
+dgmesh = HDGElasticity.DGMesh(domain,connectivity,cellsign,facemaps)
 @test allequal(dgmesh.domain,domain)
 @test all([allequal(dgmesh.connectivity[i],connectivity[i]) for i = 1:2])
 @test allequal(dgmesh.cellsign,cellsign)

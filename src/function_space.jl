@@ -2,48 +2,55 @@ struct UniformFunctionSpace{vdim,sdim}
     vbasis::TensorProductBasis{vdim}
     sbasis::TensorProductBasis{sdim}
     vtpq::QuadratureRule{vdim}
-    ftpq::QuadratureRule{sdim}
+    ftpq::Vector{QuadratureRule{sdim}}
     vquads
     fquads
-    facemaps
+    fnormals
     icoeffs
     iquad
     imap
     inormals
     function UniformFunctionSpace(vbasis::TensorProductBasis{vdim},
-        sbasis::TensorProductBasis{sdim},vtpq,ftpq,vquads,fquads,facemaps,
+        sbasis::TensorProductBasis{sdim},vtpq,ftpq,vquads,fquads,fnormals,
         icoeffs,iquad,imap,inormals) where {vdim,sdim}
 
             @assert sdim == vdim-1
             nphase,ncells = size(vquads)
 
+            nfaces = number_of_faces(vdim)
+
+            @assert length(ftpq) == nfaces
             @assert length(icoeffs) == ncells
-            @assert length(facemaps) == ncells
             @assert size(fquads) == (nphase,ncells)
+            @assert length(fnormals) == nfaces
+            @assert all([length(n) == vdim for n in fnormals])
             nfaces = number_of_faces(vdim)
             @assert all(length.(fquads) .== nfaces)
-            @assert all(length.(facemaps) .== nfaces)
 
             return new{vdim,sdim}(vbasis,sbasis,vtpq,ftpq,vquads,
-                fquads,facemaps,icoeffs,iquad,imap,inormals)
+                fquads,fnormals,icoeffs,iquad,imap,inormals)
 
         end
 end
 
-function UniformFunctionSpace(dgmesh,polyorder,quadorder,coeffs,levelset,
-    facemaps)
+function UniformFunctionSpace(dgmesh,polyorder,quadorder,coeffs,levelset)
 
     vdim = dimension(dgmesh)
     sdim = vdim-1
+    nfaces = number_of_faces(vdim)
+
+    facemaps = dgmesh.facemaps
+    fnormals = reference_normals()
 
     vbasis = TensorProductBasis(vdim,polyorder)
     sbasis = TensorProductBasis(sdim,polyorder)
 
     quad1d = ImplicitDomainQuadrature.ReferenceQuadratureRule(quadorder)
     vtpq = tensor_product(quad1d,reference_cell(vdim))
-    ftpq = tensor_product(quad1d,reference_cell(sdim))
+    iquad = tensor_product(quad1d,reference_cell(sdim))
 
-    iquad = ftpq
+    ftpq = repeat([iquad],nfaces)
+
     imap = InterpolatingPolynomial(vdim,sbasis)
 
     vquads = element_quadratures(dgmesh.cellsign,coeffs,levelset,quad1d)
@@ -54,7 +61,7 @@ function UniformFunctionSpace(dgmesh,polyorder,quadorder,coeffs,levelset,
     inormals = interface_normals(dgmesh,icoeffs,imap,coeffs,levelset,
         iquad.points)
 
-    return UniformFunctionSpace(vbasis,sbasis,vtpq,ftpq,vquads,fquads,facemaps,
+    return UniformFunctionSpace(vbasis,sbasis,vtpq,ftpq,vquads,fquads,fnormals,
         icoeffs,iquad,imap,inormals)
 end
 
@@ -153,13 +160,12 @@ function face_quadratures!(facequads,cellsign,coeffs,levelset,facemaps,
     quad1d)
 
     nf,ncells = size(coeffs)
-    @assert length(facemaps) == ncells
     @assert size(facequads) == (2,ncells)
 
-    nfaces = [length(fm) for fm in facemaps]
+    nfaces = length(facemaps)
 
-    @assert all([length(facequads[1,i]) == nfaces[i] for i = 1:ncells])
-    @assert all([length(facequads[2,i]) == nfaces[i] for i = 1:ncells])
+    @assert all([length(facequads[1,i]) == nfaces for i = 1:ncells])
+    @assert all([length(facequads[2,i]) == nfaces for i = 1:ncells])
 
     dim = dimension(levelset)
     reference_face = reference_cell(dim-1)
@@ -168,17 +174,17 @@ function face_quadratures!(facequads,cellsign,coeffs,levelset,facemaps,
 
     for cellid in 1:ncells
         if cellsign[cellid] == +1
-            assign_all(facequads[1,cellid],tpq,nfaces[cellid])
+            assign_all(facequads[1,cellid],tpq,nfaces)
         elseif cellsign[cellid] == -1
-            assign_all(facequads[2,cellid],tpq,nfaces[cellid])
+            assign_all(facequads[2,cellid],tpq,nfaces)
         elseif cellsign[cellid] == 0
 
             update!(levelset,coeffs[:,cellid])
 
             update_face_quadratures!(facequads[1,cellid],levelset,
-                facemaps[cellid],+1,quad1d)
+                facemaps,+1,quad1d)
             update_face_quadratures!(facequads[2,cellid],levelset,
-                facemaps[cellid],-1,quad1d)
+                facemaps,-1,quad1d)
 
         end
     end
@@ -189,13 +195,12 @@ function face_quadratures(cellsign,coeffs,levelset,facemaps,quad1d)
 
     nfuncs,ncells = size(coeffs)
     @assert length(cellsign) == ncells
-    @assert length(facemaps) == ncells
 
-    nfaces = repeat([length(fm) for fm in facemaps],inner=(2,))
+    nfaces = length(facemaps)
 
     dim = dimension(levelset)
     facedim = dim-1
-    facequads = reshape([Vector{QuadratureRule{facedim}}(undef,nf) for nf in nfaces],2,:)
+    facequads = reshape([Vector{QuadratureRule{facedim}}(undef,nfaces) for i = 1:2ncells],2,ncells)
     face_quadratures!(facequads,cellsign,coeffs,levelset,facemaps,quad1d)
     return facequads
 
