@@ -1,63 +1,58 @@
-function HLop!(HL,sbasis,rvbasis,squad,components::M1,normals::M2,Dhalf,Ek,
-    detjac,nhdofs,nldofs,NHF,NLF) where {M1<:AbstractMatrix,M2<:AbstractMatrix}
+function HLop!(HL,sbasis,vbasis,quad,linemap::LineMap,components::M,NED,
+    scale,nhdofs) where {M<:AbstractMatrix}
 
-    @assert size(Dhalf) == (nldofs,nldofs)
-    NQ = length(squad)
+    @assert size(components)[2] == length(quad)
 
-    @assert size(normals)[2] == NQ
-    @assert size(components)[2] == NQ
-    @assert length(Ek) == size(normals)[1]
-    @assert size(HL) == (nhdofs*NHF,nldofs*NLF)
+    detjac = determinant_jacobian(linemap)
 
-
-    for (idx,(p,w)) in enumerate(squad)
+    for (idx,(p,w)) in enumerate(quad)
         t = components[:,idx]
         projector = t*t'
         svals = sbasis(p)
-        vvals = rvbasis(p)
+        vvals = vbasis(linemap(p...))
         NP = make_row_matrix(svals,projector)
-        for k = 1:length(Ek)
-            NkEkD = normals[k,idx]*Ek[k]'*Dhalf
-            NK = make_row_matrix(vvals,NkEkD)
-
-            HL .+= NP'*NK*detjac*w
+        for nk in NED
+            NK = make_row_matrix(vvals,nk)
+            HL .+= NP'*NK*detjac*scale*w
         end
     end
-
 end
 
-function HLop!(HL,sbasis,rvbasis,squad,comp::V1,normals::V2,Dhalf,Ek,
-    detjac,nhdofs,nldofs,NHF,NLF) where {V1<:AbstractVector,V2<:AbstractVector}
+function HLop!(HL,sbasis,vbasis,quad,linemap::LineMap,comp::V,NED,
+    scale,nhdofs) where {V<:AbstractVector}
 
-    nq = length(squad)
+    nq = length(quad)
     extcomp = repeat(comp,inner=(1,nq))
-    extnormals = repeat(normals,inner=(1,nq))
-
-    HLop!(HL,sbasis,rvbasis,squad,extcomp,extnormals,Dhalf,Ek,detjac,nhdofs,
-        nldofs,NHF,NLF)
+    HLop!(HL,sbasis,vbasis,quad,linemap,extcomp,NED,scale,nhdofs)
 end
 
-function HLop(sbasis,vbasis,squad,components,normals,Dhalf,faceid,cellmap)
+function HLop!(HL,sbasis,vbasis,quad,imap::InterpolatingPolynomial,
+    components,normals,ED,scale,nhdofs)
 
-    dim = dimension(vbasis)
-    @assert dimension(sbasis) == dim-1
-    sdim = symmetric_tensor_dimension(dim)
-    Ek = vec_to_symm_mat_converter(dim)
-    NHF = number_of_basis_functions(sbasis)
-    NF = number_of_basis_functions(vbasis)
+    NQ = length(quad)
+    @assert length(scale) == NQ
+    @assert size(normals)[2] == NQ
+    @assert size(components)[2] == NQ
+    @assert size(normals)[1] == length(ED)
 
-    cell = reference_cell(dim)
-    funcs = restrict_on_faces(vbasis,cell)
-    jac = jacobian(cellmap,cell)
+    for (idx,(p,w)) in enumerate(quad)
+        n = normals[:,idx]
+        t = components[:,idx]
+        projector = t*t'
+        svals = sbasis(p)
+        vvals = vbasis(imap(p))
+        detjac = determinant_jacobian(imap,p)
+        NP = make_row_matrix(svals,projector)
+        for k in 1:length(ED)
+            NED = n[k]*ED[k]
+            NK = make_row_matrix(vvals,NED)
 
-    HL = zeros(dim*NHF,sdim*NF)
-
-    HLop!(HL,sbasis,funcs[faceid],squad,components,normals,Dhalf,Ek,
-        jac[faceid],dim,sdim,NHF,NF)
-
-    return HL
-
+            HL .+= NP'*NK*detjac*scale[idx]*w
+        end
+    end
 end
+
+
 
 function HUop!(HU,sbasis,rvbasis,squad,components::M,scale,
     detjac,nudofs,NHF,NUF) where {M<:AbstractMatrix}
@@ -76,43 +71,42 @@ function HUop!(HU,sbasis,rvbasis,squad,components::M,scale,
 
         HU .+= scale*NP'*NI*detjac*w
     end
-
 end
 
-function HUop!(HU,sbasis,rvbasis,squad,components::V,scale,
-    detjac,nudofs,NHF,NUF) where {V<:AbstractVector}
-
-    NQ = length(squad)
-    extcomp = repeat(components,inner=(1,NQ))
-
-    HUop!(HU,sbasis,rvbasis,squad,extcomp,scale,detjac,nudofs,NHF,NUF)
-
-end
-
-function HUop(sbasis,vbasis,squad,components,faceid,cellmap,stabilization)
-
-    dim = dimension(vbasis)
-    NHF = number_of_basis_functions(sbasis)
-    NUF = number_of_basis_functions(vbasis)
-
-    cell = reference_cell(dim)
-    funcs = restrict_on_faces(vbasis,cell)
-    jac = jacobian(cellmap,cell)
-
-    HU = zeros(dim*NHF,dim*NUF)
-
-    HUop!(HU,sbasis,funcs[faceid],squad,components,stabilization,
-        jac[faceid],dim,NHF,NUF)
-
-    return HU
-end
-
-function hybrid_local_operator(sbasis,vbasis,squad,components,normals,
-    Dhalf,faceid,cellmap,stabilization)
-
-    HL = HLop(sbasis,vbasis,squad,components,normals,Dhalf,faceid,cellmap)
-    HU = HUop(sbasis,vbasis,squad,components,faceid,cellmap,stabilization)
-
-    return [HL HU]
-
-end
+# function HUop!(HU,sbasis,rvbasis,squad,components::V,scale,
+#     detjac,nudofs,NHF,NUF) where {V<:AbstractVector}
+#
+#     NQ = length(squad)
+#     extcomp = repeat(components,inner=(1,NQ))
+#
+#     HUop!(HU,sbasis,rvbasis,squad,extcomp,scale,detjac,nudofs,NHF,NUF)
+#
+# end
+#
+# function HUop(sbasis,vbasis,squad,components,faceid,cellmap,stabilization)
+#
+#     dim = dimension(vbasis)
+#     NHF = number_of_basis_functions(sbasis)
+#     NUF = number_of_basis_functions(vbasis)
+#
+#     cell = reference_cell(dim)
+#     funcs = restrict_on_faces(vbasis,cell)
+#     jac = jacobian(cellmap,cell)
+#
+#     HU = zeros(dim*NHF,dim*NUF)
+#
+#     HUop!(HU,sbasis,funcs[faceid],squad,components,stabilization,
+#         jac[faceid],dim,NHF,NUF)
+#
+#     return HU
+# end
+#
+# function hybrid_local_operator(sbasis,vbasis,squad,components,normals,
+#     Dhalf,faceid,cellmap,stabilization)
+#
+#     HL = HLop(sbasis,vbasis,squad,components,normals,Dhalf,faceid,cellmap)
+#     HU = HUop(sbasis,vbasis,squad,components,faceid,cellmap,stabilization)
+#
+#     return [HL HU]
+#
+# end
