@@ -1,7 +1,9 @@
 function local_operator_on_cells(dgmesh,ufs,D1,D2,cellmap,stabilization)
 
-    ncells = length(dgmesh.domain)
-    localsolver = Matrix{LocalOperator}(undef,2,ncells)
+    ncells = number_of_cells(dgmesh)
+    ft = default_float_type()
+
+    localsolver = Matrix{Matrix{T}}(undef,2,ncells)
 
     uniformop1 = LocalOperator(ufs.vbasis,ufs.vtpq,ufs.ftpq,D1,
         cellmap,stabilization)

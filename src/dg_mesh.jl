@@ -1,19 +1,23 @@
 struct DGMesh{dim,T}
+    ncells::Int
     domain::Vector{IntervalBox{dim,T}}
     connectivity::Vector{Vector{Tuple{Int,Int}}}
     cellsign::Vector{Int}
+    facemaps::Vector{LineMap{dim,T}}
     function DGMesh(domain::Vector{IntervalBox{dim,T}},
         connectivity::Vector{Vector{Tuple{Int,Int}}},
-        cellsign::Vector{Int}) where
+        cellsign::Vector{Int},facemaps::Vector{LineMap{dim,T}}) where
         {dim,T}
 
         @assert dim == 2
+        nfaces = number_of_faces(dim)
 
         ncells = length(domain)
         @assert length(connectivity) == ncells
         @assert length(cellsign) == ncells
+        @assert length(facemaps) == nfaces
 
-        new{dim,T}(domain,connectivity,cellsign)
+        new{dim,T}(ncells,domain,connectivity,cellsign)
 
     end
 end
@@ -75,4 +79,8 @@ end
 
 function dimension(dgmesh::DGMesh{dim}) where dim
     return dim
+end
+
+function number_of_cells(dgmesh::DGMesh)
+    return dgmesh.ncells
 end

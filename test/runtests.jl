@@ -40,6 +40,10 @@ end
     include("test_hybrid_coupling.jl")
 end
 
+@safetestset "Test Hybrid Local Operator" begin
+    include("test_hybrid_local_coupling.jl")
+end
+
 @safetestset "Test Full Displacement BC on single element" begin
     include("test_full_displacement_bc_on_cells.jl")
 end
