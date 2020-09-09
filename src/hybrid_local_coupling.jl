@@ -46,7 +46,7 @@ function HLop!(HL,sbasis,vbasis,quad,imap::InterpolatingPolynomial,
 end
 
 function HLop(sbasis,vbasis,facequad,facemap,normals,components,
-    Dhalf,facescale)
+    Dhalf,scale)
 
     dim = dimension(vbasis)
 
@@ -59,7 +59,7 @@ function HLop(sbasis,vbasis,facequad,facemap,normals,components,
 
     HL = zeros(dim*NHF,sdim*NLF)
 
-    HLop!(HL,sbasis,vbasis,facequad,facemap,normals,components,ED,facescale)
+    HLop!(HL,sbasis,vbasis,facequad,facemap,normals,components,ED,scale)
 
     return HL
 end
@@ -102,7 +102,7 @@ function HUop!(HU,sbasis,vbasis,quad,imap::InterpolatingPolynomial,
 
 end
 
-function HUop(sbasis,vbasis,facequad,facemap,components,scale,nhdofs)
+function HUop(sbasis,vbasis,facequad,facemap,components,scale)
 
     dim = dimension(vbasis)
 
@@ -111,8 +111,19 @@ function HUop(sbasis,vbasis,facequad,facemap,components,scale,nhdofs)
 
     HU = zeros(dim*NHF,dim*NLF)
 
-    HUop!(HU,sbasis,vbasis,facequad,facemap,components,scale,nhdofs)
+    HUop!(HU,sbasis,vbasis,facequad,facemap,components,scale,dim)
 
     return HU
 
+end
+
+function hybrid_local_operator_traction_components(sbasis,vbasis,facequad,
+    facemap,normals,components,Dhalf,stabilization,facescale)
+
+    scale = stabilization*facescale
+
+    HL = HLop(sbasis,vbasis,facequad,facemap,normals,components,Dhalf,scale)
+    HU = HUop(sbasis,vbasis,facequad,facemap,components,scale)
+
+    return [HL HU]
 end
