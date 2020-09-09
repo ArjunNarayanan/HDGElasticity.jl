@@ -1,3 +1,38 @@
+struct LocalSolver
+    LLops
+    LHops
+    invLLxLH
+    solveridx
+    function LocalSolver(LLops,LHops,solveridx)
+        @assert length(LLops) == length(LHops)
+        invLLxLH = [LLops[i]\LHops[i] for i = 1:length(LLops)]
+        new(LLops,LHops,invLLxLH,solveridx)
+    end
+end
+
+function cell_to_solver_index(cellsign)
+    ncells = length(cellsign)
+    solveridx = zeros(Int,2,ncells)
+    counter = 3
+    for cellid in 1:ncells
+        s = cellsign[cellid]
+        if s == +1
+            solveridx[1,cellid] = 1
+        elseif s == -1
+            solveridx[2,cellid] = 2
+        elseif s == 0
+            solveridx[1,cellid] = counter
+            counter += 1
+            solveridx[2,cellid] = counter
+            counter += 1
+        else
+            str = "Expected cellsign ∈ {-1,0,+1}, got s = $s"
+            error(str)
+        end
+    end
+    return solveridx
+end
+
 function local_operator_on_cells(dgmesh,ufs,D1,D2,
     stabilization)
 
@@ -83,60 +118,4 @@ function local_hybrid_operator_on_cells(dgmesh,ufs,D1,D2,
         end
     end
     return lochybops
-end
-
-function local_hybrid_operator_on_interfaces(dgmesh,ufs,D1,D2,
-    cellmap,stabilization)
-
-    ncells = length(dgmesh.domain)
-    ft = default_float_type()
-
-    lhci = Matrix{Matrix{ft}}(undef,2,ncells)
-
-    isactivecell = dgmesh.isactivecell
-    for cellid in 1:ncells
-
-        if isactivecell[1,cellid] && isactivecell[2,cellid]
-            negativenormals = ufs.inormals[:,:,cellid]
-            positivenormals = -negativenormals
-
-            update!(ufs.imap,ufs.icoeffs[:,cellid])
-            lhci[1,cellid] = local_hybrid_operator_on_interface(ufs.vbasis,
-                ufs.sbasis,ufs.iquad,positivenormals,D1,ufs.imap,cellmap,
-                stabilization)
-            lhci[2,cellid] = local_hybrid_operator_on_interface(ufs.vbasis,
-                ufs.sbasis,ufs.iquad,negativenormals,D2,ufs.imap,cellmap,
-                stabilization)
-        end
-    end
-    return lhci
-end
-
-function hybrid_operator_on_cells(dgmesh,ufs,cellmap,stabilization)
-
-    nface,nphase,ncells = size(dgmesh.isactiveface)
-    ft = default_float_type()
-
-    hhop = Array{Matrix{ft}}(undef,nface,nphase,ncells)
-
-    uniformhop = HHop(ufs.sbasis,ufs.ftpq,cellmap,stabilization)
-
-    isactivecell = dgmesh.isactivecell
-
-    for cellid in 1:ncells
-        if isactivecell[1,cellid] && !isactivecell[2,cellid]
-            hhop[:,1,cellid] = uniformhop
-        elseif !isactivecell[1,cellid] && isactivecell[2,cellid]
-            hhop[:,2,cellid] = uniformhop
-        elseif isactivecell[1,cellid] && isactivecell[2,cellid]
-            hhop[:,1,cellid] = HHop_on_active_faces(ufs.sbasis,
-                view(ufs.fquads,:,1,cellid),
-                view(dgmesh.isactiveface,:,1,cellid),cellmap,stabilization)
-
-            hhop[:,2,cellid] = HHop_on_active_faces(ufs.sbasis,
-                view(ufs.fquads,:,2,cellid),
-                view(dgmesh.isactiveface,:,2,cellid),cellmap,stabilization)
-        end
-    end
-    return hhop
 end

@@ -9,6 +9,10 @@ function allapprox(v1,v2)
     return all(v1 .≈ v2)
 end
 
+function allequal(v1,v2)
+    return all(v1 .== v2)
+end
+
 function allapprox(v1,v2,atol)
     @assert length(v1) == length(v2)
     return all([isapprox(v1[i],v2[i],atol=atol) for i = 1:length(v1)])
@@ -34,6 +38,11 @@ D1 = sqrt(HDGElasticity.plane_strain_voigt_hooke_matrix_2d(l1,m1))
 D2 = sqrt(HDGElasticity.plane_strain_voigt_hooke_matrix_2d(l2,m2))
 stabilization = 1.0
 cellmap = HDGElasticity.CellMap(dgmesh.domain[1])
+
+solveridx = HDGElasticity.cell_to_solver_index(dgmesh.cellsign)
+testsolveridx = [3 1
+                 4 0]
+@test allequal(solveridx,testsolveridx)
 
 locops = HDGElasticity.local_operator_on_cells(dgmesh,ufs,
             D1,D2,stabilization)
@@ -65,8 +74,9 @@ Hdisp = vcat(vec.(bc_displacement.(Hcoords[faceids]))...)
 HIdisp = vec(bc_displacement(HIcoords))
 H = vcat(Hdisp,HIdisp)
 
-rhs = lochybops[4]*H
-sol = locops[4]\rhs
+sidx = solveridx[2,1]
+rhs = lochybops[sidx]*H
+sol = locops[sidx]\rhs
 L = -D2*reshape(sol[1:12],3,:)
 U = reshape(sol[13:20],2,:)
 
@@ -84,8 +94,9 @@ faceids = findall(isactiveface)
 Hdisp = vcat(vec.(bc_displacement.(Hcoords[faceids]))...)
 H = vcat(Hdisp,HIdisp)
 
-rhs = lochybops[3]*H
-sol = locops[3]\rhs
+sidx = solveridx[1,1]
+rhs = lochybops[sidx]*H
+sol = locops[sidx]\rhs
 L = -D1*reshape(sol[1:12],3,:)
 U = reshape(sol[13:20],2,:)
 
@@ -107,8 +118,9 @@ H4c = [0.5 0.5
 Hcoords = [H1c,H2c,H3c,H4c]
 H = vcat(vec.(bc_displacement.(Hcoords))...)
 
-rhs = lochybops[1]*H
-sol = locops[1]\(rhs)
+sidx = solveridx[1,2]
+rhs = lochybops[sidx]*H
+sol = locops[sidx]\(rhs)
 L = -D1*reshape(sol[1:12],3,:)
 U = reshape(sol[13:20],2,:)
 
@@ -122,3 +134,8 @@ testU[:,4] = [0.1,0.1]
 
 @test allapprox(L,testL,1e-12)
 @test allapprox(U,testU,1e-12)
+
+locsolver = HDGElasticity.LocalSolver(locops,lochybops,solveridx)
+testinvLLxLH = [locops[i]\lochybops[i] for i = 1:length(locops)]
+@test length(testinvLLxLH) == length(locsolver.invLLxLH)
+@test all([allapprox(locsolver.invLLxLH[i],testinvLLxLH[i]) for i = 1:length(testinvLLxLH)])

@@ -2,7 +2,7 @@ using Test
 using PolynomialBasis
 using ImplicitDomainQuadrature
 using CartesianMesh
-using Revise
+# using Revise
 using HDGElasticity
 
 function allequal(u,v)
