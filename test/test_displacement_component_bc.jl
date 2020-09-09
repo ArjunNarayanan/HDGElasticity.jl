@@ -1,4 +1,5 @@
-using Test, StaticArrays, LinearAlgebra
+using Test
+using StaticArrays, LinearAlgebra
 using ImplicitDomainQuadrature
 import ImplicitDomainQuadrature: extend
 using HDGElasticity

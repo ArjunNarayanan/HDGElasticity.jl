@@ -142,3 +142,7 @@ cellmap = HDGElasticity.CellMap([0.,0.],[2.,1.])
 n = [1. 0.
      0. 1.]
 @test allapprox(HDGElasticity.scale_area(cellmap,n),[0.5,1.])
+
+facequads = [[],[1,2,3],[1,2,3,4,5],[]]
+isactiveface = HDGElasticity.active_faces(facequads)
+@test allequal(isactiveface,[0,1,1,0])

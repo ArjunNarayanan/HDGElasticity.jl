@@ -62,8 +62,6 @@ function neighbor_faceid(faceid)
     end
 end
 
-
-
 function jacobian(map::InterpolatingPolynomial,p)
     return gradient(map,p)
 end
@@ -170,4 +168,8 @@ function scale_area(cellmap,normals)
     invjac = inverse_jacobian(cellmap)
     den = sqrt.((t.^2)'*(invjac.^2))
     return 1.0 ./ den
+end
+
+function active_faces(facequads)
+    isactiveface = [length(fq) > 0 ? true : false for fq in facequads]
 end

@@ -1,92 +1,84 @@
-function HHop(sbasis,facequads,cellmap,stabilization)
+function HHop(sbasis,facequads,cellmap::CellMap,stabilization)
 
     sdim = dimension(sbasis)
     dim = sdim + 1
-    NHF = number_of_basis_functions(sbasis)
-
-    jac = face_determinant_jacobian(cellmap)
-    nfaces = length(jac)
+    nfaces = number_of_faces(dim)
     @assert length(facequads) == nfaces
 
-    ndofs = dim*NHF
-    HH = [zeros(ndofs,ndofs) for i in 1:nfaces]
+    NHF = number_of_basis_functions(sbasis)
+    isactiveface = active_faces(facequads)
 
+    jac = face_determinant_jacobian(cellmap)
+
+    ndofs = dim*NHF
+    HH = [zeros(ndofs,ndofs) for i in 1:count(isactiveface)]
+
+    counter = 1
     for faceid in 1:nfaces
-        if length(facequads[faceid]) > 0
-            update_mass_matrix!(HH[faceid],sbasis,facequads[faceid],
+        if isactiveface[faceid]
+            update_mass_matrix!(HH[counter],sbasis,facequads[faceid],
                 stabilization*jac[faceid],dim)
+            counter += 1
         end
     end
-
     return HH
 end
 
-function HHop!(HH,sbasis,squad,components::M,scale,
-    nhdofs,NHF) where {M<:AbstractMatrix}
+function HHop!(HH,sbasis,squad,components,scale,nhdofs)
 
     NQ = length(squad)
-    @assert size(components)[2] == NQ
-    @assert size(HH) == (nhdofs*NHF,nhdofs*NHF)
+    @assert length(components) == nhdofs
+    projector = components*components'
 
     for (idx,(p,w)) in enumerate(squad)
-        t = components[:,idx]
-        projector = t*t'
         svals = sbasis(p)
         NP = make_row_matrix(svals,projector)
         NI = interpolation_matrix(svals,nhdofs)
 
         HH .+= scale*NP'*NI*w
     end
-
 end
 
-function HHop!(HH,sbasis,squad,components::V,scale,
-    nhdofs,NHF) where {V<:AbstractVector}
-
-    NQ = length(squad)
-    extcomp = repeat(components,inner=(1,NQ))
-
-    HHop!(HH,sbasis,squad,extcomp,scale,nhdofs,NHF)
-
-end
-
-function HHop_on_interface!(HH,sbasis,iquad,normals,imap,cellmap,stabilization)
-
-    sdim = dimension(sbasis)
-    dim = sdim + 1
+function HHop(sbasis,squad,components,scale)
+    facedim = dimension(sbasis)
+    dim = facedim + 1
     NHF = number_of_basis_functions(sbasis)
+    HH = zeros(dim*NHF,dim*NHF)
+
+    HHop!(HH,sbasis,squad,components,scale,dim)
+    return HH
+end
+
+function HHop_on_interface!(HH,sbasis,iquad,normals,imap,cellmap,
+    stabilization,nhdofs)
 
     NQ = length(iquad)
-    @assert size(normals) == (dim,NQ)
-
-    scale = scale_area(cellmap,normals)
+    @assert size(normals)[2] == NQ
+    scale = stabilization*scale_area(cellmap,normals)
 
     for (idx,(p,w)) in enumerate(iquad)
         vals = sbasis(p)
-        N = interpolation_matrix(vals,dim)
         detjac = determinant_jacobian(imap,p)
+        N = interpolation_matrix(vals,nhdofs)
         HH .+= N'*N*detjac*scale[idx]*w
     end
 end
 
-function HHop_on_interface!(HH,sbasis,iquad,components,normals,imap,cellmap,stabilization)
-
-    sdim = dimension(sbasis)
-    dim = sdim + 1
-    NHF = number_of_basis_functions(sbasis)
+function HHop_on_interface!(HH,sbasis,iquad,normals,components,
+    imap,cellmap,stabilization,nhdofs)
 
     NQ = length(iquad)
-    @assert size(normals) == (dim,NQ)
-    @assert size(components) == (dim,NQ)
+    @assert size(normals)[2] == NQ
+    @assert size(components) == (nhdofs,NQ)
 
-    scale = scale_area(cellmap,normals)
+    scale = stabilization*scale_area(cellmap,normals)
 
     for (idx,(p,w)) in enumerate(iquad)
         t = components[:,idx]
         projector = t*t'
         vals = sbasis(p)
         NP = make_row_matrix(vals,projector)
-        NI = interpolation_matrix(vals,dim)
+        NI = interpolation_matrix(vals,nhdofs)
         detjac = determinant_jacobian(imap,p)
         HH .+= NP'*NI*detjac*scale[idx]*w
     end

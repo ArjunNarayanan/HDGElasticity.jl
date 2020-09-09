@@ -51,7 +51,7 @@ function LHop(vbasis,sbasis,facequads,facemaps,normals,Dhalf,cellmap)
     NLF = number_of_basis_functions(vbasis)
     NHF = number_of_basis_functions(sbasis)
 
-    isactiveface = [length(fq) > 0 ? true : false for fq in facequads]
+    isactiveface = active_faces(facequads)
 
     LH = [zeros(sdim*NLF,dim*NHF) for i in 1:count(isactiveface)]
     facescale = face_determinant_jacobian(cellmap)
