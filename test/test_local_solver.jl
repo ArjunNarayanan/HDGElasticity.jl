@@ -36,93 +36,89 @@ stabilization = 1.0
 cellmap = HDGElasticity.CellMap(dgmesh.domain[1])
 
 locops = HDGElasticity.local_operator_on_cells(dgmesh,ufs,
-            D1,D2,1.)
+            D1,D2,stabilization)
+lochybops = HDGElasticity.local_hybrid_operator_on_cells(dgmesh,ufs,D1,D2,stabilization)
 
-# lhc = HDGElasticity.local_hybrid_operator_on_cells(dgmesh,ufs,D1,D2,
-    # cellmap,1.)
-# lhci = HDGElasticity.local_hybrid_operator_on_interfaces(dgmesh,ufs,D1,D2,
-#     cellmap,1.)
-#
-#
-# function bc_displacement(coords;alpha=0.1,beta=0.1)
-#     disp = copy(coords)
-#     disp[1,:] .*= alpha
-#     disp[2,:] .*= beta
-#     return disp
-# end
-#
-# function compute_rhs(LUH,disp,ndofs)
-#     rhs = zeros(ndofs)
-#     for i in 1:4
-#         rhs .+= LUH[i]*disp[i]
-#     end
-#     return rhs
-# end
-#
-# H1c = [0.0 0.5
-#        0.0 0.0]
-# H2c = [0.5 0.5
-#        0.0 1.0]
-# H3c = [0.0 0.5
-#        1.0 1.0]
-# H4c = [0.0 0.0
-#        0.0 1.0]
-# HIcoords = [0.4 0.4
-#             0.0 1.0]
-# Hcoords = [H1c,H2c,H3c,H4c]
-#
-# Hdisp = vec.(bc_displacement.(Hcoords))
-# HIdisp = vec(bc_displacement(HIcoords))
-# rhs = compute_rhs(lhc[:,2,1],Hdisp,20)
-# rI = lhci[2,1]*HIdisp
-#
-# sol = localsolver[2,1].lulop\(rhs+rI)
-# L = -D2*reshape(sol[1:12],3,:)
-# U = reshape(sol[13:20],2,:)
-#
-# testL = zeros(size(L))
-# testL[1:2,:] .= 2*(l2+m2)*0.1
-# testU = zeros(size(U))
-# testU[:,2] = [0.0,0.1]
-# testU[:,3] = [0.05,0.0]
-# testU[:,4] = [0.05,0.1]
-# @test allapprox(L,testL,1e-12)
-# @test allapprox(U,testU,1e-12)
-#
-# rhs = compute_rhs(lhc[:,1,1],Hdisp,20)
-# rI = lhci[1,1]*HIdisp
-#
-# sol = localsolver[1,1].lulop\(rhs+rI)
-# L = -D1*reshape(sol[1:12],3,:)
-# U = reshape(sol[13:20],2,:)
-#
-# testL = zeros(size(L))
-# testL[1:2,:] .= 2*(l1+m1)*0.1
-# @test allapprox(L,testL,1e-12)
-# @test allapprox(U,testU,1e-12)
-#
-#
-# H1c = [0.5 1.0
-#        0.0 0.0]
-# H2c = [1.0 1.0
-#        0.0 1.0]
-# H3c = [0.5 1.0
-#        1.0 1.0]
-# H4c = [0.5 0.5
-#        0.0 1.0]
-#
-# Hdisp = vec.(bc_displacement.(Hcoords))
-# HIdisp = vec(bc_displacement(HIcoords))
-# rhs = compute_rhs(lhc[:,1,2],Hdisp,20)
-#
-# sol = localsolver[1,2].lulop\(rhs)
-# L = -D1*reshape(sol[1:12],3,:)
-# U = reshape(sol[13:20],2,:)
-#
-# testL = zeros(size(L))
-# testL[1:2,:] .= 2*(l1+m1)*0.1
-# @test allapprox(L,testL,1e-12)
-# @test allapprox(U,testU,1e-12)
-#
-#
-# hhop = HDGElasticity.hybrid_operator_on_cells(dgmesh,ufs,cellmap,1.)
+function bc_displacement(coords;alpha=0.1,beta=0.1)
+    disp = copy(coords)
+    disp[1,:] .*= alpha
+    disp[2,:] .*= beta
+    return disp
+end
+
+H1c = [0.0 0.5
+       0.0 0.0]
+H2c = [0.5 0.5
+       0.0 1.0]
+H3c = [0.0 0.5
+       1.0 1.0]
+H4c = [0.0 0.0
+       0.0 1.0]
+HIcoords = [0.4 0.4
+            0.0 1.0]
+Hcoords = [H1c,H2c,H3c,H4c]
+
+isactiveface = [length(fq) > 0 ? true : false for fq in ufs.fquads[2,1]]
+faceids = findall(isactiveface)
+
+Hdisp = vcat(vec.(bc_displacement.(Hcoords[faceids]))...)
+HIdisp = vec(bc_displacement(HIcoords))
+H = vcat(Hdisp,HIdisp)
+
+rhs = lochybops[4]*H
+sol = locops[4]\rhs
+L = -D2*reshape(sol[1:12],3,:)
+U = reshape(sol[13:20],2,:)
+
+testL = zeros(size(L))
+testL[1:2,:] .= 2*(l2+m2)*0.1
+testU = zeros(size(U))
+testU[:,2] = [0.0,0.1]
+testU[:,3] = [0.05,0.0]
+testU[:,4] = [0.05,0.1]
+@test allapprox(L,testL,1e-12)
+@test allapprox(U,testU,1e-12)
+
+isactiveface = [length(fq) > 0 ? true : false for fq in ufs.fquads[1,1]]
+faceids = findall(isactiveface)
+Hdisp = vcat(vec.(bc_displacement.(Hcoords[faceids]))...)
+H = vcat(Hdisp,HIdisp)
+
+rhs = lochybops[3]*H
+sol = locops[3]\rhs
+L = -D1*reshape(sol[1:12],3,:)
+U = reshape(sol[13:20],2,:)
+
+testL = zeros(size(L))
+testL[1:2,:] .= 2*(l1+m1)*0.1
+@test allapprox(L,testL,1e-12)
+@test allapprox(U,testU,1e-12)
+
+
+H1c = [0.5 1.0
+       0.0 0.0]
+H2c = [1.0 1.0
+       0.0 1.0]
+H3c = [0.5 1.0
+       1.0 1.0]
+H4c = [0.5 0.5
+       0.0 1.0]
+
+Hcoords = [H1c,H2c,H3c,H4c]
+H = vcat(vec.(bc_displacement.(Hcoords))...)
+
+rhs = lochybops[1]*H
+sol = locops[1]\(rhs)
+L = -D1*reshape(sol[1:12],3,:)
+U = reshape(sol[13:20],2,:)
+
+testL = zeros(size(L))
+testL[1:2,:] .= 2*(l1+m1)*0.1
+testU = zeros(2,4)
+testU[:,1] = [0.05,0.0]
+testU[:,2] = [0.05,0.1]
+testU[:,3] = [0.1,0.0]
+testU[:,4] = [0.1,0.1]
+
+@test allapprox(L,testL,1e-12)
+@test allapprox(U,testU,1e-12)

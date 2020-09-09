@@ -51,7 +51,7 @@ function local_hybrid_operator_on_cells(dgmesh,ufs,D1,D2,
     uniformop1 = local_hybrid_operator(ufs.vbasis,ufs.sbasis,ufs.ftpq,dgmesh.facemaps,
         ufs.fnormals,D1,stabilization,cellmap)
     uniformop2 = local_hybrid_operator(ufs.vbasis,ufs.sbasis,ufs.ftpq,dgmesh.facemaps,
-        ufs.fnormals,D2,cellmap,stabilization)
+        ufs.fnormals,D2,stabilization,cellmap)
 
     lochybops = [uniformop1,uniformop2]
 
@@ -59,17 +59,30 @@ function local_hybrid_operator_on_cells(dgmesh,ufs,D1,D2,
         s = dgmesh.cellsign[cellid]
         if s == 0
 
-            cutop1 = local_hybrid_operator_on_cells(ufs.vbasis,
-                ufs.sbasis,view(ufs.fquads,:,1,cellid),
-                view(dgmesh.isactiveface,:,1,cellid),D1,cellmap,stabilization)
+            update!(ufs.imap,ufs.icoeffs[cellid])
+            negativenormals = ufs.inormals[cellid]
+            positivenormals = -negativenormals
 
-            cutop2 = local_hybrid_operator_on_active_faces(ufs.vbasis,
-                ufs.sbasis,view(ufs.fquads,:,2,cellid),
-                view(dgmesh.isactiveface,:,2,cellid),D2,cellmap,stabilization)
+            cutfaceop1 = local_hybrid_operator(ufs.vbasis,ufs.sbasis,
+                ufs.fquads[1,cellid],dgmesh.facemaps,ufs.fnormals,D1,
+                stabilization,cellmap)
+            iop1 = local_hybrid_operator_on_interface(ufs.vbasis,ufs.sbasis,
+                ufs.iquad,ufs.imap,positivenormals,D1,stabilization,cellmap)
+            cutop1 = hcat(cutfaceop1,iop1)
+
+            push!(lochybops,cutop1)
+
+            cutfaceop2 = local_hybrid_operator(ufs.vbasis,ufs.sbasis,
+                ufs.fquads[2,cellid],dgmesh.facemaps,ufs.fnormals,D2,
+                stabilization,cellmap)
+            iop2 = local_hybrid_operator_on_interface(ufs.vbasis,ufs.sbasis,
+                ufs.iquad,ufs.imap,negativenormals,D2,stabilization,cellmap)
+            cutop2 = hcat(cutfaceop2,iop2)
+
+            push!(lochybops,cutop2)
         end
     end
-
-    return lhc
+    return lochybops
 end
 
 function local_hybrid_operator_on_interfaces(dgmesh,ufs,D1,D2,
