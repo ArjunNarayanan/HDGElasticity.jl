@@ -1,4 +1,4 @@
-function HHop(sbasis,facequads,cellmap::CellMap,stabilization)
+function HHop(sbasis,facequads,stabilization,cellmap::CellMap)
 
     sdim = dimension(sbasis)
     dim = sdim + 1
@@ -49,12 +49,10 @@ function HHop(sbasis,squad,components,scale)
     return HH
 end
 
-function HHop_on_interface!(HH,sbasis,iquad,normals,imap,cellmap,
-    stabilization,nhdofs)
+function HHop_on_interface!(HH,sbasis,iquad,imap,scale,nhdofs)
 
     NQ = length(iquad)
-    @assert size(normals)[2] == NQ
-    scale = stabilization*scale_area(cellmap,normals)
+    @assert length(scale) == NQ
 
     for (idx,(p,w)) in enumerate(iquad)
         vals = sbasis(p)
@@ -64,14 +62,22 @@ function HHop_on_interface!(HH,sbasis,iquad,normals,imap,cellmap,
     end
 end
 
-function HHop_on_interface!(HH,sbasis,iquad,normals,components,
-    imap,cellmap,stabilization,nhdofs)
+function HHop_on_interface(sbasis,iquad,imap,inormals,stabilization,cellmap)
+    facedim = dimension(sbasis)
+    dim = facedim + 1
+    NHF = number_of_basis_functions(sbasis)
+    HH = zeros(dim*NHF,dim*NHF)
+
+    facescale = stabilization*scale_area(cellmap,inormals)
+    HHop_on_interface!(HH,sbasis,iquad,imap,facescale,dim)
+    return HH
+end
+
+function HHop_on_interface!(HH,sbasis,iquad,imap,components,scale,nhdofs)
 
     NQ = length(iquad)
-    @assert size(normals)[2] == NQ
+    @assert length(scale) == NQ
     @assert size(components) == (nhdofs,NQ)
-
-    scale = stabilization*scale_area(cellmap,normals)
 
     for (idx,(p,w)) in enumerate(iquad)
         t = components[:,idx]
@@ -82,5 +88,18 @@ function HHop_on_interface!(HH,sbasis,iquad,normals,components,
         detjac = determinant_jacobian(imap,p)
         HH .+= NP'*NI*detjac*scale[idx]*w
     end
+    return HH
+end
+
+function HHop_on_interface(sbasis,iquad,imap,inormals,components,
+    stabilization,cellmap)
+
+    facedim = dimension(sbasis)
+    dim = facedim + 1
+    NHF = number_of_basis_functions(sbasis)
+    HH = zeros(dim*NHF,dim*NHF)
+
+    facescale = stabilization*scale_area(cellmap,inormals)
+    HHop_on_interface!(HH,sbasis,iquad,imap,components,facescale,dim)
     return HH
 end

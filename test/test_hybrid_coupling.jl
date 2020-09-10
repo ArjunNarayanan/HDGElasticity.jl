@@ -2,7 +2,7 @@ using Test
 using LinearAlgebra
 using PolynomialBasis
 using ImplicitDomainQuadrature
-# using Revise
+using Revise
 using HDGElasticity
 
 function allapprox(v1,v2)
@@ -14,7 +14,7 @@ squad = tensor_product_quadrature(1,2)
 facequads = repeat([squad],4)
 
 cellmap = HDGElasticity.CellMap([0.,0.],[1.,0.5])
-HH = HDGElasticity.HHop(sbasis,facequads,cellmap,1.)
+HH = HDGElasticity.HHop(sbasis,facequads,1.,cellmap)
 
 testmatrix = [2/3 0.0 1/3 0.0
               0.0 2/3 0.0 1/3
@@ -26,7 +26,7 @@ testmatrix = [2/3 0.0 1/3 0.0
 @test allapprox(HH[3],0.5*testmatrix)
 @test allapprox(HH[4],0.25*testmatrix)
 
-HH = HDGElasticity.HHop(sbasis,facequads,cellmap,2.)
+HH = HDGElasticity.HHop(sbasis,facequads,2.,cellmap)
 
 @test allapprox(HH[1],testmatrix)
 @test allapprox(HH[2],0.5*testmatrix)
@@ -34,7 +34,8 @@ HH = HDGElasticity.HHop(sbasis,facequads,cellmap,2.)
 @test allapprox(HH[4],0.5*testmatrix)
 
 facequads = [squad,[],[],squad]
-HH = HDGElasticity.HHop(sbasis,facequads,cellmap,1.)
+HH = HDGElasticity.HHop(sbasis,facequads,1.,cellmap)
+@test length(HH) == 2
 @test allapprox(HH[1],0.5*testmatrix)
 @test allapprox(HH[2],0.25*testmatrix)
 
@@ -67,11 +68,12 @@ update!(imap,coeffs)
 cellmap = HDGElasticity.CellMap([0.,0.],[2.,1.])
 
 HH = zeros(4,4)
-HDGElasticity.HHop_on_interface!(HH,sbasis,squad,normals,imap,cellmap,1.,2)
+facescale = HDGElasticity.scale_area(cellmap,normals)
+HDGElasticity.HHop_on_interface!(HH,sbasis,squad,imap,facescale,2)
 @test allapprox(HH,0.5/sqrt(2.0)*testmatrix)
 
 fill!(HH,0.0)
-HDGElasticity.HHop_on_interface!(HH,sbasis,squad,normals,imap,cellmap,2.,2)
+HDGElasticity.HHop_on_interface!(HH,sbasis,squad,imap,2facescale,2)
 @test allapprox(HH,1.0/sqrt(2.0)*testmatrix)
 
 cellmap = HDGElasticity.CellMap([0.,0.],[1.,0.5])
@@ -80,15 +82,18 @@ update!(imap,coeffs)
 normals = repeat([1.0,0.0],inner=(1,length(squad)))
 HH = zeros(4,4)
 
-HDGElasticity.HHop_on_interface!(HH,sbasis,squad,normals,normals,imap,cellmap,1.0,2)
+facescale = HDGElasticity.scale_area(cellmap,normals)
+HDGElasticity.HHop_on_interface!(HH,sbasis,squad,imap,normals,facescale,2)
 testHH = 0.25*testmatrix
 testHH[2,:] .= 0.0
 testHH[4,:] .= 0.0
 @test allapprox(HH,testHH)
 
 fill!(HH,0.0)
-HDGElasticity.HHop_on_interface!(HH,sbasis,squad,normals,normals,imap,cellmap,2.0,2)
-testHH = 0.5*testmatrix
-testHH[2,:] .= 0.0
-testHH[4,:] .= 0.0
+HDGElasticity.HHop_on_interface!(HH,sbasis,squad,imap,normals,2facescale,2)
+@test allapprox(HH,2testHH)
+
+HH = HDGElasticity.HHop_on_interface(sbasis,squad,imap,normals,normals,1.,cellmap)
 @test allapprox(HH,testHH)
+HH = HDGElasticity.HHop_on_interface(sbasis,squad,imap,normals,normals,2.,cellmap)
+@test allapprox(HH,2testHH)
