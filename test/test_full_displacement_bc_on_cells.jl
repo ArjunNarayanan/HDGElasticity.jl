@@ -28,9 +28,9 @@ normals = HDGElasticity.reference_normals()
 
 lop = HDGElasticity.local_operator(ufs.vbasis,ufs.vquads[1,1],
     ufs.fquads[1,1],dgmesh.facemaps,Dhalf,1.0,cellmap)
-lhop = HDGElasticity.local_hybrid_operator(ufs.vbasis,ufs.sbasis,
+facelhops = HDGElasticity.local_hybrid_operator(ufs.vbasis,ufs.sbasis,
     ufs.fquads[1,1],dgmesh.facemaps,normals,Dhalf,stabilization,cellmap)
-
+lhop = hcat(facelhops...)
 
 function bc_displacement(coords;alpha=0.1,beta=0.1)
     disp = copy(coords)
@@ -87,9 +87,10 @@ mapped_points = hcat([ufs.imap(ufs.iquad.points[:,i]) for i in 1:size(ufs.iquad.
 lop = HDGElasticity.local_operator(ufs.vbasis,ufs.vquads[1,1],
     ufs.fquads[1,1],dgmesh.facemaps,ufs.iquad,-ufs.inormals[1],
     ufs.imap,Dhalf,stabilization,cellmap)
-lhop = HDGElasticity.local_hybrid_operator(ufs.vbasis,ufs.sbasis,
+facelhops = HDGElasticity.local_hybrid_operator(ufs.vbasis,ufs.sbasis,
     ufs.fquads[1,1],dgmesh.facemaps,normals,Dhalf,
     stabilization,cellmap)
+lhop = hcat(facelhops...)
 ilhop = HDGElasticity.local_hybrid_operator_on_interface(ufs.vbasis,ufs.sbasis,
     ufs.iquad,ufs.imap,-ufs.inormals[1],Dhalf,stabilization,cellmap)
 
@@ -119,9 +120,10 @@ testU[:,4] .= [0.2,0.1]
 lop = HDGElasticity.local_operator(ufs.vbasis,ufs.vquads[2,1],
     ufs.fquads[2,1],dgmesh.facemaps,ufs.iquad,ufs.inormals[1],
     ufs.imap,Dhalf,stabilization,cellmap)
-lhop = HDGElasticity.local_hybrid_operator(ufs.vbasis,ufs.sbasis,
+facelhops = HDGElasticity.local_hybrid_operator(ufs.vbasis,ufs.sbasis,
     ufs.fquads[2,1],dgmesh.facemaps,normals,Dhalf,
     stabilization,cellmap)
+lhop = hcat(facelhops...)
 ilhop = HDGElasticity.local_hybrid_operator_on_interface(ufs.vbasis,ufs.sbasis,
     ufs.iquad,ufs.imap,ufs.inormals[1],Dhalf,stabilization,cellmap)
 

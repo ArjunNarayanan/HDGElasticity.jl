@@ -177,7 +177,7 @@ function local_hybrid_operator(vbasis,sbasis,facequads,facemaps,normals,
 
     @assert length(LH) == length(UH)
 
-    return hcat([[LH[i];UH[i]] for i in 1:length(LH)]...)
+    return [[LH[i];UH[i]] for i in 1:length(LH)]
 
 end
 

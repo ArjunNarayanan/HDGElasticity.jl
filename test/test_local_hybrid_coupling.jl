@@ -136,7 +136,8 @@ UH = HDGElasticity.UHop_on_interface(vbasis,sbasis,squad,imap,normals,1.,cellmap
 normals = HDGElasticity.reference_normals()
 lhc = HDGElasticity.local_hybrid_operator(vbasis,sbasis,facequads,
     facemaps,normals,Dhalf,1.,cellmap)
-@test size(lhc) == (20,16)
+@test length(lhc) == 4
+@test all([size(lhc[i]) == (20,4) for i = 1:4])
 
 update!(imap,[0.,-1.,-1.,0.])
 normals = 1/sqrt(2)*ones(2,length(squad))
@@ -158,4 +159,5 @@ ufs = HDGElasticity.UniformFunctionSpace(dgmesh,1,4,coeffs,poly)
 Dhalf = sqrt(HDGElasticity.plane_strain_voigt_hooke_matrix_2d(1.,2.))
 lhc = HDGElasticity.local_hybrid_operator(ufs.vbasis,ufs.sbasis,
     ufs.fquads[2,1],dgmesh.facemaps,ufs.fnormals,Dhalf,1.0,cellmap)
-@test size(lhc) == (20,8)
+@test length(lhc) == 2
+@test all([size(lhc[i]) == (20,4) for i = 1:2])
