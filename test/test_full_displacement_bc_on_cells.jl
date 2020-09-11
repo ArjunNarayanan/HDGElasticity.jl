@@ -23,11 +23,11 @@ ufs = HDGElasticity.UniformFunctionSpace(dgmesh,1,2,coeffs,poly)
 
 cellmap = HDGElasticity.CellMap(dgmesh.domain[1])
 Dhalf = sqrt(HDGElasticity.plane_strain_voigt_hooke_matrix_2d(1.,2.))
-stabilization = 1.0
+stabilization = 0.1
 normals = HDGElasticity.reference_normals()
 
 lop = HDGElasticity.local_operator(ufs.vbasis,ufs.vquads[1,1],
-    ufs.fquads[1,1],dgmesh.facemaps,Dhalf,1.0,cellmap)
+    ufs.fquads[1,1],dgmesh.facemaps,Dhalf,stabilization,cellmap)
 facelhops = HDGElasticity.local_hybrid_operator(ufs.vbasis,ufs.sbasis,
     ufs.fquads[1,1],dgmesh.facemaps,normals,Dhalf,stabilization,cellmap)
 lhop = hcat(facelhops...)
@@ -69,7 +69,7 @@ testU[:,3] .= [0.2,0.]
 testU[:,4] .= [0.2,0.1]
 
 @test allapprox(L,testL,1e-14)
-@test allapprox(U,testU,1e-15)
+@test allapprox(U,testU,1e-14)
 
 
 function plane_distance_function(coords,n,x0)
@@ -113,8 +113,8 @@ testU[:,2] .= [0.,0.1]
 testU[:,3] .= [0.2,0.]
 testU[:,4] .= [0.2,0.1]
 
-@test allapprox(L,testL,1e-15)
-@test allapprox(U,testU,1e-15)
+@test allapprox(L,testL,1e-14)
+@test allapprox(U,testU,1e-14)
 
 
 lop = HDGElasticity.local_operator(ufs.vbasis,ufs.vquads[2,1],

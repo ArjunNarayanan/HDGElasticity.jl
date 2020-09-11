@@ -39,12 +39,13 @@ function HHop!(HH,sbasis,squad,components,scale,nhdofs)
     end
 end
 
-function HHop(sbasis,squad,components,scale)
+function HHop(sbasis,squad,components,stabilization,facescale)
     facedim = dimension(sbasis)
     dim = facedim + 1
     NHF = number_of_basis_functions(sbasis)
     HH = zeros(dim*NHF,dim*NHF)
-
+    
+    scale = stabilization*facescale
     HHop!(HH,sbasis,squad,components,scale,dim)
     return HH
 end

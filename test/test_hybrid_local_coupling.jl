@@ -46,9 +46,8 @@ scale = ones(length(squad))
 HDGElasticity.HLop!(HL,sfunc,vfunc,squad,imap,icomp,icomp,D,scale)
 @test allapprox(HL,[2/15])
 
-scale = 0.5*ones(length(squad))
 fill!(HL,0.0)
-HDGElasticity.HLop!(HL,sfunc,vfunc,squad,imap,icomp,icomp,D,scale)
+HDGElasticity.HLop!(HL,sfunc,vfunc,squad,imap,icomp,icomp,D,0.5*scale)
 @test allapprox(HL,0.5*[2/15])
 
 
@@ -69,14 +68,16 @@ facejacobian = HDGElasticity.face_determinant_jacobian(cellmap)
 HL = zeros(4,12)
 HDGElasticity.HLop!(HL,sbasis,vbasis,squad,linemap,normals,components,ED,facejacobian[4])
 
-facescale = HDGElasticity.face_determinant_jacobian(cellmap)
-HLl = HDGElasticity.HLop(sbasis,vbasis,squad,linemap,normals,components,Dhalf,facescale[4])
+HLl = HDGElasticity.HLop(sbasis,vbasis,squad,linemap,normals,components,Dhalf,facejacobian[4])
 @test size(HLl) == (4,12)
 
-scale = repeat([facescale[4]],length(squad))
-HLi = HDGElasticity.HLop(sbasis,vbasis,squad,imap,inormals,icomponents,Dhalf,scale)
+iscale = HDGElasticity.scale_area(cellmap,inormals)
+HLi = HDGElasticity.HLop(sbasis,vbasis,squad,imap,inormals,icomponents,Dhalf,iscale)
 @test size(HLi) == (4,12)
 @test allapprox(HLl,HLi)
+
+HLl2 = HDGElasticity.HLop(sbasis,vbasis,squad,linemap,normals,components,Dhalf,0.5facejacobian[4])
+@test allapprox(0.5HLl,HLl2)
 
 HU = reshape([0.0],1,1)
 HDGElasticity.HUop!(HU,sfunc,vfunc,squad,linemap,comp,1.,1)
@@ -97,19 +98,37 @@ scale = ones(length(squad))
 HDGElasticity.HUop!(HU,sfunc,vfunc,squad,imap,icomp,scale,1)
 @test allapprox(HU,[2/15])
 
-HUl = HDGElasticity.HUop(sbasis,vbasis,squad,linemap,components,facescale[4])
+fill!(HU,0.0)
+HDGElasticity.HUop!(HU,sfunc,vfunc,squad,imap,icomp,0.5scale,1)
+@test allapprox(HU,0.5*[2/15])
+
+
+HUl = HDGElasticity.HUop(sbasis,vbasis,squad,linemap,components,facejacobian[4])
 @test size(HUl) == (4,8)
 
-scale = repeat([facescale[4]],length(squad))
+scale = HDGElasticity.scale_area(cellmap,inormals)
 HUi = HDGElasticity.HUop(sbasis,vbasis,squad,imap,icomponents,scale)
 @test size(HUi) == (4,8)
 @test allapprox(HUl,HUi)
 
-hybloc = HDGElasticity.hybrid_local_operator_traction_components(sbasis,vbasis,
-    squad,linemap,normals,components,Dhalf,1.,facescale[4])
-@test size(hybloc) == (4,20)
+HUl2 = HDGElasticity.HUop(sbasis,vbasis,squad,linemap,components,2*facejacobian[4])
+@test size(HUl) == (4,8)
+@test allapprox(2HUl,HUl2)
 
-iscale = repeat([facescale[4]],length(squad))
-hybloc = HDGElasticity.hybrid_local_operator_traction_components(sbasis,vbasis,
+hybloc1 = HDGElasticity.hybrid_local_operator_traction_components(sbasis,vbasis,
+    squad,linemap,normals,components,Dhalf,1.,facejacobian[4])
+@test size(hybloc1) == (4,20)
+
+hybloc2 = HDGElasticity.hybrid_local_operator_traction_components(sbasis,vbasis,
+    squad,linemap,normals,components,Dhalf,0.1,facejacobian[4])
+@test allapprox(0.1hybloc1,hybloc2)
+
+
+iscale = HDGElasticity.scale_area(cellmap,inormals)
+hybloc1 = HDGElasticity.hybrid_local_operator_traction_components(sbasis,vbasis,
     squad,imap,inormals,icomponents,Dhalf,1.,iscale)
-@test size(hybloc) == (4,20)
+@test size(hybloc1) == (4,20)
+
+hybloc2 = HDGElasticity.hybrid_local_operator_traction_components(sbasis,vbasis,
+    squad,imap,inormals,icomponents,Dhalf,0.2,iscale)
+@test allapprox(0.2hybloc1,hybloc2)

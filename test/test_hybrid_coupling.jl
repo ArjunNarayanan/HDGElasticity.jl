@@ -39,6 +39,11 @@ HH = HDGElasticity.HHop(sbasis,facequads,1.,cellmap)
 @test allapprox(HH[1],0.5*testmatrix)
 @test allapprox(HH[2],0.25*testmatrix)
 
+HH = HDGElasticity.HHop(sbasis,facequads,2.,cellmap)
+@test length(HH) == 2
+@test allapprox(HH[1],2*0.5*testmatrix)
+@test allapprox(HH[2],2*0.25*testmatrix)
+
 HH = reshape([0.0],1,1)
 sfunc(x) = [0.5*x[1]*(x[1]+1)]
 squad = tensor_product_quadrature(1,3)
@@ -56,8 +61,17 @@ components = [1.0]
 HDGElasticity.HHop!(HH,sfunc,squad,components,3.,1)
 @test allapprox(HH,3*[4/15])
 
-HH = HDGElasticity.HHop(sbasis,squad,[1.,0.],1.)
-@test size(HH) == (4,4)
+HH1 = HDGElasticity.HHop(sbasis,squad,[1.,0.],1.,1.)
+@test size(HH1) == (4,4)
+testHH1 = [2/3 0 1/3 0
+           0   0 0   0
+           1/3 0 2/3 0
+           0   0 0   0]
+@test allapprox(HH1,testHH1)
+HH2 = HDGElasticity.HHop(sbasis,squad,[1.,0.],2.,1.)
+@test allapprox(2HH1,HH2)
+HH2 = HDGElasticity.HHop(sbasis,squad,[1.,0.],1.,2.)
+@test allapprox(2HH1,HH2)
 
 n = [1.,1.]/sqrt(2.)
 normals = repeat(n,inner=(1,3))
