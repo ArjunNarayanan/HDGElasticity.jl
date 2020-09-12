@@ -44,98 +44,61 @@ testsolveridx = [3 1
                  4 0]
 @test allequal(solveridx,testsolveridx)
 
-locops = HDGElasticity.local_operator_on_cells(dgmesh,ufs,
+solver_components = HDGElasticity.solver_components_on_cells(dgmesh,ufs,
             D1,D2,stabilization)
-lochybops = HDGElasticity.local_hybrid_operator_on_cells(dgmesh,ufs,D1,D2,stabilization)
 
-function bc_displacement(coords;alpha=0.1,beta=0.1)
-    disp = copy(coords)
-    disp[1,:] .*= alpha
-    disp[2,:] .*= beta
-    return disp
-end
+solver_components = HDGElasticity.solver_components_on_cells(dgmesh,ufs,D1,D2,stabilization)
+@test length(solver_components) == 4
 
-H1c = [0.0 0.5
-       0.0 0.0]
-H2c = [0.5 0.5
-       0.0 1.0]
-H3c = [0.0 0.5
-       1.0 1.0]
-H4c = [0.0 0.0
-       0.0 1.0]
-HIcoords = [0.4 0.4
-            0.0 1.0]
-Hcoords = [H1c,H2c,H3c,H4c]
-
-isactiveface = [length(fq) > 0 ? true : false for fq in ufs.fquads[2,1]]
-faceids = findall(isactiveface)
-
-Hdisp = vcat(vec.(bc_displacement.(Hcoords[faceids]))...)
-HIdisp = vec(bc_displacement(HIcoords))
-H = vcat(Hdisp,HIdisp)
-
-sidx = solveridx[2,1]
-rhs = lochybops[sidx]*H
-sol = locops[sidx]\rhs
-L = -D2*reshape(sol[1:12],3,:)
-U = reshape(sol[13:20],2,:)
-
-testL = zeros(size(L))
-testL[1:2,:] .= 2*(l2+m2)*0.1
-testU = zeros(size(U))
-testU[:,2] = [0.0,0.1]
-testU[:,3] = [0.05,0.0]
-testU[:,4] = [0.05,0.1]
-@test allapprox(L,testL,1e-12)
-@test allapprox(U,testU,1e-12)
-
-isactiveface = [length(fq) > 0 ? true : false for fq in ufs.fquads[1,1]]
-faceids = findall(isactiveface)
-Hdisp = vcat(vec.(bc_displacement.(Hcoords[faceids]))...)
-H = vcat(Hdisp,HIdisp)
-
-sidx = solveridx[1,1]
-rhs = lochybops[sidx]*H
-sol = locops[sidx]\rhs
-L = -D1*reshape(sol[1:12],3,:)
-U = reshape(sol[13:20],2,:)
-
-testL = zeros(size(L))
-testL[1:2,:] .= 2*(l1+m1)*0.1
-@test allapprox(L,testL,1e-12)
-@test allapprox(U,testU,1e-12)
+update!(ufs.imap,ufs.icoeffs[1,1])
+LL1 = HDGElasticity.local_operator(ufs.vbasis,ufs.vquads[1,1],ufs.fquads[1,1],
+    dgmesh.facemaps,ufs.iquad,ufs.imap,-ufs.inormals[1],D1,stabilization,cellmap)
+fLH1 = HDGElasticity.local_hybrid_operator(ufs.vbasis,ufs.sbasis,ufs.fquads[1,1],
+    dgmesh.facemaps,ufs.fnormals,D1,stabilization,cellmap)
+iLH1 = HDGElasticity.local_hybrid_operator_on_interface(ufs.vbasis,ufs.sbasis,
+    ufs.iquad,ufs.imap,-ufs.inormals[1],D1,stabilization,cellmap)
+LH1 = [hcat(fLH1...) iLH1]
+fHH1 = HDGElasticity.hybrid_operator(ufs.sbasis,ufs.fquads[1,1],stabilization,cellmap)
+iHH1 = HDGElasticity.hybrid_operator_on_interface(ufs.sbasis,ufs.iquad,
+    ufs.imap,-ufs.inormals[1],stabilization,cellmap)
+HH1 = vcat(fHH1,[iHH1])
+@test allapprox(solver_components[solveridx[1,1]].LL,LL1)
+@test allapprox(solver_components[solveridx[1,1]].LH,LH1)
+@test all([allapprox(solver_components[solveridx[1,1]].fHH[i],HH1[i]) for i = 1:length(HH1)])
 
 
-H1c = [0.5 1.0
-       0.0 0.0]
-H2c = [1.0 1.0
-       0.0 1.0]
-H3c = [0.5 1.0
-       1.0 1.0]
-H4c = [0.5 0.5
-       0.0 1.0]
+LL2 = HDGElasticity.local_operator(ufs.vbasis,ufs.vquads[2,1],ufs.fquads[2,1],
+    dgmesh.facemaps,ufs.iquad,ufs.imap,ufs.inormals[1],D2,stabilization,cellmap)
+fLH2 = HDGElasticity.local_hybrid_operator(ufs.vbasis,ufs.sbasis,ufs.fquads[2,1],
+    dgmesh.facemaps,ufs.fnormals,D2,stabilization,cellmap)
+iLH2 = HDGElasticity.local_hybrid_operator_on_interface(ufs.vbasis,ufs.sbasis,
+    ufs.iquad,ufs.imap,ufs.inormals[1],D2,stabilization,cellmap)
+LH2 = [hcat(fLH2...) iLH2]
+fHH2 = HDGElasticity.hybrid_operator(ufs.sbasis,ufs.fquads[2,1],stabilization,cellmap)
+iHH2 = HDGElasticity.hybrid_operator_on_interface(ufs.sbasis,ufs.iquad,
+    ufs.imap,ufs.inormals[1],stabilization,cellmap)
+HH2 = vcat(fHH2,[iHH2])
+@test allapprox(solver_components[solveridx[2,1]].LL,LL2)
+@test allapprox(solver_components[solveridx[2,1]].LH,LH2)
+@test all([allapprox(solver_components[solveridx[2,1]].fHH[i],HH2[i]) for i = 1:length(HH2)])
 
-Hcoords = [H1c,H2c,H3c,H4c]
-H = vcat(vec.(bc_displacement.(Hcoords))...)
+uLL1 = HDGElasticity.local_operator(ufs.vbasis,ufs.vtpq,ufs.ftpq,
+    dgmesh.facemaps,D1,stabilization,cellmap)
+ufLH1 = HDGElasticity.local_hybrid_operator(ufs.vbasis,ufs.sbasis,ufs.ftpq,
+    dgmesh.facemaps,ufs.fnormals,D1,stabilization,cellmap)
+uLH1 = hcat(ufLH1...)
+ufHH1 = HDGElasticity.hybrid_operator(ufs.sbasis,ufs.ftpq,stabilization,cellmap)
+@test allapprox(solver_components[1].LL,uLL1)
+@test allapprox(solver_components[1].LH,uLH1)
+@test all([allapprox(solver_components[1].fHH[i],ufHH1[i]) for i = 1:length(ufHH1)])
 
-sidx = solveridx[1,2]
-rhs = lochybops[sidx]*H
-sol = locops[sidx]\(rhs)
-L = -D1*reshape(sol[1:12],3,:)
-U = reshape(sol[13:20],2,:)
 
-testL = zeros(size(L))
-testL[1:2,:] .= 2*(l1+m1)*0.1
-testU = zeros(2,4)
-testU[:,1] = [0.05,0.0]
-testU[:,2] = [0.05,0.1]
-testU[:,3] = [0.1,0.0]
-testU[:,4] = [0.1,0.1]
-
-@test allapprox(L,testL,1e-12)
-@test allapprox(U,testU,1e-12)
-
-locsolver = HDGElasticity.LocalSolver(locops,lochybops,solveridx)
-testinvLLxLH = [locops[i]\lochybops[i] for i = 1:length(locops)]
-@test length(testinvLLxLH) == length(locsolver.invLLxLH)
-@test all([allapprox(locsolver.invLLxLH[i],testinvLLxLH[i]) for i = 1:length(testinvLLxLH)])
+uLL2 = HDGElasticity.local_operator(ufs.vbasis,ufs.vtpq,ufs.ftpq,
+    dgmesh.facemaps,D2,stabilization,cellmap)
+ufLH2 = HDGElasticity.local_hybrid_operator(ufs.vbasis,ufs.sbasis,ufs.ftpq,
+    dgmesh.facemaps,ufs.fnormals,D2,stabilization,cellmap)
+uLH2 = hcat(ufLH2...)
+ufHH2 = HDGElasticity.hybrid_operator(ufs.sbasis,ufs.ftpq,stabilization,cellmap)
+@test allapprox(solver_components[2].LL,uLL2)
+@test allapprox(solver_components[2].LH,uLH2)
+@test all([allapprox(solver_components[2].fHH[i],ufHH1[i]) for i = 1:length(ufHH2)])

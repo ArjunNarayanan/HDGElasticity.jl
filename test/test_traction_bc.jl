@@ -30,13 +30,14 @@ locop = HDGElasticity.local_operator(vbasis,vquad,facequads,facemaps,
 facelhops = HDGElasticity.local_hybrid_operator(vbasis,sbasis,facequads,facemaps,
     normals,Dhalf,stabilization,cellmap)
 lhop = hcat(facelhops...)
-HH = HDGElasticity.HHop(sbasis,facequads,stabilization,cellmap)
+HH = HDGElasticity.hybrid_operator(sbasis,facequads,stabilization,cellmap)
+HHmass = HDGElasticity.hybrid_operator(sbasis,facequads,1.0,cellmap)
 
 tcomp = [1.0,0.0]
 hybloc1 = HDGElasticity.hybrid_local_operator_traction_components(sbasis,
     vbasis,facequads[1],facemaps[1],normals[1],tcomp,Dhalf,
     stabilization,facescale[1])
-HHt1 = HDGElasticity.HHop(sbasis,squad,tcomp,stabilization*facescale[1])
+HHt1 = HDGElasticity.HHop(sbasis,squad,tcomp,stabilization,facescale[1])
 ucomp = [0.0,-1.0]
 HHu1 = HDGElasticity.HHop(sbasis,squad,ucomp,facescale[1])
 
@@ -83,17 +84,35 @@ u2 = e22*1
 testHsol = zeros(2,8)
 testHsol[1,[2,3,4,6]] .= u1
 testHsol[2,[4,5,6,8]] .= u2
+
+testL = zeros(3,4)
+testL[1,:] .= 1.0
+
+testU = zeros(2,4)
+testU[2,2] = u2
+testU[1,3] = u1
+testU[1,4] = u1
+testU[2,4] = u2
+
+@test allapprox(testL,L,1e-14)
+@test allapprox(testU,U,1e-14)
 @test allapprox(Hsol,testHsol,1e-14)
 
+
+
 hybloc1 = zeros(4,20)
-HH1 = HH[1]
+HH1 = HHmass[1]
 
 hybloc2 = facelhops[2]'
-R2 = -HDGElasticity.linear_form(facescale[2]*[0.0,0.5],sbasis,facequads[2])
+R2 = -HDGElasticity.linear_form(facescale[2]*[0.0,1.0],sbasis,facequads[2])
 HH2 = HH[2]
 
+hybloc3 = facelhops[3]'
+R3 = -HDGElasticity.linear_form(facescale[3]*[1.0,0.0],sbasis,facequads[3])
+HH3 = HH[3]
+
 hybloc4 = facelhops[4]'
-R4 = -HDGElasticity.linear_form(facescale[4]*[0.0,-0.5],sbasis,facequads[4])
+R4 = -HDGElasticity.linear_form(facescale[4]*[0.0,-1.0],sbasis,facequads[4])
 HH4 = HH[4]
 
 hlop = vcat(hybloc1,hybloc2,hybloc3,hybloc4)
@@ -106,9 +125,33 @@ hhop[13:16,13:16] = HH4
 
 cellop = hlop*(locop\lhop) - hhop
 rhs = zeros(16)
-# rhs[5:8] = R2
+rhs[5:8] = R2
 rhs[9:12] = R3
-# rhs[13:16] = R4
+rhs[13:16] = R4
 
 sol = cellop\rhs
 Hsol = reshape(sol,2,:)
+
+locsol = locop\(lhop*sol)
+L = -Dhalf*reshape(locsol[1:12],3,:)
+U = reshape(locsol[13:20],2,:)
+
+e12 = 1.0/(2mu)
+gamma = 2*e12
+
+testL = zeros(3,4)
+testL[3,:] .= 1.0
+
+testU = zeros(2,4)
+testU[1,2] = gamma
+testU[1,4] = gamma
+
+testH = zeros(2,8)
+testH[1,4] = gamma
+testH[1,5] = gamma
+testH[1,6] = gamma
+testH[1,8] = gamma
+
+@test allapprox(Hsol,testH,1e-14)
+@test allapprox(L,testL,1e-14)
+@test allapprox(U,testU,1e-14)

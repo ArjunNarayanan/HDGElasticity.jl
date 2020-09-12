@@ -1,4 +1,4 @@
-function HHop(sbasis,facequads,stabilization,cellmap::CellMap)
+function hybrid_operator(sbasis,facequads,stabilization,cellmap::CellMap)
 
     sdim = dimension(sbasis)
     dim = sdim + 1
@@ -39,15 +39,18 @@ function HHop!(HH,sbasis,squad,components,scale,nhdofs)
     end
 end
 
-function HHop(sbasis,squad,components,stabilization,facescale)
+function HHop(sbasis,squad,components,scale)
     facedim = dimension(sbasis)
     dim = facedim + 1
     NHF = number_of_basis_functions(sbasis)
     HH = zeros(dim*NHF,dim*NHF)
-    
-    scale = stabilization*facescale
+
     HHop!(HH,sbasis,squad,components,scale,dim)
     return HH
+end
+
+function HHop(sbasis,squad,components,stabilization,facescale)
+    return HHop(sbasis,squad,components,stabilization*facescale)
 end
 
 function HHop_on_interface!(HH,sbasis,iquad,imap,scale,nhdofs)
@@ -63,7 +66,9 @@ function HHop_on_interface!(HH,sbasis,iquad,imap,scale,nhdofs)
     end
 end
 
-function HHop_on_interface(sbasis,iquad,imap,inormals,stabilization,cellmap)
+function hybrid_operator_on_interface(sbasis,iquad,imap,inormals,
+    stabilization,cellmap)
+    
     facedim = dimension(sbasis)
     dim = facedim + 1
     NHF = number_of_basis_functions(sbasis)
@@ -92,7 +97,7 @@ function HHop_on_interface!(HH,sbasis,iquad,imap,components,scale,nhdofs)
     return HH
 end
 
-function HHop_on_interface(sbasis,iquad,imap,inormals,components,
+function hybrid_operator_on_interface(sbasis,iquad,imap,inormals,components,
     stabilization,cellmap)
 
     facedim = dimension(sbasis)

@@ -173,3 +173,16 @@ end
 function active_faces(facequads)
     isactiveface = [length(fq) > 0 ? true : false for fq in facequads]
 end
+
+function face_midpoints(cellmap::CellMap{2})
+    xl = cellmap.xL
+    xr = cellmap.xR
+    xm = 0.5*(xl+xr)
+
+    m1 = [xm[1],xl[2]]
+    m2 = [xr[1],xm[2]]
+    m3 = [xm[1],xr[2]]
+    m4 = [xl[1],xm[2]]
+
+    return [m1,m2,m3,m4]
+end

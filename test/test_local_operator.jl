@@ -96,6 +96,6 @@ lop = HDGElasticity.local_operator(ufs.vbasis,ufs.vquads[1,1],
 
 update!(ufs.imap,ufs.icoeffs[1])
 lop = HDGElasticity.local_operator(ufs.vbasis,ufs.vquads[1,1],ufs.fquads[1,1],
-    dgmesh.facemaps,ufs.iquad,ufs.inormals[1],ufs.imap,Dhalf,1.0,cellmap)
+    dgmesh.facemaps,ufs.iquad,ufs.imap,ufs.inormals[1],Dhalf,1.0,cellmap)
 @test size(lop) == (20,20)
 @test rank(lop) == 20

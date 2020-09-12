@@ -14,7 +14,7 @@ squad = tensor_product_quadrature(1,2)
 facequads = repeat([squad],4)
 
 cellmap = HDGElasticity.CellMap([0.,0.],[1.,0.5])
-HH = HDGElasticity.HHop(sbasis,facequads,1.,cellmap)
+HH = HDGElasticity.hybrid_operator(sbasis,facequads,1.,cellmap)
 
 testmatrix = [2/3 0.0 1/3 0.0
               0.0 2/3 0.0 1/3
@@ -26,7 +26,7 @@ testmatrix = [2/3 0.0 1/3 0.0
 @test allapprox(HH[3],0.5*testmatrix)
 @test allapprox(HH[4],0.25*testmatrix)
 
-HH = HDGElasticity.HHop(sbasis,facequads,2.,cellmap)
+HH = HDGElasticity.hybrid_operator(sbasis,facequads,2.,cellmap)
 
 @test allapprox(HH[1],testmatrix)
 @test allapprox(HH[2],0.5*testmatrix)
@@ -34,12 +34,12 @@ HH = HDGElasticity.HHop(sbasis,facequads,2.,cellmap)
 @test allapprox(HH[4],0.5*testmatrix)
 
 facequads = [squad,[],[],squad]
-HH = HDGElasticity.HHop(sbasis,facequads,1.,cellmap)
+HH = HDGElasticity.hybrid_operator(sbasis,facequads,1.,cellmap)
 @test length(HH) == 2
 @test allapprox(HH[1],0.5*testmatrix)
 @test allapprox(HH[2],0.25*testmatrix)
 
-HH = HDGElasticity.HHop(sbasis,facequads,2.,cellmap)
+HH = HDGElasticity.hybrid_operator(sbasis,facequads,2.,cellmap)
 @test length(HH) == 2
 @test allapprox(HH[1],2*0.5*testmatrix)
 @test allapprox(HH[2],2*0.25*testmatrix)
@@ -90,6 +90,9 @@ fill!(HH,0.0)
 HDGElasticity.HHop_on_interface!(HH,sbasis,squad,imap,2facescale,2)
 @test allapprox(HH,1.0/sqrt(2.0)*testmatrix)
 
+HH = HDGElasticity.hybrid_operator_on_interface(sbasis,squad,imap,normals,1.,cellmap)
+@test allapprox(HH,0.5/sqrt(2.0)*testmatrix)
+
 cellmap = HDGElasticity.CellMap([0.,0.],[1.,0.5])
 coeffs = [1.0,-1.0,1.,1.]
 update!(imap,coeffs)
@@ -107,7 +110,7 @@ fill!(HH,0.0)
 HDGElasticity.HHop_on_interface!(HH,sbasis,squad,imap,normals,2facescale,2)
 @test allapprox(HH,2testHH)
 
-HH = HDGElasticity.HHop_on_interface(sbasis,squad,imap,normals,normals,1.,cellmap)
+HH = HDGElasticity.hybrid_operator_on_interface(sbasis,squad,imap,normals,normals,1.,cellmap)
 @test allapprox(HH,testHH)
-HH = HDGElasticity.HHop_on_interface(sbasis,squad,imap,normals,normals,2.,cellmap)
+HH = HDGElasticity.hybrid_operator_on_interface(sbasis,squad,imap,normals,normals,2.,cellmap)
 @test allapprox(HH,2testHH)

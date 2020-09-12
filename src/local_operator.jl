@@ -86,12 +86,12 @@ function local_operator(basis,vquad,facequad,facemaps,Dhalf,
     return local_operator(LL,LU,UU)
 end
 
-function local_operator(basis,vquad,facequads,facemaps,iquad,normals,imap,
+function local_operator(basis,vquad,facequads,facemaps,iquad,imap,inormals,
     Dhalf,stabilization,cellmap)
 
     LL = LLop(basis,vquad,cellmap)
     LU = LUop(basis,vquad,Dhalf,cellmap)
-    UU = UUop(basis,facequads,facemaps,iquad,normals,imap,
+    UU = UUop(basis,facequads,facemaps,iquad,inormals,imap,
         stabilization,cellmap)
     return local_operator(LL,LU,UU)
 end

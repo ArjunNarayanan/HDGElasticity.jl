@@ -146,3 +146,11 @@ n = [1. 0.
 facequads = [[],[1,2,3],[1,2,3,4,5],[]]
 isactiveface = HDGElasticity.active_faces(facequads)
 @test allequal(isactiveface,[0,1,1,0])
+
+cellmap = HDGElasticity.CellMap([3.,2.],[5.,7.])
+midpoints = HDGElasticity.face_midpoints(cellmap)
+@test length(midpoints) == 4
+@test allapprox(midpoints[1],[4.,2.])
+@test allapprox(midpoints[2],[5.,4.5])
+@test allapprox(midpoints[3],[4.,7.])
+@test allapprox(midpoints[4],[3.,4.5])
