@@ -12,6 +12,15 @@ struct SystemMatrix{T,Z}
     end
 end
 
+function SystemMatrix()
+    Z = default_integer_type()
+    R = default_float_type()
+    rows = Z[]
+    cols = Z[]
+    vals = R[]
+    return SystemMatrix(rows,cols,vals)
+end
+
 function update!(matrix::SystemMatrix,rows,cols,vals)
     @assert length(rows) == length(cols)
     @assert length(cols) == length(vals)
@@ -44,28 +53,17 @@ function update!(rhs::SystemRHS,rows,vals)
     append!(rhs.vals,vals)
 end
 
-function SystemMatrix()
-    Z = default_integer_type()
-    R = default_float_type()
-    rows = Z[]
-    cols = Z[]
-    vals = R[]
-    return SystemMatrix(rows,cols,vals)
+function element_dof_start(elid,dofsperelement)
+    return (elid-1)*dofsperelement+1
 end
 
-function element_dof_start(elid,dofspernode,nodesperelement)
-    edofs = dofspernode*nodesperelement
-    return (elid-1)*edofs+1
+function element_dof_stop(elid,dofsperelement)
+    return elid*dofsperelement
 end
 
-function element_dof_stop(elid,dofspernode,nodesperelement)
-    edofs = dofspernode*nodesperelement
-    return elid*edofs
-end
-
-function element_dofs(elid,dofspernode,nodesperelement)
-    start = element_dof_start(elid,dofspernode,nodesperelement)
-    stop = element_dof_stop(elid,dofspernode,nodesperelement)
+function element_dofs(elid,dofsperelement)
+    start = element_dof_start(elid,dofsperelement)
+    stop = element_dof_stop(elid,dofsperelement)
     return start:stop
 end
 
@@ -75,6 +73,26 @@ function operator_dofs(row_dofs,col_dofs)
     rows = repeat(row_dofs,outer=lc)
     cols = repeat(col_dofs,inner=lr)
     return rows,cols
+end
+
+function assemble!(system_matrix,vals,rowelid::Z,
+    colelid::Z,dofsperelement) where {Z<:Integer}
+
+    rowdofs = element_dofs(rowelid,dofsperelement)
+    coldofs = element_dofs(colelid,dofsperelement)
+
+    oprows,opcols = operator_dofs(rowdofs,coldofs)
+    update!(system_matrix,oprows,opcols,vals)
+end
+
+function assemble!(system_matrix,vals,rowelid::Z,
+    colelids::V,dofsperelement) where {Z<:Integer,V<:AbstractVector}
+
+    rowdofs = element_dofs(rowelid,dofsperelement)
+    coldofs = vcat([element_dofs(c,dofsperelement) for c in colelids]...)
+
+    oprows,opcols = operator_dofs(rowdofs,coldofs)
+    update!(system_matrix,oprows,opcols,vals)
 end
 
 function assemble_local_operator!(system_matrix,opvals,elid,dim,NF)

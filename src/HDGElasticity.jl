@@ -23,8 +23,7 @@ include("local_hybrid_coupling.jl")
 include("hybrid_coupling.jl")
 include("hybrid_local_coupling.jl")
 include("local_solver.jl")
-# include("displacement_component_bc.jl")
-# include("assembly.jl")
+include("assembly.jl")
 
 
 end # module

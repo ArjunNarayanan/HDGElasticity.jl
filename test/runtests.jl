@@ -51,11 +51,11 @@ end
 @safetestset "Test Traction BCs" begin
     include("test_traction_bc.jl")
 end
-#
-# @safetestset "Test Local Solver Initialization" begin
-#     include("test_local_solver.jl")
-# end
-#
+
+@safetestset "Test Local Solver Initialization" begin
+    include("test_local_solver.jl")
+end
+
 # @safetestset "Test Displacement Component BC" begin
 #     include("test_displacement_component_bc.jl")
 # end

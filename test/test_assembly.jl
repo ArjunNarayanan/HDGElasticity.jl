@@ -2,99 +2,63 @@ using Test
 using LinearAlgebra
 using CartesianMesh
 using ImplicitDomainQuadrature
+using Revise
 using HDGElasticity
 
-@test_throws AssertionError HDGElasticity.check_lengths([1,2,3],[1,2],[1.0,2.0,3.0])
-@test_throws AssertionError HDGElasticity.check_lengths([1,2],[1,2],[2,3,4])
-@test HDGElasticity.check_lengths([1,2],[1,2],[1,2])
+function allapprox(v1,v2)
+    return all(v1 .≈ v2)
+end
+
+function allequal(v1,v2)
+    return all(v1 .== v2)
+end
 
 matrix = HDGElasticity.SystemMatrix()
 @test length(matrix.rows) == 0
 @test length(matrix.vals) == 0
 @test length(matrix.cols) == 0
 
-@test HDGElasticity.get_dofs_per_element(2,3,4) == 20
-@test HDGElasticity.get_dofs_per_element(2,3,9) == 45
-@test HDGElasticity.get_dofs_per_element(3,6,8) == 72
+oprows = rand(1:20,5)
+opcols = rand(1:20,5)
+opvals = rand(5)
+HDGElasticity.update!(matrix,oprows,opcols,opvals)
+@test allapprox(matrix.rows,oprows)
+@test allapprox(matrix.cols,opcols)
+@test allapprox(matrix.vals,opvals)
 
-@test HDGElasticity.element_dof_start(5,2,3,4) == 81
-@test HDGElasticity.element_dof_start(6,3,6,8) == 361
+@test HDGElasticity.element_dof_start(5,4) == 17
+@test HDGElasticity.element_dof_start(6,6) == 31
 
-@test HDGElasticity.element_dof_stop(4,2,3,4) == 80
-@test HDGElasticity.element_dof_stop(6,3,6,8) == 432
+@test HDGElasticity.element_dof_stop(4,8) == 32
+@test HDGElasticity.element_dof_stop(6,8) == 48
 
-@test all(HDGElasticity.element_dofs(3,2,3,4) .== 41:60)
-
-sdofs = HDGElasticity.element_stress_dofs(1,2,3,4)
-testsdofs = 1:12
-@test all(sdofs .== testsdofs)
-
-sdofs = HDGElasticity.element_stress_dofs(3,2,3,4)
-testsdofs = 41:52
-@test all(sdofs .== testsdofs)
-
-ddofs = HDGElasticity.element_displacement_dofs(1,2,3,4)
-testddofs = 13:20
-@test all(ddofs .== testddofs)
-
-ddofs = HDGElasticity.element_displacement_dofs(3,2,3,4)
-testddofs = 53:60
-@test all(ddofs .== testddofs)
-
-ddofs = HDGElasticity.element_displacement_dofs(5,2,3,9)
-testddofs = 208:225
-@test all(ddofs .== testddofs)
+@test allequal(HDGElasticity.element_dofs(3,5),11:15)
 
 rows = [1,2,3]
 cols = [4,5,6]
-r,c = HDGElasticity.element_dofs_to_operator_dofs(rows,cols)
+r,c = HDGElasticity.operator_dofs(rows,cols)
 testrows = [1,2,3,1,2,3,1,2,3]
 testcols = [4,4,4,5,5,5,6,6,6]
-@test all(r .== testrows)
-@test all(c .== testcols)
-
-hs = HDGElasticity.hybrid_dof_start(3,60,2,2)
-hstest = 60+2*2*2+1
-@test hs == hstest
-
-hs = HDGElasticity.hybrid_dof_stop(3,60,2,2)
-hstest = 60+3*2*2
-@test hs == hstest
-
-hdofs = HDGElasticity.hybrid_dofs(5,60,2,2)
-hdofstest = (60+4*2*2+1):(60+5*2*2)
-@test all(hdofs .== hdofstest)
+@test allequal(r,testrows)
+@test allequal(c,testcols)
 
 matrix = HDGElasticity.SystemMatrix()
-vals = rand(400)
-HDGElasticity.assemble_local_operator!(matrix,vals,1,2,3,4)
-rowtest = repeat(1:20,20)
-coltest = repeat(1:20,inner=(20,))
-@test all(rowtest .== matrix.rows)
-@test all(coltest .== matrix.cols)
-@test all(vals .≈ matrix.vals)
+vals = rand(36)
+HDGElasticity.assemble!(matrix,vals,2,3,6)
+rowtest = repeat(7:12,6)
+coltest = repeat(13:18,inner=6)
+@test allequal(rowtest,matrix.rows)
+@test allequal(coltest,matrix.cols)
+@test allapprox(vals,matrix.vals)
 
 matrix = HDGElasticity.SystemMatrix()
-vals = rand(400)
-HDGElasticity.assemble_local_operator!(matrix,vals,[4,7],2,3,4)
-r1 = repeat(61:80,20)
-r2 = repeat(121:140,20)
-c1 = repeat(61:80,inner=(20,))
-c2 = repeat(121:140,inner=(20,))
-@test all(matrix.rows .== vcat(r1,r2))
-@test all(matrix.cols .== vcat(c1,c2))
-@test all(matrix.vals .== vcat(vals,vals))
-
-matrix = HDGElasticity.SystemMatrix()
-vals = rand(400)
-HDGElasticity.assemble_local_operator!(matrix,vals,2:3,2,3,4)
-r1 = repeat(21:40,20)
-r2 = repeat(41:60,20)
-c1 = repeat(21:40,inner=(20,))
-c2 = repeat(41:60,inner=(20,))
-@test all(matrix.rows .== vcat(r1,r2))
-@test all(matrix.cols .== vcat(c1,c2))
-@test all(matrix.vals .== vcat(vals,vals))
+vals = rand(108)
+HDGElasticity.assemble!(matrix,vals,3,[2,3,5],6)
+rowtest = repeat(13:18,18)
+coltest = vcat((repeat(7:12,inner=6),repeat(13:18,inner=6),repeat(25:30,inner=6))...)
+@test allequal(matrix.rows,rowtest)
+@test allequal(matrix.cols,coltest)
+@test allapprox(matrix.vals,vals)
 
 matrix = HDGElasticity.SystemMatrix()
 vals = [vec(rand(20,4)) for i = 1:4]
