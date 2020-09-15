@@ -13,6 +13,14 @@ sbasis = TensorProductBasis(1,1)
 squad = tensor_product_quadrature(1,2)
 facequads = repeat([squad],4)
 
+testmatrix = [2/3 0.0 1/3 0.0
+              0.0 2/3 0.0 1/3
+              1/3 0.0 2/3 0.0
+              0.0 1/3 0.0 2/3]
+
+HH = HDGElasticity.HHop(sbasis,squad,1.)
+@test allapprox(HH,testmatrix)
+
 cellmap = HDGElasticity.CellMap([0.,0.],[1.,0.5])
 HH = HDGElasticity.hybrid_operator(sbasis,facequads,1.,cellmap)
 

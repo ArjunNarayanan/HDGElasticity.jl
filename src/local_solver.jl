@@ -4,11 +4,27 @@ struct LocalSolverComponents
     LH
     iLLxLH
     fHH
-    function LocalSolverComponents(LL,fLH,fHH)
+    stabilization
+    facetosolverid
+    function LocalSolverComponents(LL,fLH,fHH,stabilization,facetosolverid)
         LH = hcat(fLH...)
         iLLxLH = LL\LH
-        new(LL,fLH,LH,iLLxLH,fHH)
+        new(LL,fLH,LH,iLLxLH,fHH,stabilization,facetosolverid)
     end
+end
+
+function face_to_solverid(facequads)
+    nfaces = length(facequads)
+    isactiveface = [length(fq) > 0 ? true : false for fq in facequads]
+    solverid = zeros(Int,nfaces)
+    counter = 1
+    for faceid in 1:nfaces
+        if isactiveface[faceid]
+            solverid[faceid] = counter
+            counter += 1
+        end
+    end
+    return solverid
 end
 
 function LocalSolverComponents(vbasis,vquad,sbasis,facequads,facemaps,normals,
@@ -18,8 +34,9 @@ function LocalSolverComponents(vbasis,vquad,sbasis,facequads,facemaps,normals,
         stabilization,cellmap)
     fLH = local_hybrid_operator(vbasis,sbasis,facequads,facemaps,normals,Dhalf,
         stabilization,cellmap)
-    fHH = hybrid_operator(sbasis,facequads,stabilization,cellmap)
-    return LocalSolverComponents(LL,fLH,fHH)
+    fHH = hybrid_operator(sbasis,facequads,1.0,cellmap)
+    facetosolverid = face_to_solverid(facequads)
+    return LocalSolverComponents(LL,fLH,fHH,stabilization,facetosolverid)
 end
 
 function LocalSolverComponents(vbasis,vquad,sbasis,facequads,facemaps,normals,
@@ -32,11 +49,12 @@ function LocalSolverComponents(vbasis,vquad,sbasis,facequads,facemaps,normals,
     iLH = local_hybrid_operator_on_interface(vbasis,sbasis,iquad,imap,inormals,
         Dhalf,stabilization,cellmap)
     push!(fLH,iLH)
-    fHH = hybrid_operator(sbasis,facequads,stabilization,cellmap)
+    fHH = hybrid_operator(sbasis,facequads,1.0,cellmap)
     iHH = hybrid_operator_on_interface(sbasis,iquad,imap,inormals,
-        stabilization,cellmap)
+        1.0,cellmap)
     push!(fHH,iHH)
-    return LocalSolverComponents(LL,fLH,fHH)
+    facetosolverid = face_to_solverid(facequads)
+    return LocalSolverComponents(LL,fLH,fHH,stabilization,facetosolverid)
 end
 
 function cell_to_solver_index(cellsign)

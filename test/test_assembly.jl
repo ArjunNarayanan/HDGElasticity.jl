@@ -132,26 +132,24 @@ facescale = HDGElasticity.face_determinant_jacobian(cellmap)
 
 solvercomponents = HDGElasticity.LocalSolverComponents(vbasis,vquad,sbasis,
     facequads,facemaps,normals,D1,stabilization,cellmap)
-HH1 = HDGElasticity.HHop(sbasis,squad,[0.,-1.],facescale[1])
-HL1 = HDGElasticity.hybrid_local_operator_traction_components(sbasis,vbasis,
-    facequads[1],facemaps[1],normals[1],[1.,0.],D1,stabilization,facescale[1])
-HH4 = HDGElasticity.HHop(sbasis,squad,[-1.,0.],facescale[4])
-HL4 = HDGElasticity.hybrid_local_operator_traction_components(sbasis,vbasis,
-    facequads[4],facemaps[4],normals[4],[0.,1.],D1,stabilization,facescale[4])
 
 system_matrix = HDGElasticity.SystemMatrix()
 system_rhs = HDGElasticity.SystemRHS()
 
-HDGElasticity.assemble_displacement_face!(system_matrix,HH1,1,dofsperelement)
-HDGElasticity.assemble_displacement_face!(system_matrix,HH4,4,dofsperelement)
-HDGElasticity.assemble_traction_face!(system_matrix,HL1,solvercomponents.iLLxLH,
-    solvercomponents.fHH[1],1,[1,2,3,4],dofsperelement)
-HDGElasticity.assemble_traction_face!(system_matrix,HL4,solvercomponents.iLLxLH,
-    solvercomponents.fHH[4],4,[1,2,3,4],dofsperelement)
+HDGElasticity.assemble_mixed_face!(system_matrix,vbasis,sbasis,facequads[1],
+    facemaps[1],normals[1],D1,stabilization,facescale[1],[0.,1.],[1.,0.],
+    solvercomponents.iLLxLH,1,1:4,dofsperelement)
+HDGElasticity.assemble_mixed_face!(system_matrix,vbasis,sbasis,facequads[4],
+    facemaps[4],normals[4],D1,stabilization,facescale[4],[1.,0.],[0.,1.],
+    solvercomponents.iLLxLH,4,1:4,dofsperelement)
+
 HDGElasticity.assemble_traction_face!(system_matrix,solvercomponents.fLH[2]',
-    solvercomponents.iLLxLH,solvercomponents.fHH[2],2,[1,2,3,4],dofsperelement)
+    solvercomponents.iLLxLH,
+    solvercomponents.stabilization*solvercomponents.fHH[2],
+    2,[1,2,3,4],dofsperelement)
 HDGElasticity.assemble_traction_face!(system_matrix,solvercomponents.fLH[3]',
-    solvercomponents.iLLxLH,solvercomponents.fHH[3],3,[1,2,3,4],dofsperelement)
+    solvercomponents.iLLxLH,
+    solvercomponents.stabilization*solvercomponents.fHH[3],3,[1,2,3,4],dofsperelement)
 
 rhsvals = HDGElasticity.linear_form(-[1.,0.],sbasis,squad)
 HDGElasticity.assemble!(system_rhs,rhsvals,2,dofsperelement)
@@ -179,3 +177,84 @@ testu[:,4] .= [u1,u2]
 
 @test allapprox(testsigma,sigma,1e-14)
 @test allapprox(testu,displacement,1e-12)
+
+###############################################################################
+# Test a coherent interface
+# function distance_function(coords,xc)
+#     return coords[1,:] .- xc
+# end
+#
+# polyorder = 1
+# numqp = 2
+# levelset = InterpolatingPolynomial(1,2,polyorder)
+# NF = HDGElasticity.number_of_basis_functions(levelset.basis)
+# mesh = UniformMesh([0.,0.],[2.,1.],[1,1])
+# coords = HDGElasticity.nodal_coordinates(mesh,levelset.basis)
+# levelsetcoeffs = reshape(distance_function(coords,0.5),NF,1)
+# dgmesh = HDGElasticity.DGMesh(mesh,levelsetcoeffs,levelset)
+# ufs = HDGElasticity.UniformFunctionSpace(dgmesh,polyorder,numqp,
+#     levelsetcoeffs,levelset)
+# NHF = HDGElasticity.number_of_basis_functions(ufs.sbasis)
+# dofsperelement = 2*NHF
+#
+# system_matrix = HDGElasticity.SystemMatrix()
+# system_rhs = HDGElasticity.SystemRHS()
+#
+# lambda,mu = 1.,2.
+# stabilization = 1e-3
+# D1 = sqrt(HDGElasticity.plane_strain_voigt_hooke_matrix_2d(lambda,mu))
+# cellsolvers = HDGElasticity.solver_components_on_cells(dgmesh,ufs,D1,D1,
+#     stabilization)
+# celltosolverid = HDGElasticity.cell_to_solver_index(dgmesh.cellsign)
+#
+# cellmap = HDGElasticity.CellMap(dgmesh.domain[1])
+# facescale = HDGElasticity.face_determinant_jacobian(cellmap)
+#
+# solverid = celltosolverid[1,1]
+# facetosolverid = cellsolvers[solverid].facetosolverid
+#
+# HH1 = HDGElasticity.HHop(ufs.sbasis,ufs.fquads[1,1][1],[0.,1.],facescale[1])
+# HLt1 = HDGElasticity.hybrid_local_operator_traction_components(ufs.sbasis,
+#     ufs.vbasis,ufs.fquads[1,1][1],dgmesh.facemaps[1],ufs.fnormals[1],
+#     [1.,0.],D1,stabilization,facescale[1])
+# HDGElasticity.assemble_displacement_face!(system_matrix,HH1,1,dofsperelement)
+# HDGElasticity.assemble_traction_face!(system_matrix,HLt1,
+#     cellsolvers[solverid].iLLxLH,
+#     stabilization*cellsolvers[solverid].fHH[facetosolverid[1]],1,1:4,dofsperelement)
+#
+# HDGElasticity.assemble_displacement_face!(system_matrix,
+#     cellsolvers[solverid].fHH[facetosolverid[2]],2,dofsperelement)
+#
+# HDGElasticity.assemble_traction_face!(system_matrix,
+#     cellsolvers[solverid].fLH[facetosolverid[3]]',cellsolvers[1,1].iLLxLH,
+#     stabilization*cellsolvers[1,1].fHH[solverid],3,1:4,dofsperelement)
+#
+# HDGElasticity.assemble_traction_face!(system_matrix,
+#     cellsolvers[1,1].fLH[end]',cellsolvers[1,1].iLLxLH,
+#     stabilization*cellsolvers[1,1].fHH[end],4,1:4,dofsperelement)
+#
+# facetosolverid = cellsolvers[2,1].facetosolverid
+#
+# solverid = facetosolverid[1]
+# HH2 = HDGElasticity.HHop(ufs.sbasis,ufs.fquads[2,1][1],[0.,1.],facescale[1])
+# HLt2 = HDGElasticity.hybrid_local_operator_traction_components(ufs.sbasis,
+#     ufs.vbasis,ufs.fquads[2,1][1],dgmesh.facemaps[1],ufs.fnormals[1],
+#     [1.,0.],D1,stabilization,facescale[1])
+# HDGElasticity.assemble_displacement_face!(system_matrix,HH2,5,dofsperelement)
+# HDGElasticity.assemble_traction_face!(system_matrix,HLt2,
+#     cellsolvers[2,1].iLLxLH,stabilization*cellsolvers[2,1].fHH[solverid],
+#     5,5:8,dofsperelement)
+#
+# solverid = facetosolverid[3]
+# HDGElasticity.assemble_traction_face!(system_matrix,
+#     cellsolvers[2,1].fLH[solverid]',cellsolvers[2,1].iLLxLH,
+#     stabilization*cellsolvers[2,1].fHH[solverid],6,5:8,dofsperelement)
+#
+# solverid = facetosolverid[4]
+# HH4 = HDGElasticity.HHop(ufs.sbasis,ufs.fquads[2,1][4],[1.,0.],facescale[4])
+# HLt4 = HDGElasticity.hybrid_local_operator_traction_components(ufs.sbasis,
+#     ufs.vbasis,ufs.fquads[2,1][4],dgmesh.facemaps[4],ufs.fnormals[4],
+#     [0.,1.],D1,stabilization,facescale[4])
+# HDGElasticity.assemble_displacement_face!(system_matrix,HH4,7,dofsperelement)
+# HDGElasticity.assemble_traction_face!(system_matrix,HLt4,
+#     cellsolvers[2,1].iLLxLH,stabilization*cellsolvers[2,1].fHH[solverid])

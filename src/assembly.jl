@@ -104,6 +104,29 @@ function assemble_traction_face!(system_matrix::SystemMatrix,HL,iLLxLH,HH,roweli
     assemble!(system_matrix,-HH,rowelid,rowelid,dofsperelement)
 end
 
+function assemble_mixed_face!(system_matrix::SystemMatrix,vbasis,sbasis,
+    facequad,facemap,facenormal,Dhalf,stabilization,facescale,dcomp,tcomp,
+    iLLxLH,rowelid,colelids,dofsperelement)
+
+    HHd = HHop(sbasis,facequad,dcomp,facescale)
+    assemble_displacement_face!(system_matrix,HHd,rowelid,dofsperelement)
+    HLt = hybrid_local_operator_traction_components(sbasis,vbasis,facequad,
+        facemap,facenormal,tcomp,Dhalf,stabilization,facescale)
+    HH = stabilization*HHop(sbasis,facequad,facescale)
+    assemble_traction_face!(system_matrix,HLt,iLLxLH,HH,rowelid,
+        colelids,dofsperelement)
+end
+
+function assemble_coherent_interface!(system_matrix::SystemMatrix,HH,
+    rowelid,colelid,dofsperelement)
+
+    vals = vec(HH)
+    assemble!(system_matrix,vals,rowelid,rowelid,dofsperelement)
+    assemble!(system_matrix,-vals,rowelid,colelid,dofsperelement)
+    assemble!(system_matrix,-vals,colelid,rowelid,dofsperelement)
+    assemble!(system_matrix,vals,colelid,colelid,dofsperelement)
+end
+
 function SparseArrays.sparse(system_matrix::SystemMatrix,ndofs)
     return sparse(system_matrix.rows,system_matrix.cols,system_matrix.vals,
         ndofs,ndofs)

@@ -1,3 +1,12 @@
+function HHop(sbasis,facequad,facescale)
+    sdim = dimension(sbasis)
+    vdim = sdim + 1
+    NHF = number_of_basis_functions(sbasis)
+    HH = zeros(vdim*NHF,vdim*NHF)
+    update_mass_matrix!(HH,sbasis,facequad,facescale,vdim)
+    return HH
+end
+
 function hybrid_operator(sbasis,facequads,stabilization,cellmap::CellMap)
 
     sdim = dimension(sbasis)
@@ -68,7 +77,7 @@ end
 
 function hybrid_operator_on_interface(sbasis,iquad,imap,inormals,
     stabilization,cellmap)
-    
+
     facedim = dimension(sbasis)
     dim = facedim + 1
     NHF = number_of_basis_functions(sbasis)
