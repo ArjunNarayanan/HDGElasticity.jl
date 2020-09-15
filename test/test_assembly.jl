@@ -11,6 +11,11 @@ function allapprox(v1, v2)
     return all(v1 .≈ v2)
 end
 
+function allapprox(v1, v2, tol)
+    flag = length(v1) == length(v2)
+    return flag && all([isapprox(v1[i],v2[i],atol=tol) for i = 1:length(v1)])
+end
+
 function allequal(v1, v2)
     return all(v1 .== v2)
 end
@@ -94,7 +99,7 @@ HH = HDGElasticity.mass_matrix(basis, quad, 1.0, 2)
 rhsvals = repeat(quad.points, inner = (2, 1))
 rhs = HDGElasticity.linear_form(rhsvals, basis, quad)
 sysmatrix = HDGElasticity.SystemMatrix()
-HDGElasticity.assemble_displacement_bc!(sysmatrix, HH, 1, dofsperelement)
+HDGElasticity.assemble_displacement_face!(sysmatrix, HH, 1, dofsperelement)
 K = sparse(
     sysmatrix.rows,
     sysmatrix.cols,
@@ -118,7 +123,9 @@ squad = tensor_product_quadrature(1,2)
 facequads = repeat([squad],4)
 facemaps = HDGElasticity.reference_cell_facemaps(2)
 normals = HDGElasticity.reference_normals()
-D1 = sqrt(HDGElasticity.plane_strain_voigt_hooke_matrix_2d(1.,2.))
+lambda = 1.
+mu = 2.
+D1 = sqrt(HDGElasticity.plane_strain_voigt_hooke_matrix_2d(lambda,mu))
 stabilization = 1e-3
 cellmap = HDGElasticity.CellMap([1.,1.],[2.,3.])
 facescale = HDGElasticity.face_determinant_jacobian(cellmap)
@@ -135,15 +142,15 @@ HL4 = HDGElasticity.hybrid_local_operator_traction_components(sbasis,vbasis,
 system_matrix = HDGElasticity.SystemMatrix()
 system_rhs = HDGElasticity.SystemRHS()
 
-HDGElasticity.assemble_displacement_bc!(system_matrix,HH1,1,dofsperelement)
-HDGElasticity.assemble_displacement_bc!(system_matrix,HH4,4,dofsperelement)
-HDGElasticity.assemble_traction_bc!(system_matrix,HL1,solvercomponents.iLLxLH,
+HDGElasticity.assemble_displacement_face!(system_matrix,HH1,1,dofsperelement)
+HDGElasticity.assemble_displacement_face!(system_matrix,HH4,4,dofsperelement)
+HDGElasticity.assemble_traction_face!(system_matrix,HL1,solvercomponents.iLLxLH,
     solvercomponents.fHH[1],1,[1,2,3,4],dofsperelement)
-HDGElasticity.assemble_traction_bc!(system_matrix,HL4,solvercomponents.iLLxLH,
+HDGElasticity.assemble_traction_face!(system_matrix,HL4,solvercomponents.iLLxLH,
     solvercomponents.fHH[4],4,[1,2,3,4],dofsperelement)
-HDGElasticity.assemble_traction_bc!(system_matrix,solvercomponents.fLH[2]',
+HDGElasticity.assemble_traction_face!(system_matrix,solvercomponents.fLH[2]',
     solvercomponents.iLLxLH,solvercomponents.fHH[2],2,[1,2,3,4],dofsperelement)
-HDGElasticity.assemble_traction_bc!(system_matrix,solvercomponents.fLH[3]',
+HDGElasticity.assemble_traction_face!(system_matrix,solvercomponents.fLH[3]',
     solvercomponents.iLLxLH,solvercomponents.fHH[3],3,[1,2,3,4],dofsperelement)
 
 rhsvals = HDGElasticity.linear_form(-[1.,0.],sbasis,squad)
@@ -153,4 +160,22 @@ K = HDGElasticity.sparse(system_matrix,16)
 rhs = HDGElasticity.rhs(system_rhs,16)
 
 sol = K\rhs
-sol = reshape(sol,2,:)
+L = solvercomponents.iLLxLH*sol
+sigma = -D1*reshape(L[1:12],3,:)
+displacement = reshape(L[13:20],2,:)
+
+e11 = ((lambda+2mu) - lambda^2/(lambda+2mu))^-1
+e22 = -lambda/(lambda+2mu)*e11
+u1 = e11*1.0
+u2 = e22*2
+s11 = 1.0
+
+testsigma = zeros(3,4)
+testsigma[1,:] .= 1.0
+testu = zeros(2,4)
+testu[:,2] .= [0.,u2]
+testu[:,3] .= [u1,0.]
+testu[:,4] .= [u1,u2]
+
+@test allapprox(testsigma,sigma,1e-14)
+@test allapprox(testu,displacement,1e-12)

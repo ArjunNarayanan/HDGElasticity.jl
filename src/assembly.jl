@@ -90,13 +90,13 @@ function assemble!(system_rhs::SystemRHS,vals,rowelid,dofsperelement)
     assemble!(system_rhs,rowdofs,vals)
 end
 
-function assemble_displacement_bc!(system_matrix::SystemMatrix,HH,
+function assemble_displacement_face!(system_matrix::SystemMatrix,HH,
     elid,dofsperelement)
 
     assemble!(system_matrix,vec(HH),elid,elid,dofsperelement)
 end
 
-function assemble_traction_bc!(system_matrix::SystemMatrix,HL,iLLxLH,HH,rowelid,
+function assemble_traction_face!(system_matrix::SystemMatrix,HL,iLLxLH,HH,rowelid,
     colelids,dofsperelement)
 
     tractionop = HL*iLLxLH
