@@ -1,6 +1,7 @@
 module HDGElasticity
 
 using LinearAlgebra
+using SparseArrays
 using StaticArrays
 using IntervalArithmetic
 using Roots

@@ -21,7 +21,7 @@ function SystemMatrix()
     return SystemMatrix(rows,cols,vals)
 end
 
-function update!(matrix::SystemMatrix,rows,cols,vals)
+function assemble!(matrix::SystemMatrix,rows,cols,vals)
     @assert length(rows) == length(cols)
     @assert length(cols) == length(vals)
 
@@ -47,7 +47,7 @@ function SystemRHS()
     return SystemRHS(rows,vals)
 end
 
-function update!(rhs::SystemRHS,rows,vals)
+function assemble!(rhs::SystemRHS,rows,vals)
     @assert length(rows) == length(vals)
     append!(rhs.rows,rows)
     append!(rhs.vals,vals)
@@ -75,60 +75,40 @@ function operator_dofs(row_dofs,col_dofs)
     return rows,cols
 end
 
-function assemble!(system_matrix,vals,rowelid::Z,
-    colelid::Z,dofsperelement) where {Z<:Integer}
+function assemble!(system_matrix::SystemMatrix,vals,rowelids,
+    colelids,dofsperelement)
 
-    rowdofs = element_dofs(rowelid,dofsperelement)
-    coldofs = element_dofs(colelid,dofsperelement)
-
-    oprows,opcols = operator_dofs(rowdofs,coldofs)
-    update!(system_matrix,oprows,opcols,vals)
-end
-
-function assemble!(system_matrix,vals,rowelid::Z,
-    colelids::V,dofsperelement) where {Z<:Integer,V<:AbstractVector}
-
-    rowdofs = element_dofs(rowelid,dofsperelement)
+    rowdofs = vcat([element_dofs(r,dofsperelement) for r in rowelids]...)
     coldofs = vcat([element_dofs(c,dofsperelement) for c in colelids]...)
 
     oprows,opcols = operator_dofs(rowdofs,coldofs)
-    update!(system_matrix,oprows,opcols,vals)
+    assemble!(system_matrix,oprows,opcols,vals)
 end
 
-function assemble_local_operator!(system_matrix,opvals,elid,dim,NF)
-
-    edofs = element_dofs(elid,dim,NF)
-    rows,cols = operator_dofs(edofs,edofs)
-    update!(system_matrix,rows,cols,opvals)
+function assemble!(system_rhs::SystemRHS,vals,rowelid,dofsperelement)
+    rowdofs = element_dofs(rowelid,dofsperelement)
+    assemble!(system_rhs,rowdofs,vals)
 end
 
-function assemble_traction_continuity!(system_matrix,llop,lhop,hhop,dgmesh,ufs)
+function assemble_displacement_bc!(system_matrix::SystemMatrix,HH,
+    elid,dofsperelement)
 
-    nface,nphase,ncells = size(dgmesh.isactiveface)
-    ncells = length(dgmesh.domain)
+    assemble!(system_matrix,vec(HH),elid,elid,dofsperelement)
+end
 
-    dim = dimension(ufs.vbasis)
-    NHF = number_of_basis_functions(ufs.sbasis)
+function assemble_traction_bc!(system_matrix::SystemMatrix,HL,iLLxLH,HH,rowelid,
+    colelids,dofsperelement)
 
-    for cellid in 1:ncells
-        for phaseid in 1:nphase
-            K = llop[phaseid,cellid].lulop
-            for faceid in 1:nface
-                nbrelid,nbrfaceid = dgmesh.connectivity[faceid,phaseid,cellid]
+    tractionop = HL*iLLxLH
+    assemble!(system_matrix,tractionop,rowelid,colelids,dofsperelement)
+    assemble!(system_matrix,-HH,rowelid,rowelid,dofsperelement)
+end
 
-                if nbrelid != 0
-                    LH = lhop[faceid,phaseid,cellid]
-                    opvals = LH'*(K\LH) - hhop[faceid,phaseid,cellid]
+function SparseArrays.sparse(system_matrix::SystemMatrix,ndofs)
+    return sparse(system_matrix.rows,system_matrix.cols,system_matrix.vals,
+        ndofs,ndofs)
+end
 
-                    hid = dgmesh.face2hid[faceid,phaseid,cellid]
-                    hdofs = element_dofs(hid,dim,NHF)
-
-                    rows,cols = operator_dofs(hdofs,hdofs)
-
-                    update!(system_matrix,rows,cols,vec(opvals))
-                end
-            end
-        end
-    end
-
+function rhs(system_rhs::SystemRHS,ndofs)
+    return Array(sparsevec(system_rhs.rows,system_rhs.vals,ndofs))
 end
