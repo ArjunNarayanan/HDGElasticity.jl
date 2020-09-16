@@ -143,13 +143,12 @@ HDGElasticity.assemble_mixed_face!(system_matrix,vbasis,sbasis,facequads[4],
     facemaps[4],normals[4],D1,stabilization,facescale[4],[1.,0.],[0.,1.],
     solvercomponents.iLLxLH,4,1:4,dofsperelement)
 
-HDGElasticity.assemble_traction_face!(system_matrix,solvercomponents.fLH[2]',
-    solvercomponents.iLLxLH,
-    solvercomponents.stabilization*solvercomponents.fHH[2],
-    2,[1,2,3,4],dofsperelement)
-HDGElasticity.assemble_traction_face!(system_matrix,solvercomponents.fLH[3]',
-    solvercomponents.iLLxLH,
-    solvercomponents.stabilization*solvercomponents.fHH[3],3,[1,2,3,4],dofsperelement)
+HDGElasticity.assemble_traction_face!(system_matrix,sbasis,facequads[2],
+    facescale[2],stabilization,solvercomponents.fLH[2]',
+    solvercomponents.iLLxLH,2,[1,2,3,4],dofsperelement)
+HDGElasticity.assemble_traction_face!(system_matrix,sbasis,facequads[3],
+    facescale[3],stabilization,solvercomponents.fLH[3]',
+    solvercomponents.iLLxLH,3,[1,2,3,4],dofsperelement)
 
 rhsvals = HDGElasticity.linear_form(-[1.,0.],sbasis,squad)
 HDGElasticity.assemble!(system_rhs,rhsvals,2,dofsperelement)
@@ -180,48 +179,69 @@ testu[:,4] .= [u1,u2]
 
 ###############################################################################
 # Test a coherent interface
-# function distance_function(coords,xc)
-#     return coords[1,:] .- xc
-# end
-#
-# polyorder = 1
-# numqp = 2
-# levelset = InterpolatingPolynomial(1,2,polyorder)
-# NF = HDGElasticity.number_of_basis_functions(levelset.basis)
-# mesh = UniformMesh([0.,0.],[2.,1.],[1,1])
-# coords = HDGElasticity.nodal_coordinates(mesh,levelset.basis)
-# levelsetcoeffs = reshape(distance_function(coords,0.5),NF,1)
-# dgmesh = HDGElasticity.DGMesh(mesh,levelsetcoeffs,levelset)
-# ufs = HDGElasticity.UniformFunctionSpace(dgmesh,polyorder,numqp,
-#     levelsetcoeffs,levelset)
-# NHF = HDGElasticity.number_of_basis_functions(ufs.sbasis)
-# dofsperelement = 2*NHF
-#
-# system_matrix = HDGElasticity.SystemMatrix()
-# system_rhs = HDGElasticity.SystemRHS()
-#
-# lambda,mu = 1.,2.
-# stabilization = 1e-3
-# D1 = sqrt(HDGElasticity.plane_strain_voigt_hooke_matrix_2d(lambda,mu))
-# cellsolvers = HDGElasticity.solver_components_on_cells(dgmesh,ufs,D1,D1,
-#     stabilization)
-# celltosolverid = HDGElasticity.cell_to_solver_index(dgmesh.cellsign)
-#
-# cellmap = HDGElasticity.CellMap(dgmesh.domain[1])
-# facescale = HDGElasticity.face_determinant_jacobian(cellmap)
-#
-# solverid = celltosolverid[1,1]
-# facetosolverid = cellsolvers[solverid].facetosolverid
-#
-# HH1 = HDGElasticity.HHop(ufs.sbasis,ufs.fquads[1,1][1],[0.,1.],facescale[1])
-# HLt1 = HDGElasticity.hybrid_local_operator_traction_components(ufs.sbasis,
-#     ufs.vbasis,ufs.fquads[1,1][1],dgmesh.facemaps[1],ufs.fnormals[1],
-#     [1.,0.],D1,stabilization,facescale[1])
-# HDGElasticity.assemble_displacement_face!(system_matrix,HH1,1,dofsperelement)
-# HDGElasticity.assemble_traction_face!(system_matrix,HLt1,
-#     cellsolvers[solverid].iLLxLH,
-#     stabilization*cellsolvers[solverid].fHH[facetosolverid[1]],1,1:4,dofsperelement)
-#
+function distance_function(coords,xc)
+    return coords[1,:] .- xc
+end
+
+polyorder = 1
+numqp = 2
+levelset = InterpolatingPolynomial(1,2,polyorder)
+NF = HDGElasticity.number_of_basis_functions(levelset.basis)
+mesh = UniformMesh([0.,0.],[2.,1.],[1,1])
+coords = HDGElasticity.nodal_coordinates(mesh,levelset.basis)
+levelsetcoeffs = reshape(distance_function(coords,0.5),NF,1)
+dgmesh = HDGElasticity.DGMesh(mesh,levelsetcoeffs,levelset)
+ufs = HDGElasticity.UniformFunctionSpace(dgmesh,polyorder,numqp,
+    levelsetcoeffs,levelset)
+NHF = HDGElasticity.number_of_basis_functions(ufs.sbasis)
+dofsperelement = 2*NHF
+
+system_matrix = HDGElasticity.SystemMatrix()
+system_rhs = HDGElasticity.SystemRHS()
+
+lambda,mu = 1.,2.
+stabilization = 1e-3
+D1 = sqrt(HDGElasticity.plane_strain_voigt_hooke_matrix_2d(lambda,mu))
+cellsolvers = HDGElasticity.solver_components_on_cells(dgmesh,ufs,D1,D1,
+    stabilization)
+celltosolverid = HDGElasticity.cell_to_solver_index(dgmesh.cellsign)
+
+function assemble_mixed_face!(system_matrix,dgmesh,ufs,phaseid,cellid,
+    faceid,Dhalf,stabilization,dcomp,tcomp,cellsolvers,
+    celltosolverid,rowelid,colelids,dofsperelement)
+
+    vbasis = ufs.vbasis
+    sbasis = ufs.sbasis
+    facequad = ufs.fquads[phaseid,cellid][faceid]
+    facemap = dgmesh.facemaps[faceid]
+    facenormal = ufs.fnormals[faceid]
+    facescale = dgmesh.facescale[faceid]
+    iLLxLH = cellsolvers[celltosolverid[phaseid,cellid]].iLLxLH
+    HDGElasticity.assemble_mixed_face!(system_matrix,vbasis,sbasis,facequad,facemap,
+        facenormal,Dhalf,stabilization,facescale,dcomp,tcomp,iLLxLH,
+        rowelid,colelids,dofsperelement)
+end
+
+function assemble_traction_face!(system_matrix,dgmesh,ufs,phaseid,cellid,
+    faceid,stabilization,cellsolvers,celltosolverid,rowelid,
+    colelids,dofsperelement)
+
+    sbasis = ufs.sbasis
+    facequad = ufs.fquads[phaseid,cellid][faceid]
+    facescale = dgmesh.facescale[faceid]
+    cellsolver = cellsolvers[celltosolverid[phaseid,cellid]]
+    iLLxLH = cellsolver.iLLxLH
+    facetosolverid = cellsolver.facetosolverid
+    HL = cellsolver.fLH[facetosolverid[faceid]]'
+    HDGElasticity.assemble_traction_face!(system_matrix,sbasis,facequad,
+        facescale,stabilization,HL,iLLxLH,rowelid,colelids,dofsperelement)
+end
+
+assemble_mixed_face!(system_matrix,dgmesh,ufs,1,1,1,D1,stabilization,
+    [0.,1.],[1.,0.],cellsolvers,celltosolverid,1,1:4,dofsperelement)
+assemble_traction_face!(system_matrix,dgmesh,ufs,1,1,2,stabilization,
+    cellsolvers,celltosolverid,2,1:4,dofsperelement)
+
 # HDGElasticity.assemble_displacement_face!(system_matrix,
 #     cellsolvers[solverid].fHH[facetosolverid[2]],2,dofsperelement)
 #

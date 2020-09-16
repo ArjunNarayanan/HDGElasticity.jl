@@ -2,7 +2,7 @@ using Test
 using IntervalArithmetic
 using PolynomialBasis
 using CartesianMesh
-# using Revise
+using Revise
 using HDGElasticity
 
 function allequal(v1,v2)
@@ -42,14 +42,16 @@ testcellsign = [0,1]
 @test allequal(cellsign,testcellsign)
 
 facemaps = HDGElasticity.reference_cell_facemaps(2)
-dgmesh = HDGElasticity.DGMesh(domain,connectivity,cellsign,facemaps)
+facescale = HDGElasticity.face_determinant_jacobian(HDGElasticity.CellMap(domain[1]))
+dgmesh = HDGElasticity.DGMesh(domain,connectivity,cellsign,facemaps,facescale)
 @test allequal(dgmesh.domain,domain)
 @test all([allequal(dgmesh.connectivity[i],connectivity[i]) for i = 1:2])
 @test allequal(dgmesh.cellsign,cellsign)
+@test allequal(dgmesh.facescale,facescale)
 
 dgmesh = HDGElasticity.DGMesh(mesh,coeffs,poly)
 @test allequal(dgmesh.domain,domain)
 @test all([allequal(dgmesh.connectivity[i],connectivity[i]) for i = 1:2])
 @test allequal(dgmesh.cellsign,cellsign)
-
+@test allequal(dgmesh.facescale,facescale)
 @test HDGElasticity.dimension(dgmesh) == 2

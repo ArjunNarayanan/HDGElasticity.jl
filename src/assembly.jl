@@ -104,6 +104,14 @@ function assemble_traction_face!(system_matrix::SystemMatrix,HL,iLLxLH,HH,roweli
     assemble!(system_matrix,-HH,rowelid,rowelid,dofsperelement)
 end
 
+function assemble_traction_face!(system_matrix::SystemMatrix,sbasis,facequad,
+    facescale,stabilization,HL,iLLxLH,rowelid,colelids,dofsperelement)
+
+    HH = stabilization*HHop(sbasis,facequad,facescale)
+    assemble_traction_face!(system_matrix,HL,iLLxLH,HH,rowelid,
+        colelids,dofsperelement)
+end
+
 function assemble_mixed_face!(system_matrix::SystemMatrix,vbasis,sbasis,
     facequad,facemap,facenormal,Dhalf,stabilization,facescale,dcomp,tcomp,
     iLLxLH,rowelid,colelids,dofsperelement)
