@@ -42,8 +42,9 @@ testcellsign = [0,1]
 @test allequal(cellsign,testcellsign)
 
 facemaps = HDGElasticity.reference_cell_facemaps(2)
-facescale = HDGElasticity.face_determinant_jacobian(HDGElasticity.CellMap(domain[1]))
-dgmesh = HDGElasticity.DGMesh(domain,connectivity,cellsign,facemaps,facescale)
+cellmap = HDGElasticity.CellMap(domain[1])
+facescale = HDGElasticity.face_determinant_jacobian(cellmap)
+dgmesh = HDGElasticity.DGMesh(domain,connectivity,cellsign,facemaps,facescale,cellmap)
 @test allequal(dgmesh.domain,domain)
 @test all([allequal(dgmesh.connectivity[i],connectivity[i]) for i = 1:2])
 @test allequal(dgmesh.cellsign,cellsign)

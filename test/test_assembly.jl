@@ -237,12 +237,20 @@ function assemble_traction_face!(system_matrix,dgmesh,ufs,phaseid,cellid,
         facescale,stabilization,HL,iLLxLH,rowelid,colelids,dofsperelement)
 end
 
-function assemble_traction_interface!(system_matrix,ufs,phaseid,cellid,
-    stabilization,cellsolvers,rowelid,colelids,dofsperelement)
+function assemble_traction_coherent_interface!(system_matrix,dgmesh,ufs,
+    phaseid,cellid,stabilization,cellsolvers,rowelid,colelids,dofsperelement)
 
     sbasis = ufs.sbasis
-    facequad = ufs.iquad
-    
+    iquad = ufs.iquad
+    imap = ufs.imap
+    update!(imap,ufs.icoeffs[cellid])
+    facescale = HDGElasticity.scale_area(dgmesh.cellmap,ufs.inormals[cellid])
+    cellsolver = cellsolvers[phaseid,cellid]
+    iLLxLH = cellsolver.iLLxLH
+    HL = cellsolver.fLH[facetosolverid[5]]'
+    HDGElasticity.assemble_traction_coherent_interface!(system_matrix,
+        sbasis,iquad,imap,facescale,stabilization,HL,iLLxLH,rowelid,
+        colelids,dofsperelement)
 end
 
 function assemble_displacement_face!(system_matrix,dgmesh,ufs,phaseid,cellid,
@@ -261,6 +269,8 @@ assemble_mixed_face!(system_matrix,dgmesh,ufs,1,1,1,D1,stabilization,
 assemble_displacement_face!(system_matrix,dgmesh,ufs,1,1,2,2,dofsperelement)
 assemble_traction_face!(system_matrix,dgmesh,ufs,1,1,3,stabilization,
     cellsolvers,3,1:4,dofsperelement)
+assemble_traction_coherent_interface!(system_matrix,dgmesh,ufs,1,1,
+    stabilization,cellsolvers,4,1:4,dofsperelement)
 
 # Cell 1 phase 2
 assemble_mixed_face!(system_matrix,dgmesh,ufs,2,1,1,D1,stabilization,

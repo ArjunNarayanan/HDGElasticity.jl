@@ -5,10 +5,11 @@ struct DGMesh{dim,T}
     cellsign::Vector{Int}
     facemaps::Vector{LineMap{dim,T}}
     facescale::Vector{T}
+    cellmap::CellMap{dim,T}
     function DGMesh(domain::Vector{IntervalBox{dim,T}},
         connectivity::Vector{Vector{Tuple{Int,Int}}},
         cellsign::Vector{Int},facemaps::Vector{LineMap{dim,T}},
-        facescale::Vector{T}) where {dim,T}
+        facescale::Vector{T},cellmap::CellMap{dim,T}) where {dim,T}
 
         @assert dim == 2
         nfaces = number_of_faces(dim)
@@ -27,11 +28,12 @@ function DGMesh(mesh::UniformMesh,coeffs,poly)
     dim = dimension(mesh)
     domain = cell_domain(mesh)
     @assert length(domain) > 0
-    facescale = face_determinant_jacobian(CellMap(domain[1]))
+    cellmap = CellMap(domain[1])
+    facescale = face_determinant_jacobian(cellmap)
     connectivity = cell_connectivity(mesh)
     cellsign = cell_signatures(coeffs,poly)
     facemaps = reference_cell_facemaps(dim)
-    return DGMesh(domain,connectivity,cellsign,facemaps,facescale)
+    return DGMesh(domain,connectivity,cellsign,facemaps,facescale,cellmap)
 end
 
 function cell_domain(mesh)

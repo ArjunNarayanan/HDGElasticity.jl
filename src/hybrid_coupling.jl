@@ -45,16 +45,20 @@ function HHop!(HH,sbasis,iquad,imap::InterpolatingPolynomial,scale,nhdofs)
     end
 end
 
-function HHop(sbasis,iquad,imap,inormals,cellmap)
-
+function HHop(sbasis,iquad,imap::InterpolatingPolynomial,facescale)
     facedim = dimension(sbasis)
     dim = facedim + 1
     NHF = number_of_basis_functions(sbasis)
     HH = zeros(dim*NHF,dim*NHF)
 
-    facescale = scale_area(cellmap,inormals)
     HHop!(HH,sbasis,iquad,imap,facescale,dim)
     return HH
+end
+
+function HHop(sbasis,iquad,imap,inormals,cellmap)
+
+    facescale = scale_area(cellmap,inormals)
+    return HHop(sbasis,iquad,imap,facescale)
 end
 
 function HHop!(HH,sbasis,iquad,imap,components,scale,nhdofs)

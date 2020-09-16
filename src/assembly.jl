@@ -113,6 +113,15 @@ function assemble_traction_face!(system_matrix::SystemMatrix,sbasis,facequad,
         colelids,dofsperelement)
 end
 
+function assemble_traction_coherent_interface!(system_matrix::SystemMatrix,
+    sbasis,iquad,imap,facescale,stabilization,HL,iLLxLH,
+    rowelid,colelids,dofsperelement)
+
+    HH = stabilization*HHop(sbasis,iquad,imap,facescale)
+    assemble_traction_face!(system_matrix,HL,iLLxLH,HH,rowelid,
+        colelids,dofsperelement)
+end
+
 function assemble_mixed_face!(system_matrix::SystemMatrix,vbasis,sbasis,
     facequad,facemap,facenormal,dcomp,tcomp,Dhalf,stabilization,facescale,
     iLLxLH,rowelid,colelids,dofsperelement)
