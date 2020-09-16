@@ -3,14 +3,21 @@ struct LocalSolverComponents
     fLH
     LH
     iLLxLH
-    fHH
-    stabilization
     facetosolverid
-    function LocalSolverComponents(LL,fLH,fHH,stabilization,facetosolverid)
+    function LocalSolverComponents(LL,fLH,facetosolverid)
         LH = hcat(fLH...)
         iLLxLH = LL\LH
-        new(LL,fLH,LH,iLLxLH,fHH,stabilization,facetosolverid)
+        new(LL,fLH,LH,iLLxLH,facetosolverid)
     end
+end
+
+struct CellSolvers
+    localsolvers::Vector{LocalSolverComponents}
+    celltosolverid::Matrix{Int}
+end
+
+function Base.getindex(CS::CellSolvers,phaseid,cellid)
+    return CS.localsolvers[CS.celltosolverid[phaseid,cellid]]
 end
 
 function face_to_solverid(facequads)
@@ -34,9 +41,8 @@ function LocalSolverComponents(vbasis,vquad,sbasis,facequads,facemaps,normals,
         stabilization,cellmap)
     fLH = local_hybrid_operator(vbasis,sbasis,facequads,facemaps,normals,Dhalf,
         stabilization,cellmap)
-    fHH = hybrid_operator(sbasis,facequads,1.0,cellmap)
     facetosolverid = face_to_solverid(facequads)
-    return LocalSolverComponents(LL,fLH,fHH,stabilization,facetosolverid)
+    return LocalSolverComponents(LL,fLH,facetosolverid)
 end
 
 function LocalSolverComponents(vbasis,vquad,sbasis,facequads,facemaps,normals,
@@ -49,12 +55,8 @@ function LocalSolverComponents(vbasis,vquad,sbasis,facequads,facemaps,normals,
     iLH = local_hybrid_operator_on_interface(vbasis,sbasis,iquad,imap,inormals,
         Dhalf,stabilization,cellmap)
     push!(fLH,iLH)
-    fHH = hybrid_operator(sbasis,facequads,1.0,cellmap)
-    iHH = hybrid_operator_on_interface(sbasis,iquad,imap,inormals,
-        1.0,cellmap)
-    push!(fHH,iHH)
     facetosolverid = face_to_solverid(facequads)
-    return LocalSolverComponents(LL,fLH,fHH,stabilization,facetosolverid)
+    return LocalSolverComponents(LL,fLH,facetosolverid)
 end
 
 function cell_to_solver_index(cellsign)
@@ -80,8 +82,7 @@ function cell_to_solver_index(cellsign)
     return solveridx
 end
 
-function solver_components_on_cells(dgmesh,ufs,D1,D2,
-    stabilization)
+function CellSolvers(dgmesh,ufs,D1,D2,stabilization)
 
     ncells = number_of_cells(dgmesh)
     @assert ncells > 0
@@ -118,5 +119,6 @@ function solver_components_on_cells(dgmesh,ufs,D1,D2,
             push!(solver_components,cutop2)
         end
     end
-    return solver_components
+    celltosolverid = cell_to_solver_index(cellsign)
+    return CellSolvers(solver_components,celltosolverid)
 end

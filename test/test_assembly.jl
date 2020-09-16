@@ -202,13 +202,12 @@ system_rhs = HDGElasticity.SystemRHS()
 lambda,mu = 1.,2.
 stabilization = 1e-3
 D1 = sqrt(HDGElasticity.plane_strain_voigt_hooke_matrix_2d(lambda,mu))
-cellsolvers = HDGElasticity.solver_components_on_cells(dgmesh,ufs,D1,D1,
+cellsolvers = HDGElasticity.CellSolvers(dgmesh,ufs,D1,D1,
     stabilization)
-celltosolverid = HDGElasticity.cell_to_solver_index(dgmesh.cellsign)
 
 function assemble_mixed_face!(system_matrix,dgmesh,ufs,phaseid,cellid,
-    faceid,Dhalf,stabilization,dcomp,tcomp,cellsolvers,
-    celltosolverid,rowelid,colelids,dofsperelement)
+    faceid,Dhalf,stabilization,dcomp,tcomp,cellsolvers,rowelid,
+    colelids,dofsperelement)
 
     vbasis = ufs.vbasis
     sbasis = ufs.sbasis
@@ -216,20 +215,19 @@ function assemble_mixed_face!(system_matrix,dgmesh,ufs,phaseid,cellid,
     facemap = dgmesh.facemaps[faceid]
     facenormal = ufs.fnormals[faceid]
     facescale = dgmesh.facescale[faceid]
-    iLLxLH = cellsolvers[celltosolverid[phaseid,cellid]].iLLxLH
+    iLLxLH = cellsolvers[phaseid,cellid].iLLxLH
     HDGElasticity.assemble_mixed_face!(system_matrix,vbasis,sbasis,facequad,facemap,
         facenormal,Dhalf,stabilization,facescale,dcomp,tcomp,iLLxLH,
         rowelid,colelids,dofsperelement)
 end
 
 function assemble_traction_face!(system_matrix,dgmesh,ufs,phaseid,cellid,
-    faceid,stabilization,cellsolvers,celltosolverid,rowelid,
-    colelids,dofsperelement)
+    faceid,stabilization,cellsolvers,rowelid,colelids,dofsperelement)
 
     sbasis = ufs.sbasis
     facequad = ufs.fquads[phaseid,cellid][faceid]
     facescale = dgmesh.facescale[faceid]
-    cellsolver = cellsolvers[celltosolverid[phaseid,cellid]]
+    cellsolver = cellsolvers[phaseid,cellid]
     iLLxLH = cellsolver.iLLxLH
     facetosolverid = cellsolver.facetosolverid
     HL = cellsolver.fLH[facetosolverid[faceid]]'
@@ -238,9 +236,9 @@ function assemble_traction_face!(system_matrix,dgmesh,ufs,phaseid,cellid,
 end
 
 assemble_mixed_face!(system_matrix,dgmesh,ufs,1,1,1,D1,stabilization,
-    [0.,1.],[1.,0.],cellsolvers,celltosolverid,1,1:4,dofsperelement)
+    [0.,1.],[1.,0.],cellsolvers,1,1:4,dofsperelement)
 assemble_traction_face!(system_matrix,dgmesh,ufs,1,1,2,stabilization,
-    cellsolvers,celltosolverid,2,1:4,dofsperelement)
+    cellsolvers,2,1:4,dofsperelement)
 
 # HDGElasticity.assemble_displacement_face!(system_matrix,
 #     cellsolvers[solverid].fHH[facetosolverid[2]],2,dofsperelement)
