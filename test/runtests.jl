@@ -36,9 +36,9 @@ end
     include("test_local_hybrid_coupling.jl")
 end
 
-@safetestset "Test Hybrid Operator" begin
-    include("test_hybrid_coupling.jl")
-end
+# @safetestset "Test Hybrid Operator" begin
+#     include("test_hybrid_coupling.jl")
+# end
 
 @safetestset "Test Hybrid Local Operator" begin
     include("test_hybrid_local_coupling.jl")
@@ -56,6 +56,6 @@ end
     include("test_local_solver.jl")
 end
 
-@safetestset "Test Assembly" begin
-    include("test_assembly.jl")
-end
+# @safetestset "Test Assembly" begin
+#     include("test_assembly.jl")
+# end

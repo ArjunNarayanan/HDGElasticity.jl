@@ -90,14 +90,15 @@ function assemble!(system_rhs::SystemRHS,vals,rowelid,dofsperelement)
     assemble!(system_rhs,rowdofs,vals)
 end
 
-function assemble_displacement_face!(system_matrix::SystemMatrix,HH,
-    elid,dofsperelement)
+function assemble_displacement_face!(system_matrix::SystemMatrix,sbasis,
+    facequad,facescale,elid,dofsperelement)
 
+    HH = HHop(sbasis,facequad,facescale)
     assemble!(system_matrix,vec(HH),elid,elid,dofsperelement)
 end
 
-function assemble_traction_face!(system_matrix::SystemMatrix,HL,iLLxLH,HH,rowelid,
-    colelids,dofsperelement)
+function assemble_traction_face!(system_matrix::SystemMatrix,HL,iLLxLH,HH,
+    rowelid,colelids,dofsperelement)
 
     tractionop = HL*iLLxLH
     assemble!(system_matrix,tractionop,rowelid,colelids,dofsperelement)
@@ -113,16 +114,17 @@ function assemble_traction_face!(system_matrix::SystemMatrix,sbasis,facequad,
 end
 
 function assemble_mixed_face!(system_matrix::SystemMatrix,vbasis,sbasis,
-    facequad,facemap,facenormal,Dhalf,stabilization,facescale,dcomp,tcomp,
+    facequad,facemap,facenormal,dcomp,tcomp,Dhalf,stabilization,facescale,
     iLLxLH,rowelid,colelids,dofsperelement)
 
     HHd = HHop(sbasis,facequad,dcomp,facescale)
-    assemble_displacement_face!(system_matrix,HHd,rowelid,dofsperelement)
+    assemble!(system_matrix,vec(HHd),rowelid,rowelid,dofsperelement)
+
     HLt = hybrid_local_operator_traction_components(sbasis,vbasis,facequad,
         facemap,facenormal,tcomp,Dhalf,stabilization,facescale)
-    HH = stabilization*HHop(sbasis,facequad,facescale)
-    assemble_traction_face!(system_matrix,HLt,iLLxLH,HH,rowelid,
-        colelids,dofsperelement)
+    HHt = stabilization*HHop(sbasis,facequad,tcomp,facescale)
+    assemble_traction_face!(system_matrix,HLt,iLLxLH,HHt,rowelid,colelids,
+        dofsperelement)
 end
 
 function assemble_coherent_interface!(system_matrix::SystemMatrix,HH,
