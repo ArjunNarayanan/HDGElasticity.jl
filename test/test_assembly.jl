@@ -254,6 +254,7 @@ assemble_displacement_face!(system_matrix,dgmesh,ufs,1,1,2,2,dofsperelement)
 assemble_traction_face!(system_matrix,dgmesh,ufs,1,1,3,stabilization,
     cellsolvers,3,1:4,dofsperelement)
 
+
 # Cell 1 phase 2
 assemble_mixed_face!(system_matrix,dgmesh,ufs,2,1,1,D1,stabilization,
     [0.,1.],[1.,0.],cellsolvers,5,5:8,dofsperelement)
@@ -264,4 +265,8 @@ assemble_mixed_face!(system_matrix,dgmesh,ufs,2,1,4,D1,stabilization,
 
 # Interface condition
 update!(ufs.imap,ufs.icoeffs[1])
-HH = HDGElasticity.HHop_
+cellmap = HDGElasticity.CellMap(dgmesh.domain[1])
+HH = HDGElasticity.HHop(ufs.sbasis,ufs.iquad,ufs.imap,ufs.inormals[1],cellmap)
+HDGElasticity.assemble_coherent_interface!(system_matrix,HH,4,8,dofsperelement)
+
+K = HDGElasticity.sparse(system_matrix,32)

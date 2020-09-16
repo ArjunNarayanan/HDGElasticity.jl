@@ -7,32 +7,6 @@ function HHop(sbasis,facequad,facescale)
     return HH
 end
 
-function hybrid_operator(sbasis,facequads,stabilization,cellmap::CellMap)
-
-    sdim = dimension(sbasis)
-    dim = sdim + 1
-    nfaces = number_of_faces(dim)
-    @assert length(facequads) == nfaces
-
-    NHF = number_of_basis_functions(sbasis)
-    isactiveface = active_faces(facequads)
-
-    jac = face_determinant_jacobian(cellmap)
-
-    ndofs = dim*NHF
-    HH = [zeros(ndofs,ndofs) for i in 1:count(isactiveface)]
-
-    counter = 1
-    for faceid in 1:nfaces
-        if isactiveface[faceid]
-            update_mass_matrix!(HH[counter],sbasis,facequads[faceid],
-                stabilization*jac[faceid],dim)
-            counter += 1
-        end
-    end
-    return HH
-end
-
 function HHop!(HH,sbasis,squad,components,scale,nhdofs)
 
     NQ = length(squad)
@@ -58,11 +32,7 @@ function HHop(sbasis,squad,components,scale)
     return HH
 end
 
-function HHop(sbasis,squad,components,stabilization,facescale)
-    return HHop(sbasis,squad,components,stabilization*facescale)
-end
-
-function HHop_on_interface!(HH,sbasis,iquad,imap,scale,nhdofs)
+function HHop!(HH,sbasis,iquad,imap::InterpolatingPolynomial,scale,nhdofs)
 
     NQ = length(iquad)
     @assert length(scale) == NQ
@@ -75,20 +45,19 @@ function HHop_on_interface!(HH,sbasis,iquad,imap,scale,nhdofs)
     end
 end
 
-function hybrid_operator_on_interface(sbasis,iquad,imap,inormals,
-    stabilization,cellmap)
+function HHop(sbasis,iquad,imap,inormals,cellmap)
 
     facedim = dimension(sbasis)
     dim = facedim + 1
     NHF = number_of_basis_functions(sbasis)
     HH = zeros(dim*NHF,dim*NHF)
 
-    facescale = stabilization*scale_area(cellmap,inormals)
-    HHop_on_interface!(HH,sbasis,iquad,imap,facescale,dim)
+    facescale = scale_area(cellmap,inormals)
+    HHop!(HH,sbasis,iquad,imap,facescale,dim)
     return HH
 end
 
-function HHop_on_interface!(HH,sbasis,iquad,imap,components,scale,nhdofs)
+function HHop!(HH,sbasis,iquad,imap,components,scale,nhdofs)
 
     NQ = length(iquad)
     @assert length(scale) == NQ
@@ -106,15 +75,14 @@ function HHop_on_interface!(HH,sbasis,iquad,imap,components,scale,nhdofs)
     return HH
 end
 
-function hybrid_operator_on_interface(sbasis,iquad,imap,inormals,components,
-    stabilization,cellmap)
+function HHop(sbasis,iquad,imap,inormals,components,cellmap)
 
     facedim = dimension(sbasis)
     dim = facedim + 1
     NHF = number_of_basis_functions(sbasis)
     HH = zeros(dim*NHF,dim*NHF)
 
-    facescale = stabilization*scale_area(cellmap,inormals)
-    HHop_on_interface!(HH,sbasis,iquad,imap,components,facescale,dim)
+    facescale = scale_area(cellmap,inormals)
+    HHop!(HH,sbasis,iquad,imap,components,facescale,dim)
     return HH
 end

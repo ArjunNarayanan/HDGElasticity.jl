@@ -30,29 +30,27 @@ locop = HDGElasticity.local_operator(vbasis,vquad,facequads,facemaps,
 facelhops = HDGElasticity.local_hybrid_operator(vbasis,sbasis,facequads,facemaps,
     normals,Dhalf,stabilization,cellmap)
 lhop = hcat(facelhops...)
-HH = HDGElasticity.hybrid_operator(sbasis,facequads,stabilization,cellmap)
-HHmass = HDGElasticity.hybrid_operator(sbasis,facequads,1.0,cellmap)
 
 tcomp = [1.0,0.0]
 hybloc1 = HDGElasticity.hybrid_local_operator_traction_components(sbasis,
     vbasis,facequads[1],facemaps[1],normals[1],tcomp,Dhalf,
     stabilization,facescale[1])
-HHt1 = HDGElasticity.HHop(sbasis,squad,tcomp,stabilization,facescale[1])
+HHt1 = stabilization*HDGElasticity.HHop(sbasis,squad,tcomp,facescale[1])
 ucomp = [0.0,-1.0]
 HHu1 = HDGElasticity.HHop(sbasis,squad,ucomp,facescale[1])
 
 hybloc2 = facelhops[2]'
 R2 = -HDGElasticity.linear_form(facescale[2]*[1.0,0.0],sbasis,squad)
-HH2 = HH[2]
+HH2 = stabilization*HDGElasticity.HHop(sbasis,facequads[2],facescale[2])
 
 hybloc3 = facelhops[3]'
-HH3 = HH[3]
+HH3 = stabilization*HDGElasticity.HHop(sbasis,facequads[3],facescale[3])
 
 tcomp = [0.,1.]
 hybloc4 = HDGElasticity.hybrid_local_operator_traction_components(sbasis,
     vbasis,facequads[4],facemaps[4],normals[4],tcomp,Dhalf,
     stabilization,facescale[4])
-HHt4 = HDGElasticity.HHop(sbasis,squad,tcomp,stabilization*facescale[4])
+HHt4 = stabilization*HDGElasticity.HHop(sbasis,squad,tcomp,facescale[4])
 ucomp = [-1.0,0.0]
 HHu4 = HDGElasticity.HHop(sbasis,squad,ucomp,facescale[4])
 
@@ -101,19 +99,19 @@ testU[2,4] = u2
 
 
 hybloc1 = zeros(4,20)
-HH1 = HHmass[1]
+HH1 = HDGElasticity.HHop(sbasis,facequads[1],facescale[1])
 
 hybloc2 = facelhops[2]'
 R2 = -HDGElasticity.linear_form(facescale[2]*[0.0,1.0],sbasis,facequads[2])
-HH2 = HH[2]
+HH2 = stabilization*HDGElasticity.HHop(sbasis,facequads[2],facescale[2])
 
 hybloc3 = facelhops[3]'
 R3 = -HDGElasticity.linear_form(facescale[3]*[1.0,0.0],sbasis,facequads[3])
-HH3 = HH[3]
+HH3 = stabilization*HDGElasticity.HHop(sbasis,facequads[3],facescale[3])
 
 hybloc4 = facelhops[4]'
 R4 = -HDGElasticity.linear_form(facescale[4]*[0.0,-1.0],sbasis,facequads[4])
-HH4 = HH[4]
+HH4 = stabilization*HDGElasticity.HHop(sbasis,facequads[4],facescale[4])
 
 hlop = vcat(hybloc1,hybloc2,hybloc3,hybloc4)
 
