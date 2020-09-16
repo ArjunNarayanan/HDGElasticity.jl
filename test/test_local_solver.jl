@@ -61,6 +61,7 @@ iLH1 = HDGElasticity.local_hybrid_operator_on_interface(ufs.vbasis,ufs.sbasis,
 LH1 = [hcat(fLH1...) iLH1]
 @test allapprox(cellsolvers[1,1].LL,LL1)
 @test allapprox(cellsolvers[1,1].LH,LH1)
+@test allequal(cellsolvers[1,1].facetosolverid,[1,2,3,0,4])
 
 LL2 = HDGElasticity.local_operator(ufs.vbasis,ufs.vquads[2,1],ufs.fquads[2,1],
     dgmesh.facemaps,ufs.iquad,ufs.imap,ufs.inormals[1],D2,stabilization,cellmap)
@@ -71,6 +72,7 @@ iLH2 = HDGElasticity.local_hybrid_operator_on_interface(ufs.vbasis,ufs.sbasis,
 LH2 = [hcat(fLH2...) iLH2]
 @test allapprox(cellsolvers[2,1].LL,LL2)
 @test allapprox(cellsolvers[2,1].LH,LH2)
+@test allapprox(cellsolvers[2,1].facetosolverid,[1,0,2,3,4])
 
 uLL1 = HDGElasticity.local_operator(ufs.vbasis,ufs.vtpq,ufs.ftpq,
     dgmesh.facemaps,D1,stabilization,cellmap)
@@ -79,6 +81,7 @@ ufLH1 = HDGElasticity.local_hybrid_operator(ufs.vbasis,ufs.sbasis,ufs.ftpq,
 uLH1 = hcat(ufLH1...)
 @test allapprox(cellsolvers.localsolvers[1].LL,uLL1)
 @test allapprox(cellsolvers.localsolvers[1].LH,uLH1)
+@test allequal(cellsolvers.localsolvers[1].facetosolverid,[1,2,3,4])
 
 uLL2 = HDGElasticity.local_operator(ufs.vbasis,ufs.vtpq,ufs.ftpq,
     dgmesh.facemaps,D2,stabilization,cellmap)
@@ -87,3 +90,4 @@ ufLH2 = HDGElasticity.local_hybrid_operator(ufs.vbasis,ufs.sbasis,ufs.ftpq,
 uLH2 = hcat(ufLH2...)
 @test allapprox(cellsolvers.localsolvers[2].LL,uLL2)
 @test allapprox(cellsolvers.localsolvers[2].LH,uLH2)
+@test allequal(cellsolvers.localsolvers[2].facetosolverid,[1,2,3,4])

@@ -56,6 +56,7 @@ function LocalSolverComponents(vbasis,vquad,sbasis,facequads,facemaps,normals,
         Dhalf,stabilization,cellmap)
     push!(fLH,iLH)
     facetosolverid = face_to_solverid(facequads)
+    push!(facetosolverid,length(fLH))
     return LocalSolverComponents(LL,fLH,facetosolverid)
 end
 
