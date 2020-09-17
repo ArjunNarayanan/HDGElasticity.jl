@@ -127,7 +127,7 @@ normals = HDGElasticity.reference_normals()
 lambda = 1.
 mu = 2.
 D1 = sqrt(HDGElasticity.plane_strain_voigt_hooke_matrix_2d(lambda,mu))
-stabilization = 1e-3
+stabilization = 0.1
 cellmap = HDGElasticity.CellMap([1.,1.],[2.,3.])
 facescale = HDGElasticity.face_determinant_jacobian(cellmap)
 
@@ -207,83 +207,64 @@ stabilization = 1e-3
 D1 = sqrt(HDGElasticity.plane_strain_voigt_hooke_matrix_2d(lambda,mu))
 cellsolvers = HDGElasticity.CellSolvers(dgmesh,ufs,D1,D1,stabilization)
 
-function assemble_mixed_face!(system_matrix,dgmesh,ufs,phaseid,cellid,
-    faceid,Dhalf,stabilization,dcomp,tcomp,cellsolvers,rowelid,
-    colelids,dofsperelement)
-
-    vbasis = ufs.vbasis
-    sbasis = ufs.sbasis
-    facequad = ufs.fquads[phaseid,cellid][faceid]
-    facemap = dgmesh.facemaps[faceid]
-    facenormal = ufs.fnormals[faceid]
-    facescale = dgmesh.facescale[faceid]
-    iLLxLH = cellsolvers[phaseid,cellid].iLLxLH
-    HDGElasticity.assemble_mixed_face!(system_matrix,vbasis,sbasis,facequad,facemap,
-        facenormal,dcomp,tcomp,Dhalf,stabilization,facescale,iLLxLH,
-        rowelid,colelids,dofsperelement)
-end
-
-function assemble_traction_face!(system_matrix,dgmesh,ufs,phaseid,cellid,
-    faceid,stabilization,cellsolvers,rowelid,colelids,dofsperelement)
-
-    sbasis = ufs.sbasis
-    facequad = ufs.fquads[phaseid,cellid][faceid]
-    facescale = dgmesh.facescale[faceid]
-    cellsolver = cellsolvers[phaseid,cellid]
-    iLLxLH = cellsolver.iLLxLH
-    facetosolverid = cellsolver.facetosolverid
-    HL = cellsolver.fLH[facetosolverid[faceid]]'
-    HDGElasticity.assemble_traction_face!(system_matrix,sbasis,facequad,
-        facescale,stabilization,HL,iLLxLH,rowelid,colelids,dofsperelement)
-end
-
-function assemble_traction_coherent_interface!(system_matrix,dgmesh,ufs,
-    phaseid,cellid,stabilization,cellsolvers,rowelid,colelids,dofsperelement)
-
-    sbasis = ufs.sbasis
-    iquad = ufs.iquad
-    imap = ufs.imap
-    update!(imap,ufs.icoeffs[cellid])
-    facescale = HDGElasticity.scale_area(dgmesh.cellmap,ufs.inormals[cellid])
-    cellsolver = cellsolvers[phaseid,cellid]
-    iLLxLH = cellsolver.iLLxLH
-    HL = cellsolver.fLH[facetosolverid[5]]'
-    HDGElasticity.assemble_traction_coherent_interface!(system_matrix,
-        sbasis,iquad,imap,facescale,stabilization,HL,iLLxLH,rowelid,
-        colelids,dofsperelement)
-end
-
-function assemble_displacement_face!(system_matrix,dgmesh,ufs,phaseid,cellid,
-    faceid,rowelid,dofsperelement)
-
-    sbasis = ufs.sbasis
-    facequad = ufs.fquads[phaseid,cellid][faceid]
-    facescale = dgmesh.facescale[faceid]
-    HDGElasticity.assemble_displacement_face!(system_matrix,sbasis,facequad,
-        facescale,rowelid,dofsperelement)
-end
 
 # Cell 1 phase 1
-assemble_mixed_face!(system_matrix,dgmesh,ufs,1,1,1,D1,stabilization,
-    [0.,1.],[1.,0.],cellsolvers,1,1:4,dofsperelement)
-assemble_displacement_face!(system_matrix,dgmesh,ufs,1,1,2,2,dofsperelement)
-assemble_traction_face!(system_matrix,dgmesh,ufs,1,1,3,stabilization,
-    cellsolvers,3,1:4,dofsperelement)
-assemble_traction_coherent_interface!(system_matrix,dgmesh,ufs,1,1,
-    stabilization,cellsolvers,4,1:4,dofsperelement)
+HDGElasticity.assemble_mixed_face!(system_matrix,dgmesh,ufs,cellsolvers,
+    1,1,1,[0.,1.],[1.,0.],1,1:4,dofsperelement)
+HDGElasticity.assemble_traction_face!(system_matrix,dgmesh,ufs,cellsolvers,1,1,2,
+    2,1:4,dofsperelement)
+rhs = -HDGElasticity.linear_form(dgmesh.facescale[2]*[0.1,0.0],ufs.sbasis,ufs.fquads[1,1][2])
+HDGElasticity.assemble!(system_rhs,rhs,2,dofsperelement)
+HDGElasticity.assemble_traction_face!(system_matrix,dgmesh,ufs,cellsolvers,
+    1,1,3,3,1:4,dofsperelement)
 
-# Cell 1 phase 2
-assemble_mixed_face!(system_matrix,dgmesh,ufs,2,1,1,D1,stabilization,
-    [0.,1.],[1.,0.],cellsolvers,5,5:8,dofsperelement)
-assemble_traction_face!(system_matrix,dgmesh,ufs,2,1,3,stabilization,
-    cellsolvers,6,5:8,dofsperelement)
-assemble_mixed_face!(system_matrix,dgmesh,ufs,2,1,4,D1,stabilization,
-    [1.,0.],[0.,1.],cellsolvers,7,5:8,dofsperelement)
 
-# Interface condition
-update!(ufs.imap,ufs.icoeffs[1])
-cellmap = HDGElasticity.CellMap(dgmesh.domain[1])
-HH = HDGElasticity.HHop(ufs.sbasis,ufs.iquad,ufs.imap,ufs.inormals[1],cellmap)
-HDGElasticity.assemble_coherent_interface!(system_matrix,HH,4,8,dofsperelement)
+# # Cell 1 phase 2
+HDGElasticity.assemble_mixed_face!(system_matrix,dgmesh,ufs,cellsolvers,2,1,1,[0.,1.],[1.,0.],
+    5,5:8,dofsperelement)
+HDGElasticity.assemble_traction_face!(system_matrix,dgmesh,ufs,cellsolvers,
+    2,1,3,6,5:8,dofsperelement)
+HDGElasticity.assemble_mixed_face!(system_matrix,dgmesh,ufs,cellsolvers,2,1,4,
+    [1.,0.],[0.,1.],7,5:8,dofsperelement)
 
-K = HDGElasticity.sparse(system_matrix,32)
+# # Interface condition
+HDGElasticity.assemble_coherent_interface!(system_matrix,dgmesh,ufs,cellsolvers,
+    1,4,1:4,8,5:8,dofsperelement)
+
+K = dropzeros!(HDGElasticity.sparse(system_matrix,32))
+R = HDGElasticity.rhs(system_rhs,32)
+
+sol = K\R
+H = reshape(sol,4,:)
+
+dofspercell = 4*dofsperelement
+H1 = sol[1:dofspercell]
+L1 = cellsolvers[1,1].iLLxLH*H1
+numstressdofs = NF*3
+S1 = -D1*reshape(L1[1:numstressdofs],3,:)
+numdispdofs = NF*2
+U1 = reshape(L1[(numstressdofs+1):(numstressdofs+numdispdofs)],2,:)
+
+H2 = sol[17:32]
+L2 = cellsolvers[2,1].iLLxLH*H2
+S2 = -D1*reshape(L2[1:12],3,:)
+U2 = reshape(L2[13:20],2,:)
+
+e11 = 0.1/((lambda+2mu) - lambda^2/(lambda+2mu))
+e22 = -lambda/(lambda+2mu)*e11
+u1 = e11*2
+u2 = e22*1
+
+testU = copy(coords)
+testU[1,:] .*= e11
+testU[2,:] .*= e22
+testS = zeros(3,size(coords)[2])
+testS[1,:] .= 0.1
+@test allapprox(U1,testU,1e-12)
+@test allapprox(U2,testU,1e-12)
+@test allapprox(S1,testS,1e-12)
+@test allapprox(S2,testS,1e-12)
+
+
+###########################################################################
+# Change the orientation of the plane interface

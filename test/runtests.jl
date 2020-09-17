@@ -56,6 +56,6 @@ end
     include("test_local_solver.jl")
 end
 
-# @safetestset "Test Assembly" begin
-#     include("test_assembly.jl")
-# end
+@safetestset "Test Assembly" begin
+    include("test_assembly.jl")
+end

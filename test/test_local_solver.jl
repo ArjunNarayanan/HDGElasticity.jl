@@ -50,6 +50,9 @@ testsolveridx = [3 1
 
 cellsolvers = HDGElasticity.CellSolvers(dgmesh,ufs,D1,D2,stabilization)
 @test length(cellsolvers.localsolvers) == 4
+@test allapprox(cellsolvers.stiffness[1],D1)
+@test allapprox(cellsolvers.stiffness[2],D2)
+@test cellsolvers.stabilization ≈ stabilization
 
 update!(ufs.imap,ufs.icoeffs[1,1])
 LL1 = HDGElasticity.local_operator(ufs.vbasis,ufs.vquads[1,1],ufs.fquads[1,1],

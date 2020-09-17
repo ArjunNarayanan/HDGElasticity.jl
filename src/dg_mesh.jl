@@ -19,7 +19,7 @@ struct DGMesh{dim,T}
         @assert length(cellsign) == ncells
         @assert length(facemaps) == nfaces
 
-        new{dim,T}(ncells,domain,connectivity,cellsign,facemaps,facescale)
+        new{dim,T}(ncells,domain,connectivity,cellsign,facemaps,facescale,cellmap)
 
     end
 end

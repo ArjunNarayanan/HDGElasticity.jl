@@ -97,6 +97,18 @@ function assemble_displacement_face!(system_matrix::SystemMatrix,sbasis,
     assemble!(system_matrix,vec(HH),elid,elid,dofsperelement)
 end
 
+function assemble_displacement_face!(system_matrix::SystemMatrix,
+    dgmesh::DGMesh,ufs::UniformFunctionSpace,phaseid,cellid,
+    faceid,rowelid,dofsperelement)
+
+    sbasis = ufs.sbasis
+    facequad = ufs.fquads[phaseid,cellid][faceid]
+    facescale = dgmesh.facescale[faceid]
+    assemble_displacement_face!(system_matrix,sbasis,facequad,
+        facescale,rowelid,dofsperelement)
+end
+
+
 function assemble_traction_face!(system_matrix::SystemMatrix,HL,iLLxLH,HH,
     rowelid,colelids,dofsperelement)
 
@@ -113,13 +125,77 @@ function assemble_traction_face!(system_matrix::SystemMatrix,sbasis,facequad,
         colelids,dofsperelement)
 end
 
-function assemble_traction_coherent_interface!(system_matrix::SystemMatrix,
-    sbasis,iquad,imap,facescale,stabilization,HL,iLLxLH,
-    rowelid,colelids,dofsperelement)
+function assemble_traction_face!(system_matrix::SystemMatrix,
+    dgmesh::DGMesh,ufs::UniformFunctionSpace,cellsolvers::CellSolvers,
+    phaseid,cellid,faceid,rowelid,colelids,dofsperelement)
 
-    HH = stabilization*HHop(sbasis,iquad,imap,facescale)
-    assemble_traction_face!(system_matrix,HL,iLLxLH,HH,rowelid,
-        colelids,dofsperelement)
+    sbasis = ufs.sbasis
+    facequad = ufs.fquads[phaseid,cellid][faceid]
+    facescale = dgmesh.facescale[faceid]
+    cellsolver = cellsolvers[phaseid,cellid]
+    stabilization = cellsolvers.stabilization
+    iLLxLH = cellsolver.iLLxLH
+    facetosolverid = cellsolver.facetosolverid
+    HL = cellsolver.fLH[facetosolverid[faceid]]'
+    assemble_traction_face!(system_matrix,sbasis,facequad,
+        facescale,stabilization,HL,iLLxLH,rowelid,colelids,dofsperelement)
+end
+
+function assemble_traction_coherent_interface!(system_matrix::SystemMatrix,
+    HL1,iLLxLH1,HL2,iLLxLH2,HH,hid1,colelids1,hid2,colelids2,dofsperelement)
+
+    op1 = HL1*iLLxLH1
+    op2 = HL2*iLLxLH2
+
+    assemble!(system_matrix,op1,hid1,colelids1,dofsperelement)
+    assemble!(system_matrix,-HH,hid1,hid1,dofsperelement)
+    assemble!(system_matrix,op2,hid1,colelids2,dofsperelement)
+    assemble!(system_matrix,-HH,hid1,hid2,dofsperelement)
+
+    assemble!(system_matrix,op1,hid2,colelids1,dofsperelement)
+    assemble!(system_matrix,-HH,hid2,hid1,dofsperelement)
+    assemble!(system_matrix,op2,hid2,colelids2,dofsperelement)
+    assemble!(system_matrix,-HH,hid2,hid2,dofsperelement)
+end
+
+function assemble_displacement_coherent_interface!(system_matrix::SystemMatrix,
+    HH,rowelid,colelid,dofsperelement)
+
+    vals = vec(HH)
+    assemble!(system_matrix,vals,rowelid,rowelid,dofsperelement)
+    assemble!(system_matrix,-vals,rowelid,colelid,dofsperelement)
+    assemble!(system_matrix,-vals,colelid,rowelid,dofsperelement)
+    assemble!(system_matrix,vals,colelid,colelid,dofsperelement)
+end
+
+
+function assemble_coherent_interface!(system_matrix::SystemMatrix,
+    dgmesh::DGMesh,ufs::UniformFunctionSpace,cellsolvers::CellSolvers,
+    cellid,hid1,colelids1,hid2,colelids2,dofsperelement)
+
+    sbasis = ufs.sbasis
+    iquad = ufs.iquad
+    imap = ufs.imap
+    inormals = ufs.inormals[cellid]
+    stabilization = cellsolvers.stabilization
+    update!(imap,ufs.icoeffs[cellid])
+    HH = HHop(sbasis,iquad,imap,inormals,dgmesh.cellmap)
+
+    cs1 = cellsolvers[1,cellid]
+    iLLxLH1 = cs1.iLLxLH
+    facetosolverid = cs1.facetosolverid
+    HL1 = cs1.fLH[facetosolverid[5]]'
+
+    cs2 = cellsolvers[2,cellid]
+    iLLxLH2 = cs2.iLLxLH
+    facetosolverid = cs2.facetosolverid
+    HL2 = cs2.fLH[facetosolverid[5]]'
+
+    assemble_displacement_coherent_interface!(system_matrix,HH,
+        hid1,hid2,dofsperelement)
+    assemble_traction_coherent_interface!(system_matrix,
+        HL1,iLLxLH1,HL2,iLLxLH2,stabilization*HH,hid1,colelids1,
+        hid2,colelids2,dofsperelement)
 end
 
 function assemble_mixed_face!(system_matrix::SystemMatrix,vbasis,sbasis,
@@ -136,14 +212,22 @@ function assemble_mixed_face!(system_matrix::SystemMatrix,vbasis,sbasis,
         dofsperelement)
 end
 
-function assemble_coherent_interface!(system_matrix::SystemMatrix,HH,
-    rowelid,colelid,dofsperelement)
+function assemble_mixed_face!(system_matrix::SystemMatrix,
+    dgmesh::DGMesh,ufs::UniformFunctionSpace,cellsolvers::CellSolvers,
+    phaseid,cellid,faceid,dcomp,tcomp,rowelid,colelids,dofsperelement)
 
-    vals = vec(HH)
-    assemble!(system_matrix,vals,rowelid,rowelid,dofsperelement)
-    assemble!(system_matrix,-vals,rowelid,colelid,dofsperelement)
-    assemble!(system_matrix,-vals,colelid,rowelid,dofsperelement)
-    assemble!(system_matrix,vals,colelid,colelid,dofsperelement)
+    vbasis = ufs.vbasis
+    sbasis = ufs.sbasis
+    facequad = ufs.fquads[phaseid,cellid][faceid]
+    facemap = dgmesh.facemaps[faceid]
+    facenormal = ufs.fnormals[faceid]
+    facescale = dgmesh.facescale[faceid]
+    iLLxLH = cellsolvers[phaseid,cellid].iLLxLH
+    D = cellsolvers.stiffness[phaseid]
+    stabilization = cellsolvers.stabilization
+    assemble_mixed_face!(system_matrix,vbasis,sbasis,facequad,facemap,
+        facenormal,dcomp,tcomp,D,stabilization,facescale,iLLxLH,
+        rowelid,colelids,dofsperelement)
 end
 
 function SparseArrays.sparse(system_matrix::SystemMatrix,ndofs)

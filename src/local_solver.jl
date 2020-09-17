@@ -11,9 +11,11 @@ struct LocalSolverComponents
     end
 end
 
-struct CellSolvers
+struct CellSolvers{T}
     localsolvers::Vector{LocalSolverComponents}
     celltosolverid::Matrix{Int}
+    stiffness::Tuple{Matrix{T},Matrix{T}}
+    stabilization::T
 end
 
 function Base.getindex(CS::CellSolvers,phaseid,cellid)
@@ -121,5 +123,5 @@ function CellSolvers(dgmesh,ufs,D1,D2,stabilization)
         end
     end
     celltosolverid = cell_to_solver_index(cellsign)
-    return CellSolvers(solver_components,celltosolverid)
+    return CellSolvers(solver_components,celltosolverid,(D1,D2),stabilization)
 end

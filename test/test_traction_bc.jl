@@ -2,7 +2,7 @@ using Test
 using LinearAlgebra
 using PolynomialBasis
 using ImplicitDomainQuadrature
-using Revise
+# using Revise
 using HDGElasticity
 
 function allapprox(v1,v2,tol)

@@ -2,7 +2,7 @@ using Test
 using IntervalArithmetic
 using PolynomialBasis
 using CartesianMesh
-using Revise
+# using Revise
 using HDGElasticity
 
 function allequal(v1,v2)
@@ -15,6 +15,14 @@ end
 
 function distance_function(coords,xc)
     return coords[1,:] .- xc
+end
+
+function Base.isequal(c1::HDGElasticity.CellMap,c2::HDGElasticity.CellMap)
+    flag = true
+    flag = flag && allapprox(c1.xiL,c2.xiL)
+    flag = flag && allapprox(c1.xiR,c2.xiR)
+    flag = flag && allapprox(c1.xL,c2.xL)
+    flag = flag && allapprox(c1.xR,c2.xR)
 end
 
 x0 = [0.,0.]
@@ -49,6 +57,7 @@ dgmesh = HDGElasticity.DGMesh(domain,connectivity,cellsign,facemaps,facescale,ce
 @test all([allequal(dgmesh.connectivity[i],connectivity[i]) for i = 1:2])
 @test allequal(dgmesh.cellsign,cellsign)
 @test allequal(dgmesh.facescale,facescale)
+@test isequal(dgmesh.cellmap,cellmap)
 
 dgmesh = HDGElasticity.DGMesh(mesh,coeffs,poly)
 @test allequal(dgmesh.domain,domain)
@@ -56,3 +65,5 @@ dgmesh = HDGElasticity.DGMesh(mesh,coeffs,poly)
 @test allequal(dgmesh.cellsign,cellsign)
 @test allequal(dgmesh.facescale,facescale)
 @test HDGElasticity.dimension(dgmesh) == 2
+cellmap = HDGElasticity.CellMap(dgmesh.domain[1])
+@test isequal(cellmap,dgmesh.cellmap)
