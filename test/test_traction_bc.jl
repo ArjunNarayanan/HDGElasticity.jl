@@ -92,9 +92,9 @@ testU[1,3] = u1
 testU[1,4] = u1
 testU[2,4] = u2
 
-@test allapprox(testL,L,1e-14)
-@test allapprox(testU,U,1e-14)
-@test allapprox(Hsol,testHsol,1e-14)
+@test allapprox(testL,L,1e-10)
+@test allapprox(testU,U,1e-10)
+@test allapprox(Hsol,testHsol,1e-10)
 
 
 
@@ -150,6 +150,6 @@ testH[1,5] = gamma
 testH[1,6] = gamma
 testH[1,8] = gamma
 
-@test allapprox(Hsol,testH,1e-14)
-@test allapprox(L,testL,1e-14)
-@test allapprox(U,testU,1e-14)
+@test allapprox(Hsol,testH,1e-10)
+@test allapprox(L,testL,1e-10)
+@test allapprox(U,testU,1e-10)

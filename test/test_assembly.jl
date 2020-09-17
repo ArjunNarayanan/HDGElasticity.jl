@@ -4,7 +4,7 @@ using SparseArrays
 using CartesianMesh
 using PolynomialBasis
 using ImplicitDomainQuadrature
-# using Revise
+using Revise
 using HDGElasticity
 
 function allapprox(v1, v2)
@@ -177,8 +177,8 @@ testu[:,2] .= [0.,u2]
 testu[:,3] .= [u1,0.]
 testu[:,4] .= [u1,u2]
 
-@test allapprox(testsigma,sigma,1e-14)
-@test allapprox(testu,displacement,1e-12)
+@test allapprox(testsigma,sigma,1e-10)
+@test allapprox(testu,displacement,1e-10)
 
 # ###############################################################################
 # # Test a coherent interface
@@ -260,11 +260,31 @@ testU[1,:] .*= e11
 testU[2,:] .*= e22
 testS = zeros(3,size(coords)[2])
 testS[1,:] .= 0.1
-@test allapprox(U1,testU,1e-12)
-@test allapprox(U2,testU,1e-12)
-@test allapprox(S1,testS,1e-12)
-@test allapprox(S2,testS,1e-12)
+@test allapprox(U1,testU,1e-10)
+@test allapprox(U2,testU,1e-10)
+@test allapprox(S1,testS,1e-10)
+@test allapprox(S2,testS,1e-10)
 
 
 ###########################################################################
-# Change the orientation of the plane interface
+# Change to a quadratic basis
+# polyorder = 2
+# numqp = 4
+# levelset = InterpolatingPolynomial(1,2,polyorder)
+# NF = HDGElasticity.number_of_basis_functions(levelset.basis)
+# mesh = UniformMesh([0.,0.],[2.,1.],[1,1])
+# coords = HDGElasticity.nodal_coordinates(mesh,levelset.basis)
+# levelsetcoeffs = reshape(distance_function(coords,0.5),NF,1)
+# dgmesh = HDGElasticity.DGMesh(mesh,levelsetcoeffs,levelset)
+# ufs = HDGElasticity.UniformFunctionSpace(dgmesh,polyorder,numqp,
+#     levelsetcoeffs,levelset)
+# NHF = HDGElasticity.number_of_basis_functions(ufs.sbasis)
+# dofsperelement = 2*NHF
+
+# system_matrix = HDGElasticity.SystemMatrix()
+# system_rhs = HDGElasticity.SystemRHS()
+#
+# lambda,mu = 1.,2.
+# stabilization = 1e-3
+# D1 = sqrt(HDGElasticity.plane_strain_voigt_hooke_matrix_2d(lambda,mu))
+# cellsolvers = HDGElasticity.CellSolvers(dgmesh,ufs,D1,D1,stabilization)
