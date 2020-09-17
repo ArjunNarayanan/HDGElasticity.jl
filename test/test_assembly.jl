@@ -4,7 +4,7 @@ using SparseArrays
 using CartesianMesh
 using PolynomialBasis
 using ImplicitDomainQuadrature
-using Revise
+# using Revise
 using HDGElasticity
 
 function allapprox(v1, v2)
