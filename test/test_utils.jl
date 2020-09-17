@@ -121,6 +121,11 @@ p = [-0.25,-0.5]
 n = HDGElasticity.levelset_normal(poly,p,cellmap)
 @test allapprox(testn,n)
 
+levelsetcoeffs = HDGElasticity.levelset_coefficients(
+    x->plane_distance_function(x,[1.,0.],[0.5,0.]),mesh,poly.basis)
+testlevelsetcoeffs = [-0.5,-0.5,0.5,0.5]
+@test allapprox(levelsetcoeffs,testlevelsetcoeffs)
+
 points = [-0.4  -0.9
           -0.8   -0.2]
 n = HDGElasticity.levelset_normal(poly,points,cellmap)

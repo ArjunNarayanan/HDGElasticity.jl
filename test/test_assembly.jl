@@ -268,18 +268,18 @@ testS[1,:] .= 0.1
 
 ###########################################################################
 # Change to a quadratic basis
-# polyorder = 2
-# numqp = 4
-# levelset = InterpolatingPolynomial(1,2,polyorder)
-# NF = HDGElasticity.number_of_basis_functions(levelset.basis)
-# mesh = UniformMesh([0.,0.],[2.,1.],[1,1])
-# coords = HDGElasticity.nodal_coordinates(mesh,levelset.basis)
-# levelsetcoeffs = reshape(distance_function(coords,0.5),NF,1)
-# dgmesh = HDGElasticity.DGMesh(mesh,levelsetcoeffs,levelset)
-# ufs = HDGElasticity.UniformFunctionSpace(dgmesh,polyorder,numqp,
-#     levelsetcoeffs,levelset)
-# NHF = HDGElasticity.number_of_basis_functions(ufs.sbasis)
-# dofsperelement = 2*NHF
+polyorder = 2
+numqp = 4
+levelset = InterpolatingPolynomial(1,2,polyorder)
+NF = HDGElasticity.number_of_basis_functions(levelset.basis)
+mesh = UniformMesh([0.,0.],[2.,1.],[1,1])
+coords = HDGElasticity.nodal_coordinates(mesh,levelset.basis)
+levelsetcoeffs = reshape(distance_function(coords,0.5),NF,1)
+dgmesh = HDGElasticity.DGMesh(mesh,levelsetcoeffs,levelset)
+ufs = HDGElasticity.UniformFunctionSpace(dgmesh,polyorder,numqp,
+    levelsetcoeffs,levelset)
+NHF = HDGElasticity.number_of_basis_functions(ufs.sbasis)
+dofsperelement = 2*NHF
 
 # system_matrix = HDGElasticity.SystemMatrix()
 # system_rhs = HDGElasticity.SystemRHS()

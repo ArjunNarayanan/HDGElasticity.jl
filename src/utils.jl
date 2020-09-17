@@ -186,3 +186,9 @@ function face_midpoints(cellmap::CellMap{2})
 
     return [m1,m2,m3,m4]
 end
+
+function levelset_coefficients(distance_function,mesh,basis)
+    coords = nodal_coordinates(mesh,basis)
+    NF = number_of_basis_functions(basis)
+    return reshape(distance_function(coords),NF,:)
+end
