@@ -3,7 +3,6 @@ using LinearAlgebra
 using CartesianMesh
 using PolynomialBasis
 using ImplicitDomainQuadrature
-# using Revise
 using HDGElasticity
 
 function allapprox(v1,v2)
@@ -83,7 +82,7 @@ ufs = HDGElasticity.UniformFunctionSpace(dgmesh,1,4,coeffs,poly)
 
 update!(poly,coeffs[:,1])
 update!(ufs.imap,ufs.icoeffs[1])
-mapped_points = hcat([ufs.imap(ufs.iquad.points[:,i]) for i in 1:size(ufs.iquad.points)[2]]...)
+
 lop = HDGElasticity.local_operator(ufs.vbasis,ufs.vquads[1,1],
     ufs.fquads[1,1],dgmesh.facemaps,ufs.iquad,ufs.imap,-ufs.inormals[1],
     Dhalf,stabilization,cellmap)

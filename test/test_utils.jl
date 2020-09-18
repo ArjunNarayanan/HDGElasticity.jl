@@ -1,10 +1,9 @@
 using Test
-using StaticArrays
+using LinearAlgebra
 using IntervalArithmetic
 using PolynomialBasis
 using ImplicitDomainQuadrature
 using CartesianMesh
-# using Revise
 using HDGElasticity
 
 HDGE = HDGElasticity
@@ -147,6 +146,7 @@ cellmap = HDGElasticity.CellMap([0.,0.],[2.,1.])
 n = [1. 0.
      0. 1.]
 @test allapprox(HDGElasticity.scale_area(cellmap,n),[0.5,1.])
+
 
 facequads = [[],[1,2,3],[1,2,3,4,5],[]]
 isactiveface = HDGElasticity.active_faces(facequads)

@@ -1,7 +1,6 @@
 using Test
 using PolynomialBasis
 using ImplicitDomainQuadrature
-# using Revise
 using HDGElasticity
 
 HDGE = HDGElasticity
@@ -98,6 +97,9 @@ N(x) = [(x[1]+1.)*(x[2]+1.)/4.]
 matrix = zeros(1,1)
 HDGElasticity.update_mass_matrix!(matrix,N,facequad,imap,[1.,1.],1)
 @test allapprox(matrix,[2/3])
+
+
+
 
 N(x) = [(x[1]+1.)*(x[2]+1.)/4.]
 matrix = zeros(1,1)

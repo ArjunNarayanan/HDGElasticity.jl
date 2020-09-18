@@ -192,3 +192,14 @@ function levelset_coefficients(distance_function,mesh,basis)
     NF = number_of_basis_functions(basis)
     return reshape(distance_function(coords),NF,:)
 end
+
+function curve_normals(imap,points)
+    npts = length(points)
+    normals = zeros(2,npts)
+    for (idx,x) in enumerate(points)
+        t = gradient(imap,x)
+        n = [-t[2],t[1]]
+        normals[:,idx] .= n/norm(n)
+    end
+    return normals
+end

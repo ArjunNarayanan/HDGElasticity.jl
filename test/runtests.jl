@@ -8,6 +8,10 @@ end
     include("test_utils.jl")
 end
 
+@safetestset "Test Curved Face Area Scaling" begin
+    include("test_curved_facescale.jl")
+end
+
 @safetestset "Test Variational Form Utils" begin
     include("test_variational_form_utils.jl")
 end

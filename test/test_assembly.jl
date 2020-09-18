@@ -4,7 +4,6 @@ using SparseArrays
 using CartesianMesh
 using PolynomialBasis
 using ImplicitDomainQuadrature
-# using Revise
 using HDGElasticity
 
 function allapprox(v1, v2)
@@ -192,7 +191,8 @@ levelset = InterpolatingPolynomial(1,2,polyorder)
 NF = HDGElasticity.number_of_basis_functions(levelset.basis)
 mesh = UniformMesh([0.,0.],[2.,1.],[1,1])
 coords = HDGElasticity.nodal_coordinates(mesh,levelset.basis)
-levelsetcoeffs = reshape(distance_function(coords,0.5),NF,1)
+interface_location = 0.5
+levelsetcoeffs = reshape(distance_function(coords,interface_location),NF,1)
 dgmesh = HDGElasticity.DGMesh(mesh,levelsetcoeffs,levelset)
 ufs = HDGElasticity.UniformFunctionSpace(dgmesh,polyorder,numqp,
     levelsetcoeffs,levelset)
@@ -254,12 +254,103 @@ e11 = 0.1/((lambda+2mu) - lambda^2/(lambda+2mu))
 e22 = -lambda/(lambda+2mu)*e11
 u1 = e11*2
 u2 = e22*1
+ui = e11*interface_location
 
+testH1 = [0.0 u1  u1  u1 0.0 u1 ui  ui
+          0.0 0.0 0.0 u2 u2  u2 0.0 u2]
+testH2 = [0.0 u1  0.0 u1 0.0 0.0 ui  ui
+          0.0 0.0 u2  u2 0.0 u2  0.0 u2]
 testU = copy(coords)
 testU[1,:] .*= e11
 testU[2,:] .*= e22
-testS = zeros(3,size(coords)[2])
+testS = zeros(3,NF)
 testS[1,:] .= 0.1
+@test allapprox(H1,testH1,1e-10)
+@test allapprox(H2,testH2,1e-10)
+@test allapprox(U1,testU,1e-10)
+@test allapprox(U2,testU,1e-10)
+@test allapprox(S1,testS,1e-10)
+@test allapprox(S2,testS,1e-10)
+
+
+
+###########################################################################
+# Change to a sloping interface
+function plane_distance_function(coords,normal,xc)
+    return (coords .- xc)'*normal
+end
+
+polyorder = 1
+numqp = 2
+levelset = InterpolatingPolynomial(1,2,polyorder)
+mesh = UniformMesh([0.,0.],[2.,1.],[1,1])
+xc = [0.5,0.0]
+normal = 1/sqrt(2)*[1,-1]
+levelsetcoeffs = HDGElasticity.levelset_coefficients(
+    x->plane_distance_function(x,normal,xc),mesh,levelset.basis)
+dgmesh = HDGElasticity.DGMesh(mesh,levelsetcoeffs,levelset)
+ufs = HDGElasticity.UniformFunctionSpace(dgmesh,polyorder,numqp,
+    levelsetcoeffs,levelset)
+NHF = HDGElasticity.number_of_basis_functions(ufs.sbasis)
+dofsperelement = 2*NHF
+
+system_matrix = HDGElasticity.SystemMatrix()
+system_rhs = HDGElasticity.SystemRHS()
+
+lambda,mu = 1.,2.
+stabilization = 1e-3
+D1 = sqrt(HDGElasticity.plane_strain_voigt_hooke_matrix_2d(lambda,mu))
+cellsolvers = HDGElasticity.CellSolvers(dgmesh,ufs,D1,D1,stabilization)
+
+# Cell 1 phase 1
+HDGElasticity.assemble_mixed_face!(system_matrix,dgmesh,ufs,cellsolvers,
+    1,1,1,[0.,1.],[1.,0.],1,1:4,dofsperelement)
+HDGElasticity.assemble_traction_face!(system_matrix,dgmesh,ufs,cellsolvers,1,1,2,
+    2,1:4,dofsperelement)
+rhs = -HDGElasticity.linear_form(dgmesh.facescale[2]*[0.1,0.0],ufs.sbasis,ufs.fquads[1,1][2])
+HDGElasticity.assemble!(system_rhs,rhs,2,dofsperelement)
+HDGElasticity.assemble_traction_face!(system_matrix,dgmesh,ufs,cellsolvers,
+    1,1,3,3,1:4,dofsperelement)
+
+# # Cell 1 phase 2
+HDGElasticity.assemble_mixed_face!(system_matrix,dgmesh,ufs,cellsolvers,2,1,1,[0.,1.],[1.,0.],
+    5,5:8,dofsperelement)
+HDGElasticity.assemble_traction_face!(system_matrix,dgmesh,ufs,cellsolvers,
+    2,1,3,6,5:8,dofsperelement)
+HDGElasticity.assemble_mixed_face!(system_matrix,dgmesh,ufs,cellsolvers,2,1,4,
+    [1.,0.],[0.,1.],7,5:8,dofsperelement)
+
+# # Interface condition
+HDGElasticity.assemble_coherent_interface!(system_matrix,dgmesh,ufs,cellsolvers,
+    1,4,1:4,8,5:8,dofsperelement)
+
+K = dropzeros!(HDGElasticity.sparse(system_matrix,32))
+R = HDGElasticity.rhs(system_rhs,32)
+
+sol = K\R
+
+dofspercell = 4*dofsperelement
+H1 = sol[1:dofspercell]
+L1 = cellsolvers[1,1].iLLxLH*H1
+numstressdofs = NF*3
+S1 = -D1*reshape(L1[1:numstressdofs],3,:)
+numdispdofs = NF*2
+U1 = reshape(L1[(numstressdofs+1):(numstressdofs+numdispdofs)],2,:)
+
+H2 = sol[17:32]
+L2 = cellsolvers[2,1].iLLxLH*H2
+S2 = -D1*reshape(L2[1:12],3,:)
+U2 = reshape(L2[13:20],2,:)
+
+testui = [0.5 1.5
+          0.0 1.0]
+testui[1,:] .*= e11
+testui[2,:] .*= e22
+testH1[1:2,7:8] .= testui
+testH2[1:2,7:8] .= testui
+
+@test allapprox(H1,testH1,1e-10)
+@test allapprox(H2,testH2,1e-10)
 @test allapprox(U1,testU,1e-10)
 @test allapprox(U2,testU,1e-10)
 @test allapprox(S1,testS,1e-10)
@@ -271,16 +362,105 @@ testS[1,:] .= 0.1
 polyorder = 2
 numqp = 4
 levelset = InterpolatingPolynomial(1,2,polyorder)
-NF = HDGElasticity.number_of_basis_functions(levelset.basis)
-mesh = UniformMesh([0.,0.],[2.,1.],[1,1])
-coords = HDGElasticity.nodal_coordinates(mesh,levelset.basis)
-levelsetcoeffs = reshape(distance_function(coords,0.5),NF,1)
+levelsetcoeffs = HDGElasticity.levelset_coefficients(
+    x->distance_function(x,0.5),mesh,levelset.basis
+)
 dgmesh = HDGElasticity.DGMesh(mesh,levelsetcoeffs,levelset)
 ufs = HDGElasticity.UniformFunctionSpace(dgmesh,polyorder,numqp,
     levelsetcoeffs,levelset)
 NHF = HDGElasticity.number_of_basis_functions(ufs.sbasis)
+NF = HDGElasticity.number_of_basis_functions(ufs.vbasis)
 dofsperelement = 2*NHF
+coords = HDGElasticity.nodal_coordinates(mesh,levelset.basis)
 
+system_matrix = HDGElasticity.SystemMatrix()
+system_rhs = HDGElasticity.SystemRHS()
+
+lambda,mu = 1.,2.
+stabilization = 1e-3
+D1 = sqrt(HDGElasticity.plane_strain_voigt_hooke_matrix_2d(lambda,mu))
+cellsolvers = HDGElasticity.CellSolvers(dgmesh,ufs,D1,D1,stabilization)
+
+# Cell 1 phase 1
+HDGElasticity.assemble_mixed_face!(system_matrix,dgmesh,ufs,cellsolvers,
+    1,1,1,[0.,1.],[1.,0.],1,1:4,dofsperelement)
+HDGElasticity.assemble_traction_face!(system_matrix,dgmesh,ufs,cellsolvers,1,1,2,
+    2,1:4,dofsperelement)
+rhs = -HDGElasticity.linear_form(dgmesh.facescale[2]*[0.1,0.0],ufs.sbasis,ufs.fquads[1,1][2])
+HDGElasticity.assemble!(system_rhs,rhs,2,dofsperelement)
+HDGElasticity.assemble_traction_face!(system_matrix,dgmesh,ufs,cellsolvers,
+    1,1,3,3,1:4,dofsperelement)
+
+# Cell 1 phase 2
+HDGElasticity.assemble_mixed_face!(system_matrix,dgmesh,ufs,cellsolvers,2,1,1,[0.,1.],[1.,0.],
+    5,5:8,dofsperelement)
+HDGElasticity.assemble_traction_face!(system_matrix,dgmesh,ufs,cellsolvers,
+    2,1,3,6,5:8,dofsperelement)
+HDGElasticity.assemble_mixed_face!(system_matrix,dgmesh,ufs,cellsolvers,2,1,4,
+    [1.,0.],[0.,1.],7,5:8,dofsperelement)
+
+# Coherent interface condition
+HDGElasticity.assemble_coherent_interface!(system_matrix,dgmesh,ufs,cellsolvers,
+    1,4,1:4,8,5:8,dofsperelement)
+
+ndofs = dofsperelement*4*2
+K = dropzeros!(HDGElasticity.sparse(system_matrix,ndofs))
+R = HDGElasticity.rhs(system_rhs,ndofs)
+
+sol = K\R
+
+dofspercell = 4*dofsperelement
+H1 = sol[1:dofspercell]
+L1 = cellsolvers[1,1].iLLxLH*H1
+numstressdofs = NF*3
+S1 = -D1*reshape(L1[1:numstressdofs],3,:)
+numdispdofs = NF*2
+U1 = reshape(L1[(numstressdofs+1):(numstressdofs+numdispdofs)],2,:)
+
+H2 = sol[(dofspercell+1):end]
+L2 = cellsolvers[2,1].iLLxLH*H2
+S2 = -D1*reshape(L2[1:numstressdofs],3,:)
+U2 = reshape(L2[(numstressdofs+1):(numstressdofs+numdispdofs)],2,:)
+
+testH1 = [0.0  0.5u1  u1   u1   u1    u1  0.0  0.5u1  u1  ui   ui    ui
+          0.0  0.0    0.0  0.0  0.5u2 u2  u2   u2     u2  0.0  0.5u2 u2]
+testH2 = [0.0  0.5u1  u1   0.0  0.5u1 u1  0.0  0.0    0.0 ui   ui    ui
+          0.0  0.0    0.0  u2   u2    u2  0.0  0.5u2  u2  0.0  0.5u2 u2]
+
+testS = zeros(3,NF)
+testS[1,:] .= 0.1
+testU = copy(coords)
+testU[1,:] .*= e11
+testU[2,:] .*= e22
+@test allapprox(H1,testH1,1e-10)
+@test allapprox(H2,testH2,1e-10)
+@test allapprox(testS,S1,1e-10)
+@test allapprox(testS,S2,1e-10)
+@test allapprox(testU,U1,1e-10)
+@test allapprox(testU,U2,1e-8)
+
+###########################################################################
+# Change to a curved interface
+function circle_distance_function(coords,xc,r)
+    dist = [r-norm(coords[:,i]-xc) for i = 1:size(coords)[2]]
+end
+
+# polyorder = 2
+# numqp = 6
+# levelset = InterpolatingPolynomial(1,2,polyorder)
+# circle_center = [2.5,0.5]
+# radius = 1.5
+# levelsetcoeffs = HDGElasticity.levelset_coefficients(
+#     x->circle_distance_function(x,circle_center,radius),mesh,levelset.basis
+# )
+# dgmesh = HDGElasticity.DGMesh(mesh,levelsetcoeffs,levelset)
+# ufs = HDGElasticity.UniformFunctionSpace(dgmesh,polyorder,numqp,
+#     levelsetcoeffs,levelset)
+# NHF = HDGElasticity.number_of_basis_functions(ufs.sbasis)
+# NF = HDGElasticity.number_of_basis_functions(ufs.vbasis)
+# dofsperelement = 2*NHF
+# coords = HDGElasticity.nodal_coordinates(mesh,levelset.basis)
+#
 # system_matrix = HDGElasticity.SystemMatrix()
 # system_rhs = HDGElasticity.SystemRHS()
 #
@@ -288,3 +468,49 @@ dofsperelement = 2*NHF
 # stabilization = 1e-3
 # D1 = sqrt(HDGElasticity.plane_strain_voigt_hooke_matrix_2d(lambda,mu))
 # cellsolvers = HDGElasticity.CellSolvers(dgmesh,ufs,D1,D1,stabilization)
+#
+# # Cell 1 phase 1
+# HDGElasticity.assemble_mixed_face!(system_matrix,dgmesh,ufs,cellsolvers,
+#     1,1,1,[0.,1.],[1.,0.],1,1:4,dofsperelement)
+# HDGElasticity.assemble_traction_face!(system_matrix,dgmesh,ufs,cellsolvers,1,1,2,
+#     2,1:4,dofsperelement)
+# rhs = -HDGElasticity.linear_form(dgmesh.facescale[2]*[0.1,0.0],ufs.sbasis,ufs.fquads[1,1][2])
+# HDGElasticity.assemble!(system_rhs,rhs,2,dofsperelement)
+# HDGElasticity.assemble_traction_face!(system_matrix,dgmesh,ufs,cellsolvers,
+#     1,1,3,3,1:4,dofsperelement)
+#
+# # Cell 1 phase 2
+# HDGElasticity.assemble_mixed_face!(system_matrix,dgmesh,ufs,cellsolvers,2,1,1,[0.,1.],[1.,0.],
+#     5,5:8,dofsperelement)
+# HDGElasticity.assemble_traction_face!(system_matrix,dgmesh,ufs,cellsolvers,
+#     2,1,3,6,5:8,dofsperelement)
+# HDGElasticity.assemble_mixed_face!(system_matrix,dgmesh,ufs,cellsolvers,2,1,4,
+#     [1.,0.],[0.,1.],7,5:8,dofsperelement)
+#
+# # Coherent interface condition
+# HDGElasticity.assemble_coherent_interface!(system_matrix,dgmesh,ufs,cellsolvers,
+#     1,4,1:4,8,5:8,dofsperelement)
+#
+# ndofs = dofsperelement*4*2
+# K = dropzeros!(HDGElasticity.sparse(system_matrix,ndofs))
+# R = HDGElasticity.rhs(system_rhs,ndofs)
+#
+# sol = K\R
+#
+# dofspercell = 4*dofsperelement
+# H1 = sol[1:dofspercell]
+# L1 = cellsolvers[1,1].iLLxLH*H1
+# numstressdofs = NF*3
+# S1 = -D1*reshape(L1[1:numstressdofs],3,:)
+# numdispdofs = NF*2
+# U1 = reshape(L1[(numstressdofs+1):(numstressdofs+numdispdofs)],2,:)
+#
+# H2 = sol[(dofspercell+1):end]
+# L2 = cellsolvers[2,1].iLLxLH*H2
+# S2 = -D1*reshape(L2[1:numstressdofs],3,:)
+# U2 = reshape(L2[(numstressdofs+1):(numstressdofs+numdispdofs)],2,:)
+#
+# testH1 = [0.0  0.5u1  u1   u1   u1    u1  0.0  0.5u1  u1  ui   ui    ui
+#           0.0  0.0    0.0  0.0  0.5u2 u2  u2   u2     u2  0.0  0.5u2 u2]
+# testH2 = [0.0  0.5u1  u1   0.0  0.5u1 u1  0.0  0.0    0.0 ui   ui    ui
+#           0.0  0.0    0.0  u2   u2    u2  0.0  0.5u2  u2  0.0  0.5u2 u2]

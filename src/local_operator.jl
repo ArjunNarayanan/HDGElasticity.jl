@@ -51,23 +51,23 @@ function UUop(basis,facequads,facemaps,stabilization,cellmap)
         scale,dim)
 end
 
-function UUop(basis,facequads,facemaps,iquad,normals,imap,stabilization,
+function UUop(basis,facequads,facemaps,iquad,inormals,imap,stabilization,
     cellmap,ndofs,NF)
 
     facescale = face_determinant_jacobian(cellmap)
-    iscale = scale_area(cellmap,normals)
+    iscale = scale_area(cellmap,inormals)
     return stabilization*mass_matrix_on_boundary(basis,facequads,facemaps,
         facescale,iquad,imap,iscale,ndofs,NF)
 
 end
 
-function UUop(basis,facequads,facemaps,iquad,normals,imap,
+function UUop(basis,facequads,facemaps,iquad,inormals,imap,
     stabilization,cellmap)
 
     dim = dimension(basis)
     nf = number_of_basis_functions(basis)
 
-    return UUop(basis,facequads,facemaps,iquad,normals,imap,stabilization,
+    return UUop(basis,facequads,facemaps,iquad,inormals,imap,stabilization,
         cellmap,dim,nf)
 end
 
