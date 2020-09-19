@@ -2,7 +2,6 @@ using Test
 using PolynomialBasis
 using ImplicitDomainQuadrature
 using CartesianMesh
-# using Revise
 using HDGElasticity
 
 function allequal(u,v)
@@ -108,7 +107,8 @@ HDGElasticity.face_quadratures!(facequads,cellsign,coeffs,poly,facemaps,
 @test allequal(facequads[2,1][3].weights,w2)
 @test allapprox(facequads[2,1][4].points,quad1d.points)
 @test allapprox(facequads[2,1][4].weights,quad1d.weights)
-@test all([!isassigned(facequads[2,2],i) for i = 1:4])
+# @test all([!isassigned(facequads[2,2],i) for i = 1:4])
+@test all([length(fq) == 0 for fq in facequads[2,2]])
 
 facequads = HDGElasticity.face_quadratures(cellsign,coeffs,poly,facemaps,quad1d)
 
@@ -125,7 +125,8 @@ facequads = HDGElasticity.face_quadratures(cellsign,coeffs,poly,facemaps,quad1d)
 @test allequal(facequads[2,1][3].weights,w2)
 @test allapprox(facequads[2,1][4].points,quad1d.points)
 @test allapprox(facequads[2,1][4].weights,quad1d.weights)
-@test all([!isassigned(facequads[2,2],i) for i = 1:4])
+# @test all([!isassigned(facequads[2,2],i) for i = 1:4])
+@test all([length(fq) == 0 for fq in facequads[2,2]])
 
 basis1d = TensorProductBasis(1,1)
 quad1d = tensor_product_quadrature(1,2)
@@ -166,6 +167,11 @@ fnormals = HDGElasticity.reference_normals()
 
 ufs = HDGElasticity.UniformFunctionSpace(vbasis,sbasis,vtpq,ftpq,vquads,
     fquads,fnormals,icoeffs,iquad,imap,inormals)
+@test size(ufs.isactiveface) == (2,2)
+@test allequal(ufs.isactiveface[1,1],[1,1,1,0])
+@test allequal(ufs.isactiveface[2,1],[1,0,1,1])
+@test allequal(ufs.isactiveface[1,2],[1,1,1,1])
+@test allequal(ufs.isactiveface[2,2],[0,0,0,0])
 
 ufs = HDGElasticity.UniformFunctionSpace(dgmesh,4,5,coeffs,poly)
 

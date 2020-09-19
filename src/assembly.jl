@@ -238,3 +238,83 @@ end
 function rhs(system_rhs::SystemRHS,ndofs)
     return Array(sparsevec(system_rhs.rows,system_rhs.vals,ndofs))
 end
+
+function assign_cell_hybrid_element_ids!(facetohelid,visited,
+    isactiveface,helid,nfaces)
+
+    for faceid in 1:nfaces
+        if !visited[faceid] && isactiveface[faceid]
+            facetohelid[faceid] = helid
+            visited[faceid] = true
+            helid += 1
+        end
+    end
+    return helid
+end
+
+function assign_neighbor_cell_hybrid_ids!(facetohelid,visited,phaseid,cellid,
+    connectivity,nfaces)
+
+    for faceid = 1:nfaces
+        nbrcellid,nbrfaceid = connectivity[cellid][faceid]
+        if nbrcellid != 0 && !visited[phaseid,nbrcellid][nbrfaceid]
+            facetohelid[phaseid,nbrcellid][nbrfaceid] = facetohelid[phaseid,cellid][faceid]
+            visited[phaseid,nbrcellid][nbrfaceid] = true
+        end
+    end
+end
+
+function cell_hybrid_element_ids(cellsign,isactiveface,connectivity,nfaces)
+    ncells = length(cellsign)
+    facetohelid = [zeros(Int,nfaces) for i = 1:2, j = 1:ncells]
+    interfacehelid = zeros(Int,2,ncells)
+    visited = [zeros(Bool,nfaces) for i = 1:2, j = 1:ncells]
+    helid = 1
+    for cellid = 1:ncells
+        s = cellsign[cellid]
+        if s == 1
+            helid = assign_cell_hybrid_element_ids!(facetohelid[1,cellid],
+                visited[1,cellid],isactiveface[1,cellid],helid,nfaces)
+            assign_neighbor_cell_hybrid_ids!(facetohelid,visited,1,cellid,
+                connectivity,nfaces)
+        elseif s == -1
+            helid = assign_cell_hybrid_element_ids!(facetohelid[2,cellid],
+                visited[2,cellid],isactiveface[2,cellid],helid,nfaces)
+            assign_neighbor_cell_hybrid_ids!(facetohelid,visited,2,cellid,
+                connectivity,nfaces)
+        elseif s == 0
+            helid = assign_cell_hybrid_element_ids!(facetohelid[1,cellid],
+                visited[1,cellid],isactiveface[1,cellid],helid,nfaces)
+            assign_neighbor_cell_hybrid_ids!(facetohelid,visited,1,cellid,
+                connectivity,nfaces)
+            interfacehelid[1,cellid] = helid
+            helid += 1
+            helid = assign_cell_hybrid_element_ids!(facetohelid[2,cellid],
+                visited[2,cellid],isactiveface[2,cellid],helid,nfaces)
+            assign_neighbor_cell_hybrid_ids!(facetohelid,visited,2,cellid,
+                connectivity,nfaces)
+            interfacehelid[2,cellid] = helid
+            helid += 1
+        else
+            error("Expected cellsign ∈ {-1,0,1}, got cellsign = $s")
+        end
+    end
+    return facetohelid,interfacehelid,helid
+end
+
+struct HybridElementNumbering
+    facetohelid
+    interfacehelid
+    number_of_hybrid_elements
+end
+
+function HybridElementNumbering(dgmesh,ufs)
+    dim = dimension(dgmesh)
+    nfaces = number_of_faces(dim)
+    facetohelid,interfacehelid,helidstop = cell_hybrid_element_ids(
+        dgmesh.cellsign,ufs.isactiveface,dgmesh.connectivity,nfaces
+    )
+    number_of_hybrid_elements = helidstop - 1
+    return HybridElementNumbering(facetohelid,interfacehelid,
+        number_of_hybrid_elements)
+end

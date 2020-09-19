@@ -159,3 +159,13 @@ midpoints = HDGElasticity.face_midpoints(cellmap)
 @test allapprox(midpoints[2],[5.,4.5])
 @test allapprox(midpoints[3],[4.,7.])
 @test allapprox(midpoints[4],[3.,4.5])
+
+imap = InterpolatingPolynomial(2,1,2)
+coeffs = [-1.,0.,0.,1.,1.,0.]
+update!(imap,coeffs)
+p = [-0.5,0.5]
+normals = HDGElasticity.curve_normals(imap,p)
+testn = [-1. 1.
+          1. 1.]
+testn .*= 1.0/sqrt(2.)
+@test allapprox(testn,normals)

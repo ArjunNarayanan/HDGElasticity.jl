@@ -4,6 +4,7 @@ using SparseArrays
 using CartesianMesh
 using PolynomialBasis
 using ImplicitDomainQuadrature
+using Revise
 using HDGElasticity
 
 function allapprox(v1, v2)
@@ -440,10 +441,96 @@ testU[2,:] .*= e22
 @test allapprox(testU,U2,1e-8)
 
 ###########################################################################
+# Check hybrid element numbering
+
+visited = [true,false,false,true]
+isactiveface = [true,false,true,false]
+facetohelid = zeros(Int,4)
+helid = HDGElasticity.assign_cell_hybrid_element_ids!(facetohelid,visited,
+    isactiveface,1,4)
+@test helid == 2
+@test allequal(facetohelid,[0,0,1,0])
+
+mesh = UniformMesh([0.,0.],[2.,1.],[2,1])
+levelset = InterpolatingPolynomial(1,2,1)
+levelsetcoeffs = HDGElasticity.levelset_coefficients(
+    x->plane_distance_function(x,[1.,0.],[0.5,0.]),mesh,levelset.basis
+)
+dgmesh = HDGElasticity.DGMesh(mesh,levelsetcoeffs,levelset)
+isactiveface = Matrix{Vector{Bool}}(undef,2,2)
+isactiveface[1,1] = [true,true,true,false]
+isactiveface[1,2] = [true,true,true,true]
+isactiveface[2,1] = [true,false,true,true]
+isactiveface[2,2] = zeros(Bool,4)
+visited = [zeros(Bool,4) for i = 1:2, j = 1:2]
+facetohelid = [zeros(Int,4) for i = 1:2, j = 1:2]
+HDGElasticity.assign_cell_hybrid_element_ids!(facetohelid[1,1],
+    visited[1,1],isactiveface[1,1],1,4)
+@test allequal(facetohelid[1,1],[1,2,3,0])
+@test allequal(facetohelid[2,1],[0,0,0,0])
+@test allequal(facetohelid[1,2],[0,0,0,0])
+@test allequal(facetohelid[2,2],[0,0,0,0])
+@test allequal(visited[1,1],[1,1,1,0])
+@test allequal(visited[2,1],[0,0,0,0])
+@test allequal(visited[1,2],[0,0,0,0])
+@test allequal(visited[2,2],[0,0,0,0])
+
+HDGElasticity.assign_neighbor_cell_hybrid_ids!(facetohelid,
+    visited,1,1,dgmesh.connectivity,4)
+@test allequal(facetohelid[1,1],[1,2,3,0])
+@test allequal(facetohelid[2,1],[0,0,0,0])
+@test allequal(facetohelid[1,2],[0,0,0,2])
+@test allequal(facetohelid[2,2],[0,0,0,0])
+@test allequal(visited[1,1],[1,1,1,0])
+@test allequal(visited[2,1],[0,0,0,0])
+@test allequal(visited[1,2],[0,0,0,1])
+@test allequal(visited[2,2],[0,0,0,0])
+
+facetohelid,interfacehelid,helid = HDGElasticity.cell_hybrid_element_ids(dgmesh.cellsign,
+    isactiveface,dgmesh.connectivity,4)
+@test helid == 12
+@test size(facetohelid) == (2,2)
+@test allequal(facetohelid[1,1],[1,2,3,0])
+@test allequal(facetohelid[2,1],[5,0,6,7])
+@test allequal(facetohelid[1,2],[9,10,11,2])
+@test allequal(facetohelid[2,2],[0,0,0,0])
+@test size(interfacehelid) == (2,2)
+@test allequal(interfacehelid,[4 0;8 0])
+
+levelsetcoeffs = HDGElasticity.levelset_coefficients(
+    x->plane_distance_function(x,1/sqrt(2)*[1.,-1.],[0.5,0.]),mesh,levelset.basis
+)
+dgmesh = HDGElasticity.DGMesh(mesh,levelsetcoeffs,levelset)
+ufs = HDGElasticity.UniformFunctionSpace(dgmesh,1,4,levelsetcoeffs,levelset)
+facetohelid,interfacehelid,helid = HDGElasticity.cell_hybrid_element_ids(dgmesh.cellsign,
+    ufs.isactiveface,dgmesh.connectivity,4)
+@test helid == 15
+@test size(facetohelid) == (2,2)
+@test allequal(facetohelid[1,1],[1,2,0,0])
+@test allequal(facetohelid[2,1],[4,5,6,7])
+@test allequal(facetohelid[1,2],[9,10,11,2])
+@test allequal(facetohelid[2,2],[0,0,13,5])
+@test size(interfacehelid) == (2,2)
+@test allequal(interfacehelid,[3 12;8 14])
+
+hybrid_element_numbering = HDGElasticity.HybridElementNumbering(dgmesh,ufs)
+@test hybrid_element_numbering.number_of_hybrid_elements == 14
+facetohelid = hybrid_element_numbering.facetohelid
+@test size(facetohelid) == (2,2)
+@test allequal(facetohelid[1,1],[1,2,0,0])
+@test allequal(facetohelid[2,1],[4,5,6,7])
+@test allequal(facetohelid[1,2],[9,10,11,2])
+@test allequal(facetohelid[2,2],[0,0,13,5])
+interfacehelid = hybrid_element_numbering.interfacehelid
+@test size(interfacehelid) == (2,2)
+@test allequal(interfacehelid,[3 12;8 14])
+
+
+###########################################################################
 # Change to a curved interface
-function circle_distance_function(coords,xc,r)
-    dist = [r-norm(coords[:,i]-xc) for i = 1:size(coords)[2]]
-end
+# function circle_distance_function(coords,xc,r)
+#     dist = [r-norm(coords[:,i]-xc) for i = 1:size(coords)[2]]
+# end
 
 # polyorder = 2
 # numqp = 6

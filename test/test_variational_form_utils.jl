@@ -98,8 +98,19 @@ matrix = zeros(1,1)
 HDGElasticity.update_mass_matrix!(matrix,N,facequad,imap,[1.,1.],1)
 @test allapprox(matrix,[2/3])
 
-
-
+func(x) = [1.0]
+matrix = zeros(1,1)
+quad = tensor_product_quadrature(1,5)
+quad_imap = InterpolatingPolynomial(2,1,2)
+coeffs = [-1.,0.,0.,1.,1.,0.]
+update!(quad_imap,coeffs)
+normals = HDGElasticity.curve_normals(quad_imap,quad.points)
+cellmap = HDGElasticity.CellMap([-1.,-1.],[1.,1.])
+facescale = HDGElasticity.scale_area(cellmap,normals)
+HDGElasticity.update_mass_matrix!(matrix,func,quad,quad_imap,
+    facescale,1)
+testmatrix = [sqrt(5) + 0.5*asinh(2.0)]
+@test allapprox(testmatrix,matrix,1e-2)
 
 N(x) = [(x[1]+1.)*(x[2]+1.)/4.]
 matrix = zeros(1,1)

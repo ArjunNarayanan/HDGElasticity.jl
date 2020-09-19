@@ -10,6 +10,7 @@ struct UniformFunctionSpace{vdim,sdim}
     iquad
     imap
     inormals
+    isactiveface
     function UniformFunctionSpace(vbasis::TensorProductBasis{vdim},
         sbasis::TensorProductBasis{sdim},vtpq,ftpq,vquads,fquads,fnormals,
         icoeffs,iquad,imap,inormals) where {vdim,sdim}
@@ -27,8 +28,10 @@ struct UniformFunctionSpace{vdim,sdim}
             nfaces = number_of_faces(vdim)
             @assert all(length.(fquads) .== nfaces)
 
+            isactiveface = [active_faces(fquads[p,c]) for p = 1:nphase,c = 1:ncells]
+
             return new{vdim,sdim}(vbasis,sbasis,vtpq,ftpq,vquads,
-                fquads,fnormals,icoeffs,iquad,imap,inormals)
+                fquads,fnormals,icoeffs,iquad,imap,inormals,isactiveface)
 
         end
 end
@@ -171,12 +174,15 @@ function face_quadratures!(facequads,cellsign,coeffs,levelset,facemaps,
     reference_face = reference_cell(dim-1)
 
     tpq = tensor_product(quad1d,reference_face)
+    zeroquad = blank_quadrature_rule(dim-1)
 
     for cellid in 1:ncells
         if cellsign[cellid] == +1
             assign_all(facequads[1,cellid],tpq,nfaces)
+            assign_all(facequads[2,cellid],zeroquad,nfaces)
         elseif cellsign[cellid] == -1
             assign_all(facequads[2,cellid],tpq,nfaces)
+            assign_all(facequads[1,cellid],zeroquad,nfaces)
         elseif cellsign[cellid] == 0
 
             update!(levelset,coeffs[:,cellid])
@@ -189,6 +195,11 @@ function face_quadratures!(facequads,cellsign,coeffs,levelset,facemaps,
         end
     end
 
+end
+
+function blank_quadrature_rule(dim)
+    ft = default_float_type()
+    return QuadratureRule(ImplicitDomainQuadrature.TemporaryQuadrature(ft,dim))
 end
 
 function face_quadratures(cellsign,coeffs,levelset,facemaps,quad1d)
