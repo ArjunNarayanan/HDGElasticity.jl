@@ -203,3 +203,43 @@ function curve_normals(imap,points)
     end
     return normals
 end
+
+function assign_uniform_cell_hybrid_coordinates!(coordinates,visited,
+    phaseid,cellid,dgmesh,facetohelid,interfacehelid,refcoordinates,icoeffs)
+
+    fhelid = facetohelid[phaseid,cellid]
+    cellmap = CellMap(dgmesh.domain[cellid])
+    for (faceid,helid) in enumerate(fhelid)
+        if helid != 0 && !visited[helid]
+            coordinates[helid] = [Array(cellmap(p)) for p in refcoordinates[faceid]]
+            visited[helid] = true
+        end
+    end
+    ihelid = interfacehelid[phaseid,cellid]
+    if ihelid != 0 && !visited[ihelid]
+        icoords = reshape(icoeffs[cellid],2,:)
+        coordinates[ihelid] = [cellmap(icoords[:,i]) for i = 1:size(icoords)[2]]
+        visited[ihelid] = true
+    end
+end
+
+
+function hybrid_element_coordinates(dgmesh,ufs,hybrid_element_numbering)
+    nhelid = hybrid_element_numbering.number_of_hybrid_elements
+
+    coordinates = Vector{Any}(undef,nhelid)
+    visited = zeros(Bool,nhelid)
+    facetohelid = hybrid_element_numbering.facetohelid
+    interfacehelid = hybrid_element_numbering.interfacehelid
+    refcoordinates = [[fm(p) for p in Array(vec(ufs.sbasis.points))] for fm in dgmesh.facemaps]
+
+    for cellid in 1:dgmesh.ncells
+        for phaseid in 1:2
+            assign_uniform_cell_hybrid_coordinates!(coordinates,visited,
+                phaseid,cellid,dgmesh,facetohelid,interfacehelid,
+                refcoordinates,ufs.icoeffs)
+        end
+    end
+    coordinates = hcat([hcat(p...) for p in coordinates]...)
+    return coordinates
+end

@@ -169,3 +169,36 @@ testn = [-1. 1.
           1. 1.]
 testn .*= 1.0/sqrt(2.)
 @test allapprox(testn,normals)
+
+
+
+
+mesh = UniformMesh([0.,0.],[1.,1.],[1,1])
+levelsetcoeffs = reshape([-1.,-1.,1.,1.],4,1)
+levelset = InterpolatingPolynomial(1,2,1)
+update!(levelset,levelsetcoeffs[:,1])
+dgmesh = HDGElasticity.DGMesh(mesh,levelsetcoeffs,levelset)
+ufs = HDGElasticity.UniformFunctionSpace(dgmesh,1,2,levelsetcoeffs,levelset)
+hybrid_element_numbering = HDGElasticity.HybridElementNumbering(dgmesh,ufs)
+number_of_hybrid_elements = hybrid_element_numbering.number_of_hybrid_elements
+ft = typeof(1.0)
+coordinates = Vector{Any}(undef,number_of_hybrid_elements)
+visited = zeros(Bool,number_of_hybrid_elements)
+facetohelid = hybrid_element_numbering.facetohelid
+interfacehelid = hybrid_element_numbering.interfacehelid
+refcoordinates = [[fm(p) for p in ufs.sbasis.points'] for fm in dgmesh.facemaps]
+HDGElasticity.assign_uniform_cell_hybrid_coordinates!(coordinates,visited,1,1,
+    dgmesh,facetohelid,interfacehelid,refcoordinates,ufs.icoeffs)
+testvisited = zeros(Bool,number_of_hybrid_elements)
+testvisited[1:4] .= true
+@test allequal(testvisited,visited)
+@test allapprox(coordinates[1][1],[0.,0.])
+@test allapprox(coordinates[1][2],[1.,0.])
+@test allapprox(coordinates[2][1],[1.,0.])
+@test allapprox(coordinates[2][2],[1.,1.])
+@test allapprox(coordinates[3][1],[0.,1.])
+@test allapprox(coordinates[3][2],[1.,1.])
+@test allapprox(coordinates[4][1],[0.5,0.])
+@test allapprox(coordinates[4][2],[0.5,1.0])
+
+coordinates = HDGElasticity.hybrid_element_coordinates(dgmesh,ufs,hybrid_element_numbering)
