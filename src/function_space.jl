@@ -11,6 +11,7 @@ struct UniformFunctionSpace{vdim,sdim}
     imap
     inormals
     isactiveface
+    dofsperelement
     function UniformFunctionSpace(vbasis::TensorProductBasis{vdim},
         sbasis::TensorProductBasis{sdim},vtpq,ftpq,vquads,fquads,fnormals,
         icoeffs,iquad,imap,inormals) where {vdim,sdim}
@@ -28,10 +29,14 @@ struct UniformFunctionSpace{vdim,sdim}
             nfaces = number_of_faces(vdim)
             @assert all(length.(fquads) .== nfaces)
 
+            NHF = number_of_basis_functions(sbasis)
+            dofsperelement = NHF*vdim
+
             isactiveface = [active_faces(fquads[p,c]) for p = 1:nphase,c = 1:ncells]
 
             return new{vdim,sdim}(vbasis,sbasis,vtpq,ftpq,vquads,
-                fquads,fnormals,icoeffs,iquad,imap,inormals,isactiveface)
+                fquads,fnormals,icoeffs,iquad,imap,inormals,isactiveface,
+                dofsperelement)
 
         end
 end

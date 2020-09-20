@@ -2,6 +2,7 @@ using Test
 using PolynomialBasis
 using ImplicitDomainQuadrature
 using CartesianMesh
+# using Revise
 using HDGElasticity
 
 function allequal(u,v)
@@ -172,8 +173,10 @@ ufs = HDGElasticity.UniformFunctionSpace(vbasis,sbasis,vtpq,ftpq,vquads,
 @test allequal(ufs.isactiveface[2,1],[1,0,1,1])
 @test allequal(ufs.isactiveface[1,2],[1,1,1,1])
 @test allequal(ufs.isactiveface[2,2],[0,0,0,0])
+@test ufs.dofsperelement == 10
 
 ufs = HDGElasticity.UniformFunctionSpace(dgmesh,4,5,coeffs,poly)
+@test ufs.dofsperelement == 10
 
 mesh = UniformMesh([0.,0.],[4.,1.],[2,1])
 coords = HDGElasticity.nodal_coordinates(mesh,vbasis)
@@ -190,6 +193,7 @@ ufs = HDGElasticity.UniformFunctionSpace(dgmesh,4,5,coeffs,poly)
 @test sum(ufs.vquads[1,1].weights) ≈ 3.75
 @test sum(ufs.vquads[1,2].weights) ≈ 4.0
 @test !isassigned(ufs.vquads,2,2)
+@test ufs.dofsperelement == 10
 
 testnormals = repeat(testn,inner=(1,5))
 @test allapprox(testnormals,ufs.inormals[1])

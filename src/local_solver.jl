@@ -22,6 +22,11 @@ function Base.getindex(CS::CellSolvers,phaseid,cellid)
     return CS.localsolvers[CS.celltosolverid[phaseid,cellid]]
 end
 
+function Base.getindex(CS::CellSolvers,phaseid)
+    phaseid == 1 || phaseid == 2 || throw(BoundsError(CS,phaseid))
+    return CS.localsolvers[phaseid]
+end
+
 function face_to_solverid(facequads)
     nfaces = length(facequads)
     isactiveface = [length(fq) > 0 ? true : false for fq in facequads]
