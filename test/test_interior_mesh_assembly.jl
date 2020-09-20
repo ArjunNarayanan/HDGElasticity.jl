@@ -19,75 +19,6 @@ function distance_function(coords,xc)
     return coords[1,:] .- xc
 end
 
-function interior_operator(ls)
-    return ls.LH'*ls.iLLxLH
-end
-
-function is_interior_cell(cellconnectivity)
-    return all([c[1] != 0 for c in cellconnectivity])
-end
-
-function interior_cells(connectivity)
-    ncells = length(connectivity)
-    isinterior = zeros(Bool,ncells)
-    for cellid in 1:ncells
-        isinterior[cellid] = is_interior_cell(connectivity[cellid])
-    end
-    return isinterior
-end
-
-function assemble_uniform_interior_faces!(system_matrix,cellsolvers,
-    cellsign,cellids,facetohelid,dofsperelement)
-
-    vals1 = vec(interior_operator(cellsolvers[1]))
-    vals2 = vec(interior_operator(cellsolvers[2]))
-    ncells = length(cellsign)
-    for cellid in cellids
-        s = cellsign[cellid]
-        if s == 1
-            helids = facetohelid[1,cellid]
-            @assert isnothing(findfirst(x->x==0,helids))
-            HDGElasticity.assemble!(system_matrix,vals1,helids,helids,dofsperelement)
-        elseif s == -1
-            helids = facetohelid[2,cellid]
-            @assert isnothing(findfirst(x->x==0,helids))
-            HDGElasticity.assemble!(system_matrix,vals2,helids,helids,dofsperelement)
-        end
-    end
-end
-
-function assemble_cut_interior_faces!(system_matrix,dgmesh,ufs,
-    cellsolvers,facetohelid,interfacehelid,phaseid,cellid)
-
-    dofsperelement = ufs.dofsperelement
-    fhelid = facetohelid[phaseid,cellid]
-    ihelid = interfacehelid[phaseid,cellid]
-    colelids = fhelid[findall(x->x!=0,fhelid)]
-    push!(colelids,ihelid)
-
-    for (faceid,helid) in enumerate(fhelid)
-        if helid != 0
-            HDGElasticity.assemble_traction_face!(system_matrix,
-                dgmesh,ufs,cellsolvers,phaseid,cellid,faceid,
-                helid,colelids,dofsperelement)
-        end
-    end
-end
-
-function assemble_cut_interior_faces!(system_matrix,dgmesh,ufs,
-    cellsolvers,facetohelid,interfacehelid,isinteriorcell)
-
-    cellsign = dgmesh.cellsign
-    cellids = findall([x==0 for x in cellsign] .& isinteriorcell)
-
-    for cellid in cellids
-        assemble_cut_interior_faces!(system_matrix,dgmesh,ufs,
-            cellsolvers,facetohelid,interfacehelid,1,cellid)
-        assemble_cut_interior_faces!(system_matrix,dgmesh,ufs,
-            cellsolvers,facetohelid,interfacehelid,2,cellid)
-    end
-end
-
 polyorder = 1
 numqp = 2
 levelset = InterpolatingPolynomial(1,2,polyorder)
@@ -97,7 +28,6 @@ levelsetcoeffs = HDGElasticity.levelset_coefficients(
     x->distance_function(x,interface_location),mesh,levelset.basis
 )
 dgmesh = HDGElasticity.DGMesh(mesh,levelsetcoeffs,levelset)
-isinteriorcell = interior_cells(dgmesh.connectivity)
 ufs = HDGElasticity.UniformFunctionSpace(dgmesh,polyorder,numqp,
     levelsetcoeffs,levelset)
 lambda1,mu1 = 1.,2.
@@ -109,9 +39,8 @@ cellsolvers = HDGElasticity.CellSolvers(dgmesh,ufs,D1,D2,stabilization)
 hybrid_element_numbering = HDGElasticity.HybridElementNumbering(dgmesh,ufs)
 facetohelid = hybrid_element_numbering.facetohelid
 system_matrix = HDGElasticity.SystemMatrix()
-cellids = findall(isinteriorcell)
-assemble_uniform_interior_faces!(
-    system_matrix,cellsolvers,dgmesh.cellsign,cellids,
+HDGElasticity.assemble_uniform_interior_faces!(
+    system_matrix,cellsolvers,dgmesh.cellsign,dgmesh.isinteriorcell,
     facetohelid,ufs.dofsperelement
 )
 dofsperelement = ufs.dofsperelement
@@ -130,16 +59,14 @@ levelsetcoeffs = HDGElasticity.levelset_coefficients(
     x->distance_function(x,interface_location),mesh,levelset.basis
 )
 dgmesh = HDGElasticity.DGMesh(mesh,levelsetcoeffs,levelset)
-isinteriorcell = interior_cells(dgmesh.connectivity)
 ufs = HDGElasticity.UniformFunctionSpace(dgmesh,polyorder,numqp,
     levelsetcoeffs,levelset)
 cellsolvers = HDGElasticity.CellSolvers(dgmesh,ufs,D1,D2,stabilization)
 hybrid_element_numbering = HDGElasticity.HybridElementNumbering(dgmesh,ufs)
 facetohelid = hybrid_element_numbering.facetohelid
 system_matrix = HDGElasticity.SystemMatrix()
-cellids = findall(isinteriorcell)
-assemble_uniform_interior_faces!(
-    system_matrix,cellsolvers,dgmesh.cellsign,cellids,
+HDGElasticity.assemble_uniform_interior_faces!(
+    system_matrix,cellsolvers,dgmesh.cellsign,dgmesh.isinteriorcell,
     facetohelid,ufs.dofsperelement
 )
 hids = facetohelid[2,5]
@@ -158,17 +85,42 @@ levelsetcoeffs = HDGElasticity.levelset_coefficients(
     x->distance_function(x,interface_location),mesh,levelset.basis
 )
 dgmesh = HDGElasticity.DGMesh(mesh,levelsetcoeffs,levelset)
-isinteriorcell = interior_cells(dgmesh.connectivity)
 ufs = HDGElasticity.UniformFunctionSpace(dgmesh,polyorder,numqp,
     levelsetcoeffs,levelset)
 cellsolvers = HDGElasticity.CellSolvers(dgmesh,ufs,D1,D2,stabilization)
 hybrid_element_numbering = HDGElasticity.HybridElementNumbering(dgmesh,ufs)
 facetohelid = hybrid_element_numbering.facetohelid
 interfacehelid = hybrid_element_numbering.interfacehelid
+
 system_matrix = HDGElasticity.SystemMatrix()
+HDGElasticity.assemble_cut_interior_faces!(system_matrix,dgmesh,ufs,
+    cellsolvers,facetohelid,interfacehelid,1,5)
+
 fhelid = facetohelid[1,5]
 ihelid = interfacehelid[1,5]
-colelids = fhelid[findall(x->x!=0,fhelid)]
-push!(colelids,ihelid)
-assemble_cut_interior_faces!(system_matrix,dgmesh,ufs,
-    cellsolvers,facetohelid,interfacehelid,1,5)
+rowelids = fhelid[findall(x->x!=0,fhelid)]
+colelids = vcat(rowelids,[ihelid])
+
+coldofs = vcat([HDGElasticity.element_dofs(h,dofsperelement) for h in colelids]...)
+
+rdofs1 = HDGElasticity.element_dofs(rowelids[1],dofsperelement)
+rt1,ct1 = HDGElasticity.operator_dofs(rdofs1,coldofs)
+rm1,cm1 = HDGElasticity.operator_dofs(rdofs1,rdofs1)
+
+rdofs2 = HDGElasticity.element_dofs(rowelids[2],dofsperelement)
+rt2,ct2 = HDGElasticity.operator_dofs(rdofs2,coldofs)
+rm2,cm2 = HDGElasticity.operator_dofs(rdofs2,rdofs2)
+
+rdofs3 = HDGElasticity.element_dofs(rowelids[3],dofsperelement)
+rt3,ct3 = HDGElasticity.operator_dofs(rdofs3,coldofs)
+rm3,cm3 = HDGElasticity.operator_dofs(rdofs3,rdofs3)
+
+rows = [rt1;rm1;rt2;rm2;rt3;rm3]
+cols = [ct1;cm1;ct2;cm2;ct3;cm3]
+
+@test all(system_matrix.rows .== rows)
+@test all(system_matrix.cols .== cols)
+
+system_matrix = HDGElasticity.SystemMatrix()
+HDGElasticity.assemble_cut_interior_faces!(system_matrix,dgmesh,ufs,cellsolvers,
+    facetohelid,interfacehelid)

@@ -39,6 +39,9 @@ testconn = [[(0,0),(2,4),(0,0),(0,0)],
             [(0,0),(0,0),(0,0),(1,2)]]
 @test all([allequal(connectivity[i],testconn[i]) for i = 1:2])
 
+@test HDGElasticity.is_interior_cell(connectivity[1]) == false
+@test allequal(HDGElasticity.interior_cells(connectivity),[false,false])
+
 basis = TensorProductBasis(2,1)
 poly = InterpolatingPolynomial(1,basis)
 NF = HDGElasticity.number_of_basis_functions(basis)
@@ -52,7 +55,9 @@ testcellsign = [0,1]
 facemaps = HDGElasticity.reference_cell_facemaps(2)
 cellmap = HDGElasticity.CellMap(domain[1])
 facescale = HDGElasticity.face_determinant_jacobian(cellmap)
-dgmesh = HDGElasticity.DGMesh(domain,connectivity,cellsign,facemaps,facescale,cellmap)
+isinteriorcell = HDGElasticity.interior_cells(connectivity)
+dgmesh = HDGElasticity.DGMesh(domain,connectivity,isinteriorcell,
+    cellsign,facemaps,facescale,cellmap)
 @test allequal(dgmesh.domain,domain)
 @test all([allequal(dgmesh.connectivity[i],connectivity[i]) for i = 1:2])
 @test allequal(dgmesh.cellsign,cellsign)

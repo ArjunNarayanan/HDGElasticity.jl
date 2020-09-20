@@ -2,12 +2,14 @@ struct DGMesh{dim,T}
     ncells::Int
     domain::Vector{IntervalBox{dim,T}}
     connectivity::Vector{Vector{Tuple{Int,Int}}}
+    isinteriorcell::Vector{Bool}
     cellsign::Vector{Int}
     facemaps::Vector{LineMap{dim,T}}
     facescale::Vector{T}
     cellmap::CellMap{dim,T}
     function DGMesh(domain::Vector{IntervalBox{dim,T}},
         connectivity::Vector{Vector{Tuple{Int,Int}}},
+        isinteriorcell::Vector{Bool},
         cellsign::Vector{Int},facemaps::Vector{LineMap{dim,T}},
         facescale::Vector{T},cellmap::CellMap{dim,T}) where {dim,T}
 
@@ -18,8 +20,10 @@ struct DGMesh{dim,T}
         @assert length(connectivity) == ncells
         @assert length(cellsign) == ncells
         @assert length(facemaps) == nfaces
+        @assert length(isinteriorcell) == ncells
 
-        new{dim,T}(ncells,domain,connectivity,cellsign,facemaps,facescale,cellmap)
+        new{dim,T}(ncells,domain,connectivity,isinteriorcell,
+            cellsign,facemaps,facescale,cellmap)
 
     end
 end
@@ -31,9 +35,11 @@ function DGMesh(mesh::UniformMesh,coeffs,poly)
     cellmap = CellMap(domain[1])
     facescale = face_determinant_jacobian(cellmap)
     connectivity = cell_connectivity(mesh)
+    isinteriorcell = interior_cells(connectivity)
     cellsign = cell_signatures(coeffs,poly)
     facemaps = reference_cell_facemaps(dim)
-    return DGMesh(domain,connectivity,cellsign,facemaps,facescale,cellmap)
+    return DGMesh(domain,connectivity,isinteriorcell,
+        cellsign,facemaps,facescale,cellmap)
 end
 
 function cell_domain(mesh)
@@ -60,6 +66,20 @@ function cell_connectivity(mesh)
     end
     return connectivity
 end
+
+function is_interior_cell(cellconnectivity)
+    return all([c[1] != 0 for c in cellconnectivity])
+end
+
+function interior_cells(connectivity)
+    ncells = length(connectivity)
+    isinterior = zeros(Bool,ncells)
+    for cellid in 1:ncells
+        isinterior[cellid] = is_interior_cell(connectivity[cellid])
+    end
+    return isinterior
+end
+
 
 function cell_signatures!(cellsign,coeffs,poly)
 

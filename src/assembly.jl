@@ -125,6 +125,24 @@ function assemble_traction_face!(system_matrix::SystemMatrix,sbasis,facequad,
         colelids,dofsperelement)
 end
 
+function assemble_traction_face!(system_rhs::SystemRHS,sbasis,facequad,
+    facescale,rhsval,rowelid,dofsperelement)
+
+    rhs = -facescale*linear_form(rhsval,sbasis,facequad)
+    assemble!(system_rhs,rhs,rowelid,dofsperelement)
+end
+
+function assemble_traction_face!(system_rhs::SystemRHS,dgmesh::DGMesh,
+    ufs::UniformFunctionSpace,rhsval,facetohelid,phaseid,cellid,faceid)
+
+    rowelid = facetohelid[phaseid,cellid][faceid]
+    facequad = ufs.fquads[phaseid,cellid][faceid]
+    facescale = dgmesh.facescale[faceid]
+    dofsperelement = ufs.dofsperelement
+    assemble_traction_face!(system_rhs,ufs.sbasis,facequad,facescale,
+        rhsval,rowelid,dofsperelement)
+end
+
 function assemble_traction_face!(system_matrix::SystemMatrix,
     dgmesh::DGMesh,ufs::UniformFunctionSpace,cellsolvers::CellSolvers,
     phaseid,cellid,faceid,rowelid,colelids,dofsperelement)
@@ -317,4 +335,142 @@ function HybridElementNumbering(dgmesh,ufs)
     number_of_hybrid_elements = helidstop - 1
     return HybridElementNumbering(facetohelid,interfacehelid,
         number_of_hybrid_elements)
+end
+
+function interior_operator(ls)
+    return ls.LH'*ls.iLLxLH
+end
+
+function assemble_uniform_interior_faces!(system_matrix,cellsolvers,
+    cellsign,isinteriorcell,facetohelid,dofsperelement)
+
+    vals1 = vec(interior_operator(cellsolvers[1]))
+    vals2 = vec(interior_operator(cellsolvers[2]))
+    ncells = length(cellsign)
+    cellids = findall(isinteriorcell)
+
+    for cellid in cellids
+        s = cellsign[cellid]
+        if s == 1
+            helids = facetohelid[1,cellid]
+            @assert isnothing(findfirst(x->x==0,helids))
+            assemble!(system_matrix,vals1,helids,helids,dofsperelement)
+        elseif s == -1
+            helids = facetohelid[2,cellid]
+            @assert isnothing(findfirst(x->x==0,helids))
+            assemble!(system_matrix,vals2,helids,helids,dofsperelement)
+        end
+    end
+end
+
+function assemble_cut_interior_faces!(system_matrix,dgmesh,ufs,
+    cellsolvers,facetohelid,interfacehelid,phaseid,cellid)
+
+    dofsperelement = ufs.dofsperelement
+    fhelid = facetohelid[phaseid,cellid]
+    ihelid = interfacehelid[phaseid,cellid]
+    colelids = filter(x->x!=0,fhelid)
+    push!(colelids,ihelid)
+
+    for (faceid,helid) in enumerate(fhelid)
+        if helid != 0
+            assemble_traction_face!(system_matrix,
+                dgmesh,ufs,cellsolvers,phaseid,cellid,faceid,
+                helid,colelids,dofsperelement)
+        end
+    end
+end
+
+function assemble_cut_interior_faces!(system_matrix,dgmesh,ufs,
+    cellsolvers,facetohelid,interfacehelid)
+
+    cellsign = dgmesh.cellsign
+    isinteriorcell = dgmesh.isinteriorcell
+    cellids = findall([x==0 for x in cellsign] .& isinteriorcell)
+
+    for cellid in cellids
+        assemble_cut_interior_faces!(system_matrix,dgmesh,ufs,
+            cellsolvers,facetohelid,interfacehelid,1,cellid)
+        assemble_cut_interior_faces!(system_matrix,dgmesh,ufs,
+            cellsolvers,facetohelid,interfacehelid,2,cellid)
+    end
+end
+
+function assemble_boundary_face!(system_matrix,dgmesh,ufs,cellsolvers,
+    phaseid,cellid,faceid,midpoint,rowelid,colelids,bc_classifier,bc_data)
+
+    dofsperelement = ufs.dofsperelement
+    bdrytype = bc_classifier(midpoint)
+    if bdrytype == :displacement
+        assemble_displacement_face!(system_matrix,dgmesh,ufs,
+            phaseid,cellid,faceid,rowelid,dofsperelement)
+    elseif bdrytype == :traction
+        assemble_traction_face!(system_matrix,dgmesh,ufs,
+            cellsolvers,phaseid,cellid,faceid,rowelid,
+            colelids,dofsperelement)
+    elseif bdrytype == :mixed
+        dcomp,tcomp = bc_data[:mixed_components](midpoint)
+        assemble_mixed_face!(system_matrix,dgmesh,ufs,
+            cellsolvers,phaseid,cellid,faceid,dcomp,tcomp,
+            rowelid,colelids,dofsperelement)
+    else
+        error("Unexpected boundary type encountered")
+    end
+end
+
+function assemble_uniform_boundary_faces!(system_matrix,dgmesh,
+    ufs,cellsolvers,facetohelid,phaseid,cellid,bc_classifier,bc_data)
+
+    cellmap = CellMap(dgmesh.domain[cellid])
+    midpoints = face_midpoints(cellmap)
+    colelids = facetohelid[phaseid,cellid]
+    connectivity = dgmesh.connectivity[cellid]
+    dofsperelement = ufs.dofsperelement
+
+    for (faceid,xm) in enumerate(midpoints)
+        rowelid = colelids[faceid]
+        if connectivity[faceid][1] != 0
+            assemble_traction_face!(system_matrix,dgmesh,ufs,cellsolvers,
+                phaseid,cellid,faceid,rowelid,colelids,dofsperelement)
+        else
+            assemble_boundary_face!(system_matrix,dgmesh,ufs,cellsolvers,
+                phaseid,cellid,faceid,xm,rowelid,colelids,bc_classifier,
+                bc_data)
+        end
+    end
+end
+
+function assemble_uniform_boundary_faces!(system_matrix,dgmesh,
+    ufs,cellsolvers,facetohelid,bc_classifier,bc_data)
+
+    cellids = findall(.!dgmesh.isinteriorcell)
+    cellsign = dgmesh.cellsign
+    for cellid in cellids
+        if cellsign[cellid] == 1
+            assemble_uniform_boundary_faces!(system_matrix,dgmesh,
+            ufs,cellsolvers,facetohelid,1,cellid,bc_classifier,bc_data)
+        elseif cellsign[cellid] == -1
+            assemble_uniform_boundary_faces!(system_matrix,dgmesh,
+            ufs,cellsolvers,facetohelid,2,cellid,bc_classifier,bc_data)
+        end
+    end
+end
+
+function assemble_cut_boundary_faces!(system_matrix,dgmesh,
+    ufs,cellsolvers,facetohelid,interfacehelid,phaseid,cellid,
+    bc_classifier,bc_data)
+
+    dofsperelement = ufs.dofsperelement
+    fhelid = facetohelid[phaseid,cellid]
+    ihelid = interfacehelid[phaseid,cellid]
+    colelids = filter(x->x!=0,fhelid)
+    push!(colelids,ihelid)
+    cellmap = CellMap(dgmesh.domain[cellid])
+    xm = face_midpoints(cellmap)
+
+    for (faceid,helid) in enumerate(fhelid)
+        if helid != 0
+
+        end
+    end
 end
