@@ -4,7 +4,7 @@ using SparseArrays
 using CartesianMesh
 using PolynomialBasis
 using ImplicitDomainQuadrature
-using Revise
+# using Revise
 using HDGElasticity
 
 function allequal(u,v)
@@ -49,8 +49,7 @@ edofs = vcat([HDGElasticity.element_dofs(h,dofsperelement) for h in hids]...)
 vals1 = vec(cellsolvers[1].LH'*cellsolvers[1].iLLxLH)
 ndofs = length(edofs)
 rows = repeat(edofs,ndofs)
-cols = repeat(edofs,inner=ndofs)
-@test allequal(system_matrix.rows,rows)
+cols = repeat(edofs,inner=ndofs) @test allequal(system_matrix.rows,rows)
 @test allequal(system_matrix.cols,cols)
 @test allapprox(system_matrix.vals,vals1)
 

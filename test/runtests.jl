@@ -63,3 +63,7 @@ end
 @safetestset "Test Assembly" begin
     include("test_assembly.jl")
 end
+
+@safetestset "Test Assembly on Boundary Cells" begin
+    include("test_boundary_mesh_assembly.jl")
+end
