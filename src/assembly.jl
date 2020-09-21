@@ -253,6 +253,78 @@ function assemble_coherent_interface!(system_matrix,dgmesh,ufs,cellsolvers,
     end
 end
 
+function assemble_displacement_continuity_incoherent_interface!(system_matrix,
+    sbasis,iquad,imap,inormals,cellmap,rowelid,colelid,dofsperelement)
+
+    HH = HHop(sbasis,iquad,imap,inormals,inormals,cellmap)
+    assemble_displacement_coherent_interface!(system_matrix,HH,
+        rowelid,colelid,dofsperelement)
+end
+
+function assemble_free_slip_incoherent_interface!(system_matrix,vbasis,
+    sbasis,iquad,imap,inormals,Dhalf,stabilization,cellmap,iLLxLH,
+    rowelid,colelids,dofsperelement)
+
+    facescale = scale_area(cellmap,inormals)
+    itangents = tangents(inormals)
+    HLt = hybrid_local_operator_traction_components(sbasis,vbasis,
+        iquad,imap,inormals,itangents,Dhalf,stabilization,facescale)
+    HHt = stabilization*HHop(sbasis,iquad,imap,inormals,itangents,cellmap)
+    assemble_traction_face!(system_matrix,HLt,iLLxLH,HHt,rowelid,colelids,
+        dofsperelement)
+end
+
+function assemble_traction_continuity_incoherent_interface!(system_matrix,
+    vbasis,sbasis,iquad,imap,inormals,D1,D2,stabilization,cellmap,
+    iLLxLH1,iLLxLH2,hid1,colelids1,hid2,colelids2,dofsperelement)
+
+    facescale = scale_area(cellmap,inormals)
+    HL1 = hybrid_local_operator_traction_components(sbasis,vbasis,iquad,
+        imap,-inormals,inormals,D1,stabilization,facescale)
+    HL2 = hybrid_local_operator_traction_components(sbasis,vbasis,iquad,
+        imap,inormals,inormals,D2,stabilization,facescale)
+
+    HH = stabilization*HHop(sbasis,iquad,imap,inormals,inormals,cellmap)
+
+    assemble_traction_coherent_interface!(system_matrix,HL1,iLLxLH1,HL2,
+        iLLxLH2,HH,hid1,colelids1,hid2,colelids2,dofsperelement)
+end
+
+function assemble_incoherent_interface!(system_matrix,dgmesh,ufs,cellsolvers,
+    cellid,hid1,colelids1,hid2,colelids2,dofsperelement)
+
+    vbasis = ufs.vbasis
+    sbasis = ufs.sbasis
+    iquad = ufs.iquad
+    imap = ufs.imap
+    inormals = ufs.inormals[cellid]
+    dofsperelement = ufs.dofsperelement
+    stabilization = cellsolvers.stabilization
+    D1,D2 = cellsolvers.stiffness
+    cellmap = dgmesh.cellmap
+    update!(imap,ufs.icoeffs[cellid])
+
+    ls1 = cellsolvers[1,cellid]
+    ls2 = cellsolvers[2,cellid]
+
+    iLLxLH1 = ls1.iLLxLH
+    iLLxLH2 = ls2.iLLxLH
+
+    assemble_displacement_continuity_incoherent_interface!(system_matrix,
+        sbasis,iquad,imap,inormals,cellmap,hid1,hid2,dofsperelement)
+
+    assemble_free_slip_incoherent_interface!(system_matrix,vbasis,sbasis,
+        iquad,imap,-inormals,D1,stabilization,cellmap,iLLxLH1,hid1,colelids1,
+        dofsperelement)
+    assemble_free_slip_incoherent_interface!(system_matrix,vbasis,sbasis,
+        iquad,imap,inormals,D2,stabilization,cellmap,iLLxLH2,hid2,colelids2,
+        dofsperelement)
+
+    assemble_traction_continuity_incoherent_interface!(system_matrix,vbasis,
+        sbasis,iquad,imap,inormals,D1,D2,stabilization,cellmap,
+        iLLxLH1,iLLxLH2,hid1,colelids1,hid2,colelids2,dofsperelement)
+end
+
 function assemble_mixed_face!(system_matrix::SystemMatrix,vbasis,sbasis,
     facequad,facemap,facenormal,dcomp,tcomp,Dhalf,stabilization,facescale,
     iLLxLH,rowelid,colelids,dofsperelement)
