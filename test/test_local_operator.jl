@@ -99,3 +99,9 @@ lop = HDGElasticity.local_operator(ufs.vbasis,ufs.vquads[1,1],ufs.fquads[1,1],
     dgmesh.facemaps,ufs.iquad,ufs.imap,ufs.inormals[1],Dhalf,1.0,cellmap)
 @test size(lop) == (20,20)
 @test rank(lop) == 20
+
+B = HDGElasticity.body_force_linear_form(ufs.vbasis,ufs.vtpq,
+    [0.1,0.2],cellmap)
+@test length(B) == 20
+@test allapprox(B[1:12],zeros(12))
+@test allapprox(B[13:20],repeat([0.1,0.2],4))

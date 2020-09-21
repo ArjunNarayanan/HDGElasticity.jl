@@ -67,3 +67,7 @@ end
 @safetestset "Test Assembly on Boundary Cells" begin
     include("test_boundary_mesh_assembly.jl")
 end
+
+@safetestset "Test Incoherent Interface" begin
+    include("test_incoherent_interface.jl")
+end

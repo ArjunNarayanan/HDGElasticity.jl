@@ -95,3 +95,12 @@ function local_operator(basis,vquad,facequads,facemaps,iquad,imap,inormals,
         stabilization,cellmap)
     return local_operator(LL,LU,UU)
 end
+
+function body_force_linear_form(vbasis,vquad,bodyforce,cellmap)
+    dim = dimension(vbasis)
+    NF = number_of_basis_functions(vbasis)
+    sdim = symmetric_tensor_dimension(dim)
+    @assert length(bodyforce) == dim
+    rhs = determinant_jacobian(cellmap)*linear_form(bodyforce,vbasis,vquad)
+    return vcat(zeros(sdim*NF),rhs)
+end
